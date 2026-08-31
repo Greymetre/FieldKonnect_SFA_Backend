@@ -3660,12 +3660,12 @@
                         </div>
                     </div>
                     <div class="dropdown fk-user-menu">
+                        @php($profileImageUrl = auth()->user()->profileImageUrl())
                         <a class="fk-user-trigger" href="javascript:;" id="navbarDropdownProfile" data-toggle="dropdown"
                             aria-haspopup="true" aria-expanded="false">
                             <span class="fk-user-avatar">
-                                @if (auth()->user()->getMedia('profile_image')->count() > 0 &&
-                                Storage::disk('s3')->exists(auth()->user()->getMedia('profile_image')[0]->getPath()))
-                                <img src="{{ auth()->user()->getMedia('profile_image')[0]->getFullUrl() }}"
+                                @if ($profileImageUrl)
+                                <img src="{{ $profileImageUrl }}"
                                     alt="{{ auth()->user()->name }}">
                                 @else
                                 {{ $userInitials ?: 'AD' }}

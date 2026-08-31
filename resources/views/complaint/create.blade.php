@@ -804,7 +804,7 @@
                                  <div class="file-preview" id="filePreview"></div>
                               </div>
                               <div class="row mt-3">
-                                 @if($complaints->exists && $complaints->getMedia('complaint_attach')->count() > 0 && Storage::disk('s3')->exists($complaints->getMedia('complaint_attach')[0]->getPath()))
+                                 @if($complaints->exists && $complaints->getMedia('complaint_attach')->count() > 0 && Storage::disk('public')->exists($complaints->getMedia('complaint_attach')[0]->getPathRelativeToRoot()))
                                  @foreach($complaints->getMedia('complaint_attach') as $k=>$media)
                                  <div style="position: relative;" class="img-div">
                                     <button title="Delete Image" type="button" class="badge badge-danger delete-img-btn" data-mediaid="{{$media->id}}">X</button>

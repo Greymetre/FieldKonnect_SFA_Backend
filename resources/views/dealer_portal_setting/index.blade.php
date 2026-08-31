@@ -157,7 +157,7 @@
                            @endif
                         </div>
                      </div>
-                     @if(isset($dealer_portal_setting) && $dealer_portal_setting->getMedia('dealer_portal_slider_image')->count() > 0 && Storage::disk('s3')->exists($dealer_portal_setting->getMedia('dealer_portal_slider_image')[0]->getPath()))
+                     @if(isset($dealer_portal_setting) && $dealer_portal_setting->getMedia('dealer_portal_slider_image')->count() > 0 && Storage::disk('public')->exists($dealer_portal_setting->getMedia('dealer_portal_slider_image')[0]->getPathRelativeToRoot()))
 
                
                                           <div class="col-md-12">

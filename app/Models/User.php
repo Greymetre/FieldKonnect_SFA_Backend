@@ -10,6 +10,8 @@ use Laravel\Passport\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Illuminate\Support\Facades\Storage;
+use Throwable;
 
 
 class User extends Authenticatable implements HasMedia
@@ -87,6 +89,29 @@ class User extends Authenticatable implements HasMedia
             ->useFallbackUrl(asset(config('constants.NO_IMAGE_URL')))
             ->useFallbackPath(public_path(config('constants.NO_IMAGE_URL')))
             ->singleFile();
+    }
+
+    public function profileImageUrl(): ?string
+    {
+        try {
+            $media = $this->getFirstMedia('profile_image');
+
+            if ($media === null) {
+                return null;
+            }
+
+            $disk = Storage::disk($media->disk);
+
+            if (!$disk->exists($media->getPathRelativeToRoot())) {
+                return null;
+            }
+
+            return $media->getFullUrl();
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return null;
+        }
     }
 
     /**

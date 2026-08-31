@@ -441,10 +441,10 @@
                                  @if($warranty_activation->exists && $warranty_activation->getMedia('warranty_activation_attach')->count() > 0)
                                  @php
                                  $media = $warranty_activation->getFirstMedia('warranty_activation_attach');
-                                 $filePath = $media->getPath();
+                                 $filePath = $media->getPathRelativeToRoot();
                                  @endphp
 
-                                 @if(Storage::disk('s3')->exists($filePath))
+                                 @if(Storage::disk('public')->exists($filePath))
                                  @if($media->mime_type == 'application/pdf')
                                  <a href="{!! $media->getFullUrl() !!}" target="_blank">{{ $media->file_name }}</a>
                                  @else

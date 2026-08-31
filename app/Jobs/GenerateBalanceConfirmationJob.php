@@ -50,12 +50,12 @@ class GenerateBalanceConfirmationJob implements ShouldQueue
             $tempPath = storage_path('app/temp/' . $filename);
             file_put_contents($tempPath, $dompdf->output());
 
-            $s3Path = 'uploads/balance_confirmations/' . $filename;
-            $uploaded = Storage::disk('s3')->put($s3Path, fopen($tempPath, 'r+'));
+            $localPath = 'uploads/balance_confirmations/' . $filename;
+            $uploaded = Storage::disk('public')->put($localPath, fopen($tempPath, 'r+'));
             unlink($tempPath);
 
             if ($uploaded) {
-                $filePath = Storage::disk('s3')->url($s3Path);
+                $filePath = Storage::disk('public')->url($localPath);
                 Attachment::updateOrCreate(
                     ['document_name' => 'balance_confirmations', 'customer_id' => $value->customer->id],
                     ['file_path' => $filePath, 'active' => 'Y']

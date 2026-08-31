@@ -6,7 +6,7 @@ return [
      * The disk on which to store added files and derived images by default. Choose
      * one or more of the disks you've configured in config/filesystems.php.
      */
-    'disk_name' => env('MEDIA_DISK', 's3'),
+    'disk_name' => env('MEDIA_DISK', 'public'),
 
     /*
      * The maximum file size of an item in bytes.
@@ -38,8 +38,7 @@ return [
          * a remote disk. Even though supported headers may vary between
          * different drivers, a sensible default has been provided.
          *
-         * Supported by S3: CacheControl, Expires, StorageClass,
-         * ServerSideEncryption, Metadata, ACL, ContentEncoding
+         * Extra headers used by storage drivers that support them.
          */
         'extra_headers' => [
             'CacheControl' => 'max-age=604800',
@@ -94,7 +93,7 @@ return [
 
     /*
      * When urls to files get generated, this class will be called. Use the default
-     * if your files are stored locally above the site root or on s3.
+     * if your files are stored locally above the site root.
      */
     'url_generator' => Spatie\MediaLibrary\Support\UrlGenerator\DefaultUrlGenerator::class,
 
