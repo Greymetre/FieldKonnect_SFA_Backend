@@ -1,0 +1,27 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+
+class FieldKonnectAppSetting extends Model implements HasMedia
+{
+    use HasFactory,InteractsWithMedia;
+
+    protected $fillable = ['app_version', 'order_discount_limit', 'app_ios_version'];
+
+    public $timestamps = true;
+
+    public function registerMediaCollections(): void {
+
+        $this->addMediaCollection('product_catalogue')
+             ->useDisk('product_catalogues')
+             ->useFallbackUrl(asset(config('constants.NO_IMAGE_URL')))
+             ->useFallbackPath(public_path(config('constants.NO_IMAGE_URL')));
+
+    }
+
+}

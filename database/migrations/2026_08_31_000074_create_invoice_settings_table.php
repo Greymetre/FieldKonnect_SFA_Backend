@@ -1,0 +1,40 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\DB;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        DB::unprepared(<<<'SQL'
+CREATE TABLE `invoice_settings` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `invoice_logo` varchar(255) DEFAULT NULL,
+  `invoice_esign` varchar(255) DEFAULT NULL,
+  `company_name` varchar(255) DEFAULT NULL,
+  `gst_number` varchar(255) DEFAULT NULL,
+  `pan_number` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+SQL);
+
+        DB::unprepared(<<<'SQL'
+ALTER TABLE `invoice_settings`
+  ADD PRIMARY KEY (`id`);
+SQL);
+
+        DB::unprepared(<<<'SQL'
+ALTER TABLE `invoice_settings`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+SQL);
+    }
+
+    public function down(): void
+    {
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        DB::statement('DROP TABLE IF EXISTS `invoice_settings`');
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+    }
+};
