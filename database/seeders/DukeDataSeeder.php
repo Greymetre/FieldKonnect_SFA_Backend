@@ -25,6 +25,18 @@ class DukeDataSeeder extends Seeder
                 DB::unprepared($statement);
             }
 
+            // The legacy dump contains states linked to country_id 1, but does
+            // not contain the corresponding countries row.
+            DB::table('countries')->updateOrInsert(
+                ['id' => 1],
+                [
+                    'active' => 'Y',
+                    'country_name' => 'India',
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ]
+            );
+
             // Users receive permissions only through their assigned roles.
             DB::table('model_has_permissions')->delete();
 
