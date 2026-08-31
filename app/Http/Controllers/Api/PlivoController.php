@@ -213,5 +213,19 @@ class PlivoController extends Controller
             500,
             'Plivo credentials are not configured on the server.'
         );
+
+        foreach (['answer_url', 'status_url', 'recording_url'] as $configKey) {
+            $url = $this->webhookUrl($configKey, 'api/plivo/'.str_replace('_url', '', $configKey));
+            $host = parse_url($url, PHP_URL_HOST);
+
+            abort_unless(
+                filter_var($url, FILTER_VALIDATE_URL)
+                    && parse_url($url, PHP_URL_SCHEME) === 'https'
+                    && $host
+                    && !in_array(strtolower($host), ['localhost', '127.0.0.1', '::1'], true),
+                500,
+                'Plivo webhook URLs must use a public HTTPS domain.'
+            );
+        }
     }
 }
