@@ -102,7 +102,8 @@ class PlivoController extends Controller
 
         $xml = '<?xml version="1.0" encoding="UTF-8"?>'
             .'<Response>'
-            .'<Dial callerId="'.e(config('services.plivo.from_number')).'" callbackUrl="'.e($statusUrl).'" callbackMethod="POST" record="true" recordFileFormat="mp3" recordCallbackUrl="'.e($recordingUrl).'" recordCallbackMethod="POST">'
+            .'<Record startOnDialAnswer="true" redirect="false" callbackUrl="'.e($recordingUrl).'" callbackMethod="POST" />'
+            .'<Dial callerId="'.e(config('services.plivo.from_number')).'" callbackUrl="'.e($statusUrl).'" callbackMethod="POST">'
             .'<Number>'.e($customerNumber).'</Number>'
             .'</Dial>'
             .'</Response>';
