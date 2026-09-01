@@ -12,10 +12,48 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\URL;
+use Throwable;
 
 class CallLogController extends Controller
 {
     public function mobileHistory(Request $request)
+    {
+        try {
+            return $this->mobileHistoryResponse($request);
+        } catch (Throwable $exception) {
+            $reference = (string) \Illuminate\Support\Str::uuid();
+
+            Log::error('Mobile call history failed.', [
+                'reference' => $reference,
+                'user_id' => $request->user('users')?->id,
+                'exception' => $exception,
+            ]);
+
+            // A listing failure must never be interpreted by the app as an
+            // expired login. Keep the authenticated session/token untouched.
+            return response()->json([
+                'success' => false,
+                'status' => false,
+                'message' => 'Call history is temporarily unavailable.',
+                'data' => [],
+                'summary' => [
+                    'attempts' => 0,
+                    'connected' => 0,
+                    'not_connected' => 0,
+                    'duration' => 0,
+                ],
+                'pagination' => [
+                    'current_page' => 1,
+                    'last_page' => 1,
+                    'per_page' => min(100, max(1, (int) $request->input('page_size', 30))),
+                    'total' => 0,
+                ],
+                'error_reference' => $reference,
+            ], 200);
+        }
+    }
+
+    private function mobileHistoryResponse(Request $request)
     {
         $user = $request->user('users');
         if (!$user) {
@@ -70,6 +108,22 @@ class CallLogController extends Controller
             $contact = $log->lead ? $log->lead->contacts->first() : null;
             $connected = !empty($log->recording_url);
 
+            $recordingPlayUrl = null;
+            if ($connected) {
+                try {
+                    $recordingPlayUrl = URL::temporarySignedRoute(
+                        'api.call-recordings.play',
+                        now()->addHour(),
+                        ['callLog' => $log->id]
+                    );
+                } catch (Throwable $exception) {
+                    Log::warning('Could not generate call recording URL.', [
+                        'call_log_id' => $log->id,
+                        'exception' => $exception->getMessage(),
+                    ]);
+                }
+            }
+
             return [
                 'id' => $log->id,
                 'lead_id' => $log->lead_id,
@@ -80,11 +134,7 @@ class CallLogController extends Controller
                 'duration' => (int) $log->duration,
                 'connected' => $connected,
                 'remark' => $log->remark,
-                'recording_play_url' => $connected ? URL::temporarySignedRoute(
-                    'api.call-recordings.play',
-                    now()->addHour(),
-                    ['callLog' => $log->id]
-                ) : null,
+                'recording_play_url' => $recordingPlayUrl,
             ];
         })->values();
 
