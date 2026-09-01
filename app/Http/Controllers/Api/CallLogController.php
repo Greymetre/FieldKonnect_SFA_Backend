@@ -65,7 +65,9 @@ class CallLogController extends Controller
         $logs = $query->latest('started_at')->paginate($pageSize);
 
         $items = $logs->getCollection()->map(function (CallLog $log) {
-            $contact = optional($log->lead)->contacts->first();
+            // A call log can remain after its lead/contact has been deleted.
+            // Do not let an orphaned log fail the complete mobile listing.
+            $contact = $log->lead ? $log->lead->contacts->first() : null;
             $connected = !empty($log->recording_url);
 
             return [
@@ -94,6 +96,12 @@ class CallLogController extends Controller
                 'connected' => $connected,
                 'not_connected' => max(0, $attempts - $connected),
                 'duration' => (int) $duration,
+            ],
+            'pagination' => [
+                'current_page' => $logs->currentPage(),
+                'last_page' => $logs->lastPage(),
+                'per_page' => $logs->perPage(),
+                'total' => $logs->total(),
             ],
         ]);
     }
