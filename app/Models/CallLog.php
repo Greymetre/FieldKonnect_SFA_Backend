@@ -17,6 +17,8 @@ class CallLog extends Model
         'recording_duration',
         'user_id',
         'status',
+        'feedback_status_id',
+        'remark',
         'plivo_status',
         'plivo_call_uuid',
         'plivo_b_leg_uuid',
@@ -49,5 +51,10 @@ class CallLog extends Model
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id', 'id');
+    }
+
+    public function feedbackStatus()
+    {
+        return $this->belongsTo(Status::class, 'feedback_status_id', 'id');
     }
 }

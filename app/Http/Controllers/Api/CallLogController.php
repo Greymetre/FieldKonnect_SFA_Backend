@@ -31,6 +31,42 @@ class CallLogController extends Controller
         ]);
     }
 
+    public function submitFeedback(Request $request)
+    {
+        $user = $request->user('users');
+        $validated = $request->validate([
+            'call_log_id' => ['required', 'integer'],
+            'feedback_status_id' => ['required', 'integer'],
+            'message' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $status = Status::query()
+            ->whereKey($validated['feedback_status_id'])
+            ->where('module', Status::MODULE_CALL_FEEDBACK_STATUS)
+            ->where('active', 'Y')
+            ->firstOrFail();
+
+        $callLog = CallLog::query()
+            ->whereKey($validated['call_log_id'])
+            ->where('user_id', $user->id)
+            ->firstOrFail();
+
+        $callLog->update([
+            'feedback_status_id' => $status->id,
+            'remark' => trim($validated['message']),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Call feedback saved successfully.',
+            'data' => [
+                'call_log_id' => $callLog->id,
+                'feedback_status' => $status->only(['id', 'status_name', 'display_name']),
+                'message' => $callLog->remark,
+            ],
+        ]);
+    }
+
     public function mobileHistory(Request $request)
     {
         try {
@@ -86,7 +122,7 @@ class CallLogController extends Controller
         }
 
         $period = $request->input('period', 'weekly');
-        $query = CallLog::with(['lead:id,company_name', 'lead.contacts:id,lead_id,name,phone_number'])
+        $query = CallLog::with(['lead:id,company_name', 'lead.contacts:id,lead_id,name,phone_number', 'feedbackStatus:id,status_name,display_name'])
             ->where('user_id', $user->id);
 
         if ($period === 'today') {
@@ -150,6 +186,7 @@ class CallLogController extends Controller
                 'recording_duration' => $log->recording_duration,
                 'connected' => $connected,
                 'remark' => $log->remark,
+                'feedback_status' => $log->feedbackStatus,
                 'recording_play_url' => $recordingPlayUrl,
             ];
         })->values();

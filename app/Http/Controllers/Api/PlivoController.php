@@ -165,6 +165,8 @@ class PlivoController extends Controller
                 'status' => $callLog->plivo_status,
                 'answered' => (bool) $callLog->answered_at,
                 'completed' => (bool) $callLog->completed_at,
+                'duration' => (int) $callLog->duration,
+                'requires_feedback' => (bool) $callLog->completed_at && empty($callLog->remark),
             ],
         ]);
     }
