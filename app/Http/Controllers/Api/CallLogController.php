@@ -16,6 +16,21 @@ use Throwable;
 
 class CallLogController extends Controller
 {
+    public function feedbackStatuses()
+    {
+        $statuses = Status::query()
+            ->where('module', Status::MODULE_CALL_FEEDBACK_STATUS)
+            ->where('active', 'Y')
+            ->select('id', 'status_name', 'display_name', 'status_message')
+            ->orderBy('id')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $statuses,
+        ]);
+    }
+
     public function mobileHistory(Request $request)
     {
         try {

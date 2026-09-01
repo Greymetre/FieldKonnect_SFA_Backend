@@ -116,6 +116,7 @@ Route::get('call-recordings/{callLog}', [CallLogController::class, 'playRecordin
 Route::middleware('auth:users')->group(function () {
     Route::post('click-to-call', [PlivoController::class, 'makeCall']);
     Route::get('click-to-call/{callLog}/status', [PlivoController::class, 'callStatus']);
+    Route::get('call-feedback-statuses', [CallLogController::class, 'feedbackStatuses']);
     // POST is supported so search text can be sent in JSON when a hosting WAF
     // rejects particular query-string values before Laravel is reached.
     Route::match(['get', 'post'], 'my-call-history', [CallLogController::class, 'mobileHistory']);
