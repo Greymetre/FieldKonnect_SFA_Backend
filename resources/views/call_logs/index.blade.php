@@ -179,11 +179,6 @@
               $('#call_duration').text(json.summary.total_duration);
             }
             return json.data;
-          },
-          error: function(xhr) {
-            console.error('Call management request failed', xhr.status, xhr.responseText);
-            $('.alert .message').text('Call listing load nahi hui (HTTP ' + xhr.status + '). Please refresh or contact support.');
-            $('.alert').addClass('alert-danger').show();
           }
         },
         columns: [{

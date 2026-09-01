@@ -111,18 +111,6 @@ Route::get('call-recordings/{callLog}', [CallLogController::class, 'playRecordin
     ->middleware('signed')
     ->name('api.call-recordings.play');
 
-// Field-user mobile call APIs must use the users Passport provider. Keeping
-// these under auth:customers makes a valid field-user token return 401.
-Route::middleware('auth:users')->group(function () {
-    Route::post('click-to-call', [PlivoController::class, 'makeCall']);
-    Route::get('click-to-call/{callLog}/status', [PlivoController::class, 'callStatus']);
-    Route::get('my-call-history', [CallLogController::class, 'mobileHistory']);
-    Route::post('add-call-logs', [CallLogController::class, 'store']);
-    Route::get('get-call-logs', [CallLogController::class, 'index']);
-    Route::get('get-last-call', [CallLogController::class, 'last_call']);
-    Route::post('update-call-remark', [CallLogController::class, 'update_remark']);
-});
-
 Route::post('/get-location-by-pincode', [CustomerApiController::class,'getLocationByPincode']);
 Route::get('/getAppVersion', [CustomerApiController::class,'getAppVersion']);
 
@@ -448,4 +436,12 @@ Route::group(['middleware' => ['auth:users,customers']], function () {
     Route::post('leadSubmitCheckout', [LeadController::class, 'submitCheckout']);
     Route::any('leadGetCheckin', [LeadController::class, 'getCheckin']);
 
+    // Call logs routes
+    Route::post('click-to-call', [PlivoController::class, 'makeCall']);
+    Route::get('click-to-call/{callLog}/status', [PlivoController::class, 'callStatus']);
+    Route::get('my-call-history', [CallLogController::class, 'mobileHistory']);
+    Route::post('add-call-logs', [CallLogController::class, 'store']);
+    Route::get('get-call-logs', [CallLogController::class, 'index']);
+    Route::get('get-last-call', [CallLogController::class, 'last_call']);
+    Route::post('update-call-remark', [CallLogController::class, 'update_remark']);
 });

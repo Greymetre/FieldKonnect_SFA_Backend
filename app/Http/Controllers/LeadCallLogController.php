@@ -52,8 +52,8 @@ class LeadCallLogController extends Controller
             if ($request->has('lead_id')) {
                 $query->where('lead_id', $request->lead_id);
             }
-            $statusSearch = trim((string) $request->input('columns.6.search.value', ''));
-            if ($statusSearch !== '') {
+            if (!empty($request->columns[6]['search']['value'])) {
+                $statusSearch = $request->columns[6]['search']['value'];
             
                 // Adjust this according to how your status is stored
                 if (strtolower($statusSearch) === 'connected') {
@@ -71,7 +71,7 @@ class LeadCallLogController extends Controller
                     $query->where('status', 'like', "%{$statusSearch}%");
                 }
             }
-            // Clone query for summary counts before DataTables' text search/pagination.
+            // Clone query for counts before pagination/filtering of datatables
             $countsQuery = clone $query;
 
             $totalCalls = $countsQuery->count();
@@ -84,7 +84,7 @@ class LeadCallLogController extends Controller
                     ->orWhereNull('recording_url')
                     ->orWhere('recording_url', '');
             })->count();
-            $totalDurationSeconds = (int) (clone $countsQuery)
+            $totalDurationSeconds = (clone $countsQuery)
                 ->whereNotNull('recording_url')
                 ->where('recording_url', '!=', '')
                 ->sum('duration');
@@ -95,70 +95,54 @@ class LeadCallLogController extends Controller
             $seconds = $totalDurationSeconds % 60;
             $formattedDuration = sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
 
-            $search = trim((string) $request->input('search.value', ''));
-            if ($search !== '') {
-                $query->where(function ($searchQuery) use ($search) {
-                    $searchQuery->where('number', 'like', "%{$search}%")
-                        ->orWhereHas('user', function ($userQuery) use ($search) {
-                            $userQuery->where('name', 'like', "%{$search}%");
-                        })
-                        ->orWhereHas('lead', function ($leadQuery) use ($search) {
-                            $leadQuery->where('company_name', 'like', "%{$search}%")
-                                ->orWhereHas('contacts', function ($contactQuery) use ($search) {
-                                    $contactQuery->where('name', 'like', "%{$search}%");
-                                });
-                        });
-                });
-            }
+            // DataTable response
+            $call_logs = $query->orderBy('started_at', 'desc');
+            
+            // return data to datatable
+            return datatables()->of($call_logs)
+                ->editColumn('started_at', function ($row) {
+                    return date('d/m/Y h:i A', strtotime($row->started_at));
+                })
+                ->editColumn('duration', function ($row) {
+                    $seconds = (int) $row->duration;
 
-            $filteredCalls = (clone $query)->count();
-            $start = max(0, (int) $request->input('start', 0));
-            $length = min(100, max(1, (int) $request->input('length', 10)));
-            $callLogs = $query->orderByDesc('started_at')->skip($start)->take($length)->get();
+                    $hours = floor($seconds / 3600);
+                    $minutes = floor(($seconds % 3600) / 60);
+                    $seconds = $seconds % 60;
 
-            $data = $callLogs->map(function (CallLog $row) {
-                $duration = (int) $row->duration;
-                $connected = (int) $row->status === 1 && !empty($row->recording_url);
-                $badge = $connected ? 'badge-success' : 'badge-danger';
-                $label = $connected ? 'Connected' : 'Not Connected';
-                $contact = $row->lead?->contacts->first();
-
-                $recording = '<span class="text-muted">Processing / unavailable</span>';
-                if (!empty($row->recording_url)) {
-                    $recording = '<audio controls preload="none" style="width:220px;height:36px">'
-                        .'<source src="'.e(route('call-management.recording', $row)).'" type="audio/mpeg">'
+                    return sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
+                })
+                ->addColumn('status', function ($row) {
+                    $connected = (int) $row->status === 1 && !empty($row->recording_url);
+                    $badge = $connected ? 'badge-success' : 'badge-danger';
+                    $label = $connected ? 'Connected' : 'Not Connected';
+                    return '<span class="badge '.$badge.'">'.$label.'</span>';
+                })
+                ->addColumn('customer_name', function ($row) {
+                    return optional(optional($row->lead)->contacts->first())->name ?: '-';
+                })
+                ->addColumn('recording', function ($row) {
+                    if (!$row->recording_url) {
+                        return '<span class="text-muted">Processing / unavailable</span>';
+                    }
+                    return '<audio controls preload="none" style="width:220px;height:36px">'
+                        .'<source src="'.route('call-management.recording', $row).'" type="audio/mpeg">'
                         .'Your browser does not support audio playback.</audio>';
-                }
-
-                return [
-                    'user' => ['name' => $row->user?->name ?: '-'],
-                    'customer_name' => $contact?->name ?: '-',
-                    'lead' => ['company_name' => $row->lead?->company_name ?: '-'],
-                    'number' => $row->number ?: '-',
-                    'started_at' => $row->started_at?->format('d/m/Y h:i A') ?: '-',
-                    'duration' => sprintf(
-                        '%02d:%02d:%02d',
-                        intdiv($duration, 3600),
-                        intdiv($duration % 3600, 60),
-                        $duration % 60
-                    ),
-                    'status' => '<span class="badge '.$badge.'">'.$label.'</span>',
-                    'recording' => $recording,
-                ];
-            })->values();
-
-            return response()->json([
-                'draw' => (int) $request->input('draw', 0),
-                'recordsTotal' => $totalCalls,
-                'recordsFiltered' => $filteredCalls,
-                'data' => $data,
-                'summary' => [
-                    'total' => $totalCalls,
-                    'connected' => $connectedCalls,
-                    'no_response' => $noResponseCalls,
-                    'total_duration' => $formattedDuration,
-                ],
-            ]);
+                })
+                ->addColumn('lead_status', function ($row) {
+                    if (!$row->lead) return 'Not Found';
+                    return $row->lead->status_is->status_name;
+                })
+                ->rawColumns(['started_at', 'duration', 'status', 'recording'])
+                ->with([
+                    'summary' => [
+                        'total' => $totalCalls,
+                        'connected' => $connectedCalls,
+                        'no_response' => $noResponseCalls,
+                        'total_duration' => $formattedDuration,
+                    ]
+                ])
+                ->make(true);
         }
 
         return view('call_logs.index', compact('users'));
