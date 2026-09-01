@@ -627,9 +627,12 @@ class UserController extends Controller
                 ? $request->query('user_id')
                 : $request->user()->id;
 
-            // Optional: Add permission check (very recommended!)
-            // Example: only allow if current user is admin or viewing own data
-            if ($targetUserId != $request->user()->id && !Gate::allows('view-other-users-data')) {
+            // Managers may create tour plans for users in their reporting tree.
+            $accessibleUserIds = array_map('intval', getUsersReportingToAuth($request->user()->id));
+            if (
+                (int) $targetUserId !== (int) $request->user()->id
+                && !in_array((int) $targetUserId, $accessibleUserIds, true)
+            ) {
                 return response()->json([
                     'status'  => 'error',
                     'message' => 'Unauthorized to view other user\'s data'
@@ -695,8 +698,11 @@ class UserController extends Controller
                 ? $request->query('user_id')
                 : $request->user()->id;
 
-            // Optional: permission check (recommended)
-            if ($targetUserId != $request->user()->id && !Gate::allows('view-other-users-data')) {
+            $accessibleUserIds = array_map('intval', getUsersReportingToAuth($request->user()->id));
+            if (
+                (int) $targetUserId !== (int) $request->user()->id
+                && !in_array((int) $targetUserId, $accessibleUserIds, true)
+            ) {
                 return response()->json([
                     'status'  => 'error',
                     'message' => 'Unauthorized to view other user\'s data'

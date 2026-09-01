@@ -52,8 +52,8 @@ class LeadCallLogController extends Controller
             if ($request->has('lead_id')) {
                 $query->where('lead_id', $request->lead_id);
             }
-            if (!empty($request->columns[6]['search']['value'])) {
-                $statusSearch = $request->columns[6]['search']['value'];
+            $statusSearch = trim((string) $request->input('columns.6.search.value', ''));
+            if ($statusSearch !== '') {
             
                 // Adjust this according to how your status is stored
                 if (strtolower($statusSearch) === 'connected') {
@@ -84,7 +84,7 @@ class LeadCallLogController extends Controller
                     ->orWhereNull('recording_url')
                     ->orWhere('recording_url', '');
             })->count();
-            $totalDurationSeconds = (clone $countsQuery)
+            $totalDurationSeconds = (int) (clone $countsQuery)
                 ->whereNotNull('recording_url')
                 ->where('recording_url', '!=', '')
                 ->sum('duration');
@@ -128,10 +128,6 @@ class LeadCallLogController extends Controller
                     return '<audio controls preload="none" style="width:220px;height:36px">'
                         .'<source src="'.route('call-management.recording', $row).'" type="audio/mpeg">'
                         .'Your browser does not support audio playback.</audio>';
-                })
-                ->addColumn('lead_status', function ($row) {
-                    if (!$row->lead) return 'Not Found';
-                    return $row->lead->status_is->status_name;
                 })
                 ->rawColumns(['started_at', 'duration', 'status', 'recording'])
                 ->with([
