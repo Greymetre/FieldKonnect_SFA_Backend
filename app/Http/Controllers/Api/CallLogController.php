@@ -132,6 +132,7 @@ class CallLogController extends Controller
                 'number' => $log->number,
                 'started_at' => optional($log->started_at)->toIso8601String(),
                 'duration' => (int) $log->duration,
+                'recording_duration' => $log->recording_duration,
                 'connected' => $connected,
                 'remark' => $log->remark,
                 'recording_play_url' => $recordingPlayUrl,

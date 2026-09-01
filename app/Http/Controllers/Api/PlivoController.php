@@ -13,6 +13,8 @@ use Throwable;
 
 class PlivoController extends Controller
 {
+    private const RECORDING_MAX_LENGTH_SECONDS = 3600;
+
     public function makeCall(Request $request)
     {
         $validated = $request->validate([
@@ -102,7 +104,7 @@ class PlivoController extends Controller
 
         $xml = '<?xml version="1.0" encoding="UTF-8"?>'
             .'<Response>'
-            .'<Record startOnDialAnswer="true" redirect="false" callbackUrl="'.e($recordingUrl).'" callbackMethod="POST" />'
+            .'<Record startOnDialAnswer="true" redirect="false" maxLength="'.self::RECORDING_MAX_LENGTH_SECONDS.'" finishOnKey="none" callbackUrl="'.e($recordingUrl).'" callbackMethod="POST" />'
             .'<Dial callerId="'.e(config('services.plivo.from_number')).'" callbackUrl="'.e($statusUrl).'" callbackMethod="POST">'
             .'<Number>'.e($customerNumber).'</Number>'
             .'</Dial>'
@@ -175,7 +177,9 @@ class PlivoController extends Controller
         $callLog->update(array_filter([
             'recording_url' => $recordingUrl,
             'recording_id' => $request->input('RecordingID', $request->input('RecordingUUID')),
-            'duration' => is_numeric($duration) && (int) $duration >= 0 ? (int) $duration : null,
+            // Keep call duration and recording duration independent. Plivo may
+            // deliver their webhooks in either order during concurrent calls.
+            'recording_duration' => is_numeric($duration) && (int) $duration >= 0 ? (int) $duration : null,
             'status' => $recordingUrl ? 1 : null,
         ], static fn ($value) => $value !== null && $value !== ''));
 

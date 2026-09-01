@@ -14,6 +14,7 @@ class CallLog extends Model
         'number',
         'started_at',
         'duration',
+        'recording_duration',
         'user_id',
         'status',
         'plivo_status',
@@ -31,6 +32,8 @@ class CallLog extends Model
 
     protected $casts = [
         'started_at' => 'datetime',
+        'duration' => 'integer',
+        'recording_duration' => 'integer',
         'answered_at' => 'datetime',
         'completed_at' => 'datetime',
     ];
