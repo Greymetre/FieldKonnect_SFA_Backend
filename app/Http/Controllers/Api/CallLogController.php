@@ -12,16 +12,67 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\URL;
+use Throwable;
 
 class CallLogController extends Controller
 {
     public function mobileHistory(Request $request)
     {
-        abort_unless($request->user()->call_management, 403, 'Call history is not enabled for this user.');
+        try {
+            return $this->mobileHistoryResponse($request);
+        } catch (Throwable $exception) {
+            $reference = (string) \Illuminate\Support\Str::uuid();
+
+            Log::error('Mobile call history failed.', [
+                'reference' => $reference,
+                'user_id' => $request->user('users')?->id,
+                'exception' => $exception,
+            ]);
+
+            // A listing failure must never be interpreted by the app as an
+            // expired login. Keep the authenticated session/token untouched.
+            return response()->json([
+                'success' => false,
+                'status' => false,
+                'message' => 'Call history is temporarily unavailable.',
+                'data' => [],
+                'summary' => [
+                    'attempts' => 0,
+                    'connected' => 0,
+                    'not_connected' => 0,
+                    'duration' => 0,
+                ],
+                'pagination' => [
+                    'current_page' => 1,
+                    'last_page' => 1,
+                    'per_page' => min(100, max(1, (int) $request->input('page_size', 30))),
+                    'total' => 0,
+                ],
+                'error_reference' => $reference,
+            ], 200);
+        }
+    }
+
+    private function mobileHistoryResponse(Request $request)
+    {
+        $user = $request->user('users');
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated. Please login again.',
+            ], 401);
+        }
+
+        if (!$user->call_management) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Call history is not enabled for this user.',
+            ], 403);
+        }
 
         $period = $request->input('period', 'weekly');
         $query = CallLog::with(['lead:id,company_name', 'lead.contacts:id,lead_id,name,phone_number'])
-            ->where('user_id', $request->user()->id);
+            ->where('user_id', $user->id);
 
         if ($period === 'today') {
             $query->whereDate('started_at', today());
@@ -31,8 +82,8 @@ class CallLogController extends Controller
             $query->where('started_at', '>=', now()->startOfWeek());
         }
 
-        if ($request->filled('search')) {
-            $search = trim($request->search);
+        $search = trim((string) $request->input('q', $request->input('search', '')));
+        if ($search !== '') {
             $query->where(function ($searchQuery) use ($search) {
                 $searchQuery->where('number', 'like', "%{$search}%")
                     ->orWhereHas('lead', function ($leadQuery) use ($search) {
@@ -48,11 +99,30 @@ class CallLogController extends Controller
         $attempts = (clone $summaryQuery)->count();
         $connected = (clone $summaryQuery)->whereNotNull('recording_url')->where('recording_url', '!=', '')->count();
         $duration = (clone $summaryQuery)->whereNotNull('recording_url')->where('recording_url', '!=', '')->sum('duration');
-        $logs = $query->latest('started_at')->paginate((int) $request->input('page_size', 30));
+        $pageSize = min(100, max(1, (int) $request->input('page_size', 30)));
+        $logs = $query->latest('started_at')->paginate($pageSize);
 
         $items = $logs->getCollection()->map(function (CallLog $log) {
-            $contact = optional($log->lead)->contacts->first();
+            // A call log can remain after its lead/contact has been deleted.
+            // Do not let an orphaned log fail the complete mobile listing.
+            $contact = $log->lead ? $log->lead->contacts->first() : null;
             $connected = !empty($log->recording_url);
+
+            $recordingPlayUrl = null;
+            if ($connected) {
+                try {
+                    $recordingPlayUrl = URL::temporarySignedRoute(
+                        'api.call-recordings.play',
+                        now()->addHour(),
+                        ['callLog' => $log->id]
+                    );
+                } catch (Throwable $exception) {
+                    Log::warning('Could not generate call recording URL.', [
+                        'call_log_id' => $log->id,
+                        'exception' => $exception->getMessage(),
+                    ]);
+                }
+            }
 
             return [
                 'id' => $log->id,
@@ -64,11 +134,7 @@ class CallLogController extends Controller
                 'duration' => (int) $log->duration,
                 'connected' => $connected,
                 'remark' => $log->remark,
-                'recording_play_url' => $connected ? URL::temporarySignedRoute(
-                    'api.call-recordings.play',
-                    now()->addHour(),
-                    ['callLog' => $log->id]
-                ) : null,
+                'recording_play_url' => $recordingPlayUrl,
             ];
         })->values();
 
@@ -80,6 +146,12 @@ class CallLogController extends Controller
                 'connected' => $connected,
                 'not_connected' => max(0, $attempts - $connected),
                 'duration' => (int) $duration,
+            ],
+            'pagination' => [
+                'current_page' => $logs->currentPage(),
+                'last_page' => $logs->lastPage(),
+                'per_page' => $logs->perPage(),
+                'total' => $logs->total(),
             ],
         ]);
     }
@@ -150,11 +222,19 @@ class CallLogController extends Controller
      */
     public function index(Request $request)
     {
-        $user_ids = getUsersReportingToAuth($request->user()->id);
-        $users = User::select('id', 'name')->where('active', 'Y');
-        $pageSize = $request->has('page_size') ? $request->page_size : 20;
+        $user = $request->user('users');
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated. Please login again.',
+            ], 401);
+        }
 
-        if (!Auth::user()->hasRole('superadmin') && !Auth::user()->hasRole('Admin')) {
+        $user_ids = getUsersReportingToAuth($user->id);
+        $users = User::select('id', 'name')->where('active', 'Y');
+        $pageSize = min(100, max(1, (int) $request->input('page_size', 20)));
+
+        if (!$user->hasRole('superadmin') && !$user->hasRole('Admin')) {
             $users = $users->whereIn('id', $user_ids);
         }
         $users = $users->get();
@@ -170,7 +250,7 @@ class CallLogController extends Controller
             $query->whereDate('started_at', $request->date);
         }
 
-        if (!Auth::user()->hasRole('superadmin') && !Auth::user()->hasRole('Admin')) {
+        if (!$user->hasRole('superadmin') && !$user->hasRole('Admin')) {
             $query->whereIn('user_id', $user_ids); // ✅ should be user_id not id
         }
 
@@ -178,28 +258,26 @@ class CallLogController extends Controller
             $query->where('lead_id', $request->lead_id);
         }
 
-        // Clone query for totals (without pagination)
-        $allLogs = (clone $query)->get();
-
-        // Paginated logs
+        $summaryQuery = clone $query;
+        $totalDuration = (int) (clone $summaryQuery)->sum('duration');
+        $callDialed = (clone $summaryQuery)->count();
+        $connected = (clone $summaryQuery)->where('status', 1)->count();
+        $noResponse = (clone $summaryQuery)->where('status', 0)->count();
         $logs = $query->latest('started_at')->paginate($pageSize);
 
-        // Totals for ALL logs
-        $totalDuration = $allLogs->sum('duration');
-        $callDialed    = $allLogs->count();
-        $connected     = $allLogs->where('status', 1)->count();
-        $noResponse    = $allLogs->where('status', 0)->count();
+        $items = $logs->getCollection()->map(function (CallLog $log) {
+            $contact = $log->lead?->contacts->first();
+            $duration = max(0, (int) $log->duration);
 
-        foreach ($logs as $log) {
-            $log->contact_name = $log->lead ? $log->lead->contacts->first()->name : '';
-            $log->duration = gmdate('i:s', $log->duration);
-        }
-
-        // dd($totalDuration);
+            return array_merge($log->toArray(), [
+                'contact_name' => $contact?->name ?: '',
+                'duration' => sprintf('%02d:%02d', intdiv($duration, 60), $duration % 60),
+            ]);
+        })->values();
 
         return response()->json([
             'success' => true,
-            'data'    => $logs->items(),
+            'data'    => $items,
             'users'   => $users,
             'call_dialted'   => $callDialed,
             'connected'      => $connected,
@@ -210,11 +288,19 @@ class CallLogController extends Controller
 
     public function last_call(Request $request)
     {
-        $user_id = $request->user()->id;
+        $user = $request->user('users');
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated. Please login again.',
+            ], 401);
+        }
+
+        $user_id = $user->id;
         $last_call = CallLog::where('user_id', $user_id)->latest()->first();
         $data['last_call_id'] = $last_call ? $last_call->id : '';
         $data['last_call_remark'] = $last_call ? ($last_call->remark ? true : false) : true;
-        $data['lead_type'] = $last_call ? ($last_call->lead ? $last_call->lead->status_is->status_name : 'lead not found') : '';
+        $data['lead_type'] = $last_call?->lead?->status_is?->status_name ?? ($last_call ? 'lead not found' : '');
         $data['lead_type_id'] = $last_call ? ($last_call->lead ? $last_call->lead->status : 'lead not found') : '';
         $data['all_types'] = Status::where('module', 'LeadStatus')->select('id', 'display_name')->get();
         return response()->json([
