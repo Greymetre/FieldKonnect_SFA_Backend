@@ -188,12 +188,28 @@ class CallManagementController extends Controller
         abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $request->validateWithBag('importCall', [
-            'import_file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
+            'import_file' => [
+                'bail',
+                'required',
+                'file',
+                'max:10240',
+                function ($attribute, $file, $fail) {
+                    if (! in_array(strtolower($file->getClientOriginalExtension()), ['xlsx', 'xls', 'csv'], true)) {
+                        $fail('Please select a valid XLSX, XLS or CSV file.');
+                    }
+                },
+            ],
         ]);
 
         try {
             $import = new CallManagementEntryImport(auth()->id());
             Excel::import($import, $request->file('import_file'));
+
+            if (($import->createdCount() + $import->updatedCount() + $import->skippedCount()) === 0) {
+                throw ValidationException::withMessages([
+                    'import_file' => 'No data rows found. Please use the exported Excel column headings.',
+                ]);
+            }
 
             $redirect = redirect()->route('calls.index')->with(
                 'message_success',

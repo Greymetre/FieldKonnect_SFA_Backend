@@ -13,6 +13,11 @@
         .calls-icon-btn, .calls-filter-btn, .calls-add-btn { display: inline-flex; align-items: center; justify-content: center; border: 1px solid rgba(85, 126, 218, .32); border-radius: 12px; background: rgba(7, 20, 49, .62); color: #c7d5f5; box-shadow: none; }
         .calls-icon-btn { width: 45px; height: 45px; padding: 0; text-decoration: none; cursor: pointer; }
         .calls-toolbar form { margin: 0; }
+        .calls-import-loader { position: fixed; inset: 0; z-index: 12000; display: none; align-items: center; justify-content: center; background: rgba(2, 8, 23, .78); backdrop-filter: blur(3px); }
+        .calls-import-loader.show { display: flex; }
+        .calls-import-loader-box { display: flex; align-items: center; gap: 13px; padding: 18px 24px; border: 1px solid rgba(34, 211, 238, .4); border-radius: 14px; background: #0b2049; color: #dce8ff; font-size: 14px; font-weight: 700; }
+        .calls-import-spinner { width: 24px; height: 24px; border: 3px solid rgba(34, 211, 238, .25); border-top-color: #22d3ee; border-radius: 50%; animation: calls-spin .75s linear infinite; }
+        @keyframes calls-spin { to { transform: rotate(360deg); } }
         .calls-filter-btn { height: 45px; gap: 8px; padding: 0 18px; }
         .calls-add-btn { width: 168px; height: 42px; gap: 7px; padding: 0 16px; border-color: transparent; border-radius: 10px; background: linear-gradient(135deg, #31cfe5, #438ff0); color: #061329; font-size: 14px; font-weight: 700; }
         .calls-toolbar button[disabled] { cursor: default; opacity: 1; }
@@ -126,10 +131,12 @@
             <div class="calls-toolbar">
                 <form id="callsImportForm" action="{{ route('calls.import') }}" method="POST" enctype="multipart/form-data">
                     @csrf
-                    <input id="callsImportFile" name="import_file" type="file" accept=".xlsx,.xls,.csv" hidden>
-                    <button class="calls-icon-btn" id="openCallsImport" type="button" title="Import Excel" aria-label="Import Excel">
+                    <input id="callsImportFile" name="import_file" type="file" accept=".xlsx,.xls,.csv" hidden
+                           onchange="if (this.files.length) { document.getElementById('callsImportLoader').classList.add('show'); this.form.submit(); }">
+                    <label class="calls-icon-btn" for="callsImportFile" title="Import Excel" aria-label="Import Excel"
+                           onclick="document.getElementById('callsImportFile').value = ''">
                         <i class="material-icons">cloud_upload</i>
-                    </button>
+                    </label>
                 </form>
                 <a class="calls-icon-btn" href="{{ route('calls.export') }}" title="Export Excel" aria-label="Export Excel">
                     <i class="material-icons">cloud_download</i>
@@ -137,6 +144,13 @@
                 <button class="calls-add-btn" id="openAddCallModal" type="button"><i class="material-icons">add_circle_outline</i>Add Manually</button>
             </div>
         </header>
+
+        <div class="calls-import-loader" id="callsImportLoader" role="status" aria-live="polite">
+            <div class="calls-import-loader-box">
+                <span class="calls-import-spinner"></span>
+                <span>Importing calls, please wait...</span>
+            </div>
+        </div>
 
         <div class="calls-filter-panel" id="callsFilterPanel">
             <div class="calls-search"><i class="material-icons">search</i><input class="calls-control" id="callsSearch" type="search" placeholder="Search firm or mobile" autocomplete="off"></div>
@@ -308,23 +322,10 @@
             const callFormMethod = document.getElementById('callFormMethod');
             const callFormSubmit = document.getElementById('callFormSubmit');
             const callFormTitle = document.getElementById('addCallModalTitle');
-            const importButton = document.getElementById('openCallsImport');
-            const importFile = document.getElementById('callsImportFile');
-            const importForm = document.getElementById('callsImportForm');
             const createCallUrl = @json(route('calls.store'));
             const callerOptions = @json($callers->map(fn ($caller) => ['id' => $caller->id, 'name' => $caller->name])->values());
             const rows = () => Array.from(document.querySelectorAll('#callsTableBody tr[data-search]'));
             const visibleRows = () => rows().filter(row => !row.hidden);
-
-            importButton.addEventListener('click', function () {
-                importFile.click();
-            });
-            importFile.addEventListener('change', function () {
-                if (!this.files.length) return;
-                importButton.disabled = true;
-                importButton.title = 'Importing...';
-                importForm.submit();
-            });
 
             function setModal(open) {
                 modal.classList.toggle('show', open);
