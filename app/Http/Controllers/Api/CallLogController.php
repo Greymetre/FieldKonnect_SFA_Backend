@@ -19,7 +19,7 @@ class CallLogController extends Controller
     public function feedbackStatuses()
     {
         $statuses = Status::query()
-            ->where('module', Status::MODULE_CALL_FEEDBACK_STATUS)
+            ->where('module', Status::MODULE_LEAD_CALL_FEEDBACK)
             ->where('active', 'Y')
             ->select('id', 'status_name', 'display_name', 'status_message')
             ->orderBy('id')
@@ -42,7 +42,7 @@ class CallLogController extends Controller
 
         $status = Status::query()
             ->whereKey($validated['feedback_status_id'])
-            ->where('module', Status::MODULE_CALL_FEEDBACK_STATUS)
+            ->where('module', Status::MODULE_LEAD_CALL_FEEDBACK)
             ->where('active', 'Y')
             ->firstOrFail();
 

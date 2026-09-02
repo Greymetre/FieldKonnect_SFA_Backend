@@ -9,7 +9,8 @@ class Status extends Model
 {
     use HasFactory;
 
-    public const MODULE_CALL_FEEDBACK_STATUS = 'CallFeedbackStatus';
+    public const MODULE_LEAD_CALL_FEEDBACK = 'CallFeedbackStatus';
+    public const MODULE_CALL_MANAGEMENT_FEEDBACK = 'CallManagementFeedback';
 
     protected $table = 'statuses';
 

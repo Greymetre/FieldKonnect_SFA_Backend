@@ -23,6 +23,16 @@ class StatusDataTable extends DataTable
             {
                 return isset($data->created_at) ? showdatetimeformat($data->created_at) : '';
             })
+            ->editColumn('module', function ($data) {
+                if ($data->module === Status::MODULE_LEAD_CALL_FEEDBACK) {
+                    return 'Lead Call Feedback';
+                }
+                if ($data->module === Status::MODULE_CALL_MANAGEMENT_FEEDBACK) {
+                    return 'Call Management Feedback';
+                }
+
+                return $data->module;
+            })
             ->addColumn('action', function ($query) {
                   $btn = '';
                   $activebtn ='';

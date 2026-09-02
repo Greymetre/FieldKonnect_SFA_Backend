@@ -155,7 +155,8 @@
                       <option value="Payment Status" {{ old( 'module' , (!empty($status->module))?($status->module):('') ) == 'Payment Status' ? 'selected' : '' }}>Payment Status</option>
                       <option value="Coupons" {{ old( 'module' , (!empty($status->module))?($status->module):('') ) == 'Coupons' ? 'selected' : '' }}>Coupons</option>
                       <option value="Campaign Status" {{ old( 'module' , (!empty($status->module))?($status->module):('') ) == 'Campaign Status' ? 'selected' : '' }}>Campaign Status</option>
-                      <option value="{{ \App\Models\Status::MODULE_CALL_FEEDBACK_STATUS }}" {{ old('module', (!empty($status->module)) ? $status->module : '') == \App\Models\Status::MODULE_CALL_FEEDBACK_STATUS ? 'selected' : '' }}>Call Feedback Status</option>
+                      <option value="{{ \App\Models\Status::MODULE_LEAD_CALL_FEEDBACK }}" {{ old('module', (!empty($status->module)) ? $status->module : '') == \App\Models\Status::MODULE_LEAD_CALL_FEEDBACK ? 'selected' : '' }}>Lead Call Feedback</option>
+                      <option value="{{ \App\Models\Status::MODULE_CALL_MANAGEMENT_FEEDBACK }}" {{ old('module', (!empty($status->module)) ? $status->module : '') == \App\Models\Status::MODULE_CALL_MANAGEMENT_FEEDBACK ? 'selected' : '' }}>Call Management Feedback</option>
                     </select>
                   </div>
                   @if ($errors->has('module'))
@@ -212,7 +213,7 @@
         $('#status_name').val(data.status_name);
         $('#display_name').val(data.display_name);
         $('#status_message').val(data.status_message);
-        $("#module").append('<option value="'+data.module+'" selected="selected">'+data.module+'</option>');
+        $("#module").val(data.module).trigger('change');
         $('#status_id').val(data.id);
         var title = '{!! trans('panel.global.edit') !!}' ;
         $('.modal-title').text(title);

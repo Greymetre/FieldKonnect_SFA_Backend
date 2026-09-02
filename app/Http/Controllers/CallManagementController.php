@@ -74,7 +74,7 @@ class CallManagementController extends Controller
             ->latest('id')
             ->get();
         $feedbackStatuses = Status::query()
-            ->where('module', Status::MODULE_CALL_FEEDBACK_STATUS)
+            ->where('module', Status::MODULE_CALL_MANAGEMENT_FEEDBACK)
             ->where('active', 'Y')
             ->orderBy('id')
             ->get(['id', 'status_name', 'display_name']);
@@ -191,7 +191,7 @@ class CallManagementController extends Controller
         ]);
         $status = Status::query()
             ->whereKey($validated['feedback_status_id'])
-            ->where('module', Status::MODULE_CALL_FEEDBACK_STATUS)
+            ->where('module', Status::MODULE_CALL_MANAGEMENT_FEEDBACK)
             ->where('active', 'Y')
             ->firstOrFail();
         $callLog->update(['feedback_status_id' => $status->id, 'remark' => trim($validated['message'])]);
