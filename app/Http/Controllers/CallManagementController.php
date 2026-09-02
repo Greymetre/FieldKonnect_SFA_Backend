@@ -197,7 +197,8 @@ class CallManagementController extends Controller
 
             return redirect()->route('calls.index')->with(
                 'message_success',
-                $import->importedCount().' call entries imported successfully.'
+                $import->createdCount().' call entries created and '
+                .$import->updatedCount().' call entries updated successfully.'
             );
         } catch (ValidationException $exception) {
             return redirect()->route('calls.index')->withErrors(
