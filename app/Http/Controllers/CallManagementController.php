@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\CallManagementEntryExport;
+use App\Imports\CallManagementEntryImport;
 use App\Models\CallManagementEntry;
 use App\Models\Pincode;
 use App\Models\User;
@@ -10,6 +12,9 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Maatwebsite\Excel\Facades\Excel;
+use Throwable;
 
 class CallManagementController extends Controller
 {
@@ -176,5 +181,42 @@ class CallManagementController extends Controller
         $callManagementEntry->delete();
 
         return redirect()->route('calls.index')->with('message_success', 'Call entry deleted successfully.');
+    }
+
+    public function import(Request $request)
+    {
+        abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $request->validateWithBag('importCall', [
+            'import_file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
+        ]);
+
+        try {
+            $import = new CallManagementEntryImport(auth()->id());
+            Excel::import($import, $request->file('import_file'));
+
+            return redirect()->route('calls.index')->with(
+                'message_success',
+                $import->importedCount().' call entries imported successfully.'
+            );
+        } catch (ValidationException $exception) {
+            return redirect()->route('calls.index')->withErrors(
+                $exception->errors(),
+                'importCall'
+            );
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return redirect()->route('calls.index')->withErrors([
+                'import_file' => $exception->getMessage(),
+            ], 'importCall');
+        }
+    }
+
+    public function export()
+    {
+        abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        return Excel::download(new CallManagementEntryExport, 'call-management-entries.xlsx');
     }
 }

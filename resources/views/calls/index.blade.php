@@ -11,7 +11,8 @@
         .calls-count { display: inline-flex; align-items: center; min-height: 31px; padding: 0 16px; border: 1px solid rgba(34, 211, 238, .48); border-radius: 999px; background: rgba(34, 211, 238, .08); color: #28d7f4; font-size: 13px; font-weight: 800; }
         .calls-toolbar { display: flex; align-items: center; gap: 10px; }
         .calls-icon-btn, .calls-filter-btn, .calls-add-btn { display: inline-flex; align-items: center; justify-content: center; border: 1px solid rgba(85, 126, 218, .32); border-radius: 12px; background: rgba(7, 20, 49, .62); color: #c7d5f5; box-shadow: none; }
-        .calls-icon-btn { width: 45px; height: 45px; padding: 0; }
+        .calls-icon-btn { width: 45px; height: 45px; padding: 0; text-decoration: none; cursor: pointer; }
+        .calls-toolbar form { margin: 0; }
         .calls-filter-btn { height: 45px; gap: 8px; padding: 0 18px; }
         .calls-add-btn { width: 168px; height: 42px; gap: 7px; padding: 0 16px; border-color: transparent; border-radius: 10px; background: linear-gradient(135deg, #31cfe5, #438ff0); color: #061329; font-size: 14px; font-weight: 700; }
         .calls-toolbar button[disabled] { cursor: default; opacity: 1; }
@@ -74,6 +75,7 @@
         .calls-modal-submit { min-width: 130px; height: 42px; border: 0; border-radius: 10px; background: linear-gradient(135deg, #2bd1e8, #62baf7); color: #061329; font-size: 14px; font-weight: 800; }
         .calls-confirm-submit { min-width: 220px; padding: 0 22px; white-space: nowrap; }
         .calls-alert { margin-bottom: 14px; padding: 11px 14px; border: 1px solid rgba(45, 212, 191, .35); border-radius: 10px; background: rgba(45, 212, 191, .08); color: #76e4cf; font-size: 13px; }
+        .calls-alert-error { border-color: rgba(248, 113, 113, .4); background: rgba(248, 113, 113, .08); color: #fca5a5; }
         .calls-assign:disabled { opacity: .5; cursor: not-allowed; }
         .calls-assign-dialog { width: min(680px, 100%); }
         .calls-selected-chip { display: inline-flex; align-items: center; min-height: 34px; margin-bottom: 16px; padding: 0 15px; border: 1px solid rgba(34, 211, 238, .45); border-radius: 999px; background: rgba(34, 211, 238, .08); color: #27d5f2; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
@@ -105,6 +107,11 @@
         @if(session('message_success'))
             <div class="calls-alert">{{ session('message_success') }}</div>
         @endif
+        @if($errors->importCall->any())
+            <div class="calls-alert calls-alert-error">
+                {{ $errors->importCall->first() }}
+            </div>
+        @endif
         <header class="calls-page-head">
             <div>
                 <div class="calls-breadcrumb">Call Management <span>› &nbsp; Calls</span></div>
@@ -114,8 +121,16 @@
                 </div>
             </div>
             <div class="calls-toolbar">
-                <button class="calls-icon-btn" type="button" disabled title="Import Excel will be enabled later"><i class="material-icons">cloud_upload</i></button>
-                <button class="calls-icon-btn" type="button" disabled title="Report will be enabled later"><i class="material-icons">description</i></button>
+                <form id="callsImportForm" action="{{ route('calls.import') }}" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <input id="callsImportFile" name="import_file" type="file" accept=".xlsx,.xls,.csv" hidden>
+                    <button class="calls-icon-btn" id="openCallsImport" type="button" title="Import Excel" aria-label="Import Excel">
+                        <i class="material-icons">cloud_upload</i>
+                    </button>
+                </form>
+                <a class="calls-icon-btn" href="{{ route('calls.export') }}" title="Export Excel" aria-label="Export Excel">
+                    <i class="material-icons">cloud_download</i>
+                </a>
                 <button class="calls-add-btn" id="openAddCallModal" type="button"><i class="material-icons">add_circle_outline</i>Add Manually</button>
             </div>
         </header>
@@ -290,10 +305,23 @@
             const callFormMethod = document.getElementById('callFormMethod');
             const callFormSubmit = document.getElementById('callFormSubmit');
             const callFormTitle = document.getElementById('addCallModalTitle');
+            const importButton = document.getElementById('openCallsImport');
+            const importFile = document.getElementById('callsImportFile');
+            const importForm = document.getElementById('callsImportForm');
             const createCallUrl = @json(route('calls.store'));
             const callerOptions = @json($callers->map(fn ($caller) => ['id' => $caller->id, 'name' => $caller->name])->values());
             const rows = () => Array.from(document.querySelectorAll('#callsTableBody tr[data-search]'));
             const visibleRows = () => rows().filter(row => !row.hidden);
+
+            importButton.addEventListener('click', function () {
+                importFile.click();
+            });
+            importFile.addEventListener('change', function () {
+                if (!this.files.length) return;
+                importButton.disabled = true;
+                importButton.title = 'Importing...';
+                importForm.submit();
+            });
 
             function setModal(open) {
                 modal.classList.toggle('show', open);
