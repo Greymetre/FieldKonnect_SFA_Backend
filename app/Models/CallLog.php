@@ -11,6 +11,7 @@ class CallLog extends Model
 
     protected $fillable = [
         'lead_id',
+        'call_management_entry_id',
         'number',
         'started_at',
         'duration',
@@ -51,6 +52,11 @@ class CallLog extends Model
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id', 'id');
+    }
+
+    public function callManagementEntry()
+    {
+        return $this->belongsTo(CallManagementEntry::class, 'call_management_entry_id');
     }
 
     public function feedbackStatus()

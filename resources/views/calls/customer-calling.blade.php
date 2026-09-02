@@ -20,6 +20,10 @@
         .customer-calling-table tbody tr:hover { background: rgba(30, 62, 119, .14); }
         .customer-call-btn { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: 1px solid rgba(34, 211, 238, .45); border-radius: 10px; background: rgba(34, 211, 238, .08); color: #2dd4ee; }
         .customer-call-btn .material-icons { font-size: 19px; }
+        .customer-call-btn:disabled { cursor: wait; opacity: .55; }
+        .customer-call-message { display: none; margin-bottom: 14px; padding: 11px 14px; border: 1px solid rgba(34, 211, 238, .35); border-radius: 10px; background: rgba(34, 211, 238, .08); color: #73def0; font-size: 13px; }
+        .customer-call-message.show { display: block; }
+        .customer-call-message.error { border-color: rgba(248, 113, 113, .4); background: rgba(248, 113, 113, .08); color: #fca5a5; }
         .customer-call-status { display: inline-flex; align-items: center; justify-content: center; min-width: 90px; min-height: 30px; padding: 0 12px; border: 1px solid rgba(34, 211, 238, .34); border-radius: 999px; background: rgba(34, 211, 238, .06); color: #45d6ef; font-size: 11px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
         .customer-calling-empty { padding: 38px 20px !important; color: #7d8fbd !important; text-align: center; }
     </style>
@@ -30,6 +34,7 @@
             <h1 class="customer-calling-title">Customer Calling</h1>
             <span class="customer-calling-count">{{ $totalRecords }} {{ $totalRecords === 1 ? 'record' : 'records' }}</span>
         </div>
+        <div class="customer-call-message" id="customerCallMessage" role="status"></div>
 
         <section class="customer-calling-card">
             <div class="customer-calling-card-head">
@@ -42,7 +47,7 @@
                     <tbody>
                         @forelse($entries as $entry)
                             <tr>
-                                <td><button class="customer-call-btn" type="button" title="Call {{ $entry->mobile_number }}" aria-label="Call {{ $entry->mobile_number }}"><i class="material-icons">call</i></button></td>
+                                <td><button class="customer-call-btn" type="button" data-call-url="{{ route('customer-calling.call', $entry) }}" title="Call {{ $entry->mobile_number }}" aria-label="Call {{ $entry->mobile_number }}"><i class="material-icons">call</i></button></td>
                                 <td>{{ $entry->firm_name }}</td><td>{{ $entry->contact_person_name }}</td><td>{{ $entry->mobile_number }}</td>
                                 <td>{{ $entry->customer_type ?: '—' }}</td><td>{{ $entry->city ?: '—' }}</td><td>{{ $entry->state ?: '—' }}</td>
                                 <td><span class="customer-call-status">{{ $entry->status }}</span></td>
@@ -55,4 +60,41 @@
             </div>
         </section>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const message = document.getElementById('customerCallMessage');
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+            function showMessage(text, isError) {
+                message.textContent = text;
+                message.classList.toggle('error', isError);
+                message.classList.add('show');
+            }
+
+            document.querySelectorAll('.customer-call-btn[data-call-url]').forEach(function (button) {
+                button.addEventListener('click', async function () {
+                    const icon = button.querySelector('.material-icons');
+                    button.disabled = true;
+                    icon.textContent = 'hourglass_top';
+                    showMessage('Connecting with Plivo...', false);
+
+                    try {
+                        const response = await fetch(button.dataset.callUrl, {
+                            method: 'POST',
+                            headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': token }
+                        });
+                        const result = await response.json();
+                        if (!response.ok || !result.success) throw new Error(result.message || 'Unable to initiate call.');
+                        showMessage(result.message, false);
+                    } catch (error) {
+                        showMessage(error.message || 'Unable to initiate call.', true);
+                    } finally {
+                        button.disabled = false;
+                        icon.textContent = 'call';
+                    }
+                });
+            });
+        });
+    </script>
 </x-app-layout>
