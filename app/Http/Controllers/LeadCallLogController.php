@@ -31,7 +31,9 @@ class LeadCallLogController extends Controller
 
         if ($request->ajax()) {
             // Base query
-            $query = CallLog::with(['user:id,name', 'lead:id,company_name,status', 'lead.contacts:id,lead_id,name,phone_number']);
+            $query = CallLog::with(['user:id,name', 'lead:id,company_name,status', 'lead.contacts:id,lead_id,name,phone_number'])
+                ->whereNotNull('lead_id')
+                ->whereNull('call_management_entry_id');
 
             if ($request->has('user_id') && !empty($request->user_id)) {
                 $query->where('user_id', $request->user_id);
@@ -171,7 +173,9 @@ class LeadCallLogController extends Controller
         $filename = 'Call Logs.xlsx';
         $user_ids = getUsersReportingToAuth();
 
-        $query = CallLog::with(['user:id,name', 'lead:id,company_name,status', 'lead.contacts:id,lead_id,name,phone_number']);
+        $query = CallLog::with(['user:id,name', 'lead:id,company_name,status', 'lead.contacts:id,lead_id,name,phone_number'])
+            ->whereNotNull('lead_id')
+            ->whereNull('call_management_entry_id');
 
         if ($request->has('user_id') && !empty($request->user_id)) {
             $query->where('user_id', $request->user_id);

@@ -76,6 +76,22 @@ class CallManagementController extends Controller
         return view('calls.customer-calling', compact('entries'));
     }
 
+    public function customerCallHistory()
+    {
+        abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $query = CallLog::with(['user:id,name', 'callManagementEntry:id,firm_name,contact_person_name,mobile_number'])
+            ->whereNotNull('call_management_entry_id');
+
+        if (! auth()->user()->hasRole('superadmin') && ! auth()->user()->hasRole('Admin')) {
+            $query->whereIn('user_id', getUsersReportingToAuth());
+        }
+
+        $callLogs = $query->latest('started_at')->get();
+
+        return view('calls.history', compact('callLogs'));
+    }
+
     public function initiateCustomerCall(CallManagementEntry $callManagementEntry)
     {
         abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');

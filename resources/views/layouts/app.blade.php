@@ -1946,6 +1946,13 @@
                                 <div class="d-none mobile_hide">Customer Calling</div>
                             </a>
                         </li>
+                        <li class="nav-link hide_icon {{ request()->routeIs('customer-call-history.index') ? 'active' : '' }}">
+                            <a class="collapsed hoveradd" href="{{ route('customer-call-history.index') }}">
+                                <i class="material-icons icon">history</i>
+                                <span>Call History</span>
+                                <div class="d-none mobile_hide">Call History</div>
+                            </a>
+                        </li>
                         @endif
                         @if(auth()->user()->can(['expenses_type']))
                         <!-- <li class="nav-item {{ request()->is('expenses_type') ? 'active' : '' }}">

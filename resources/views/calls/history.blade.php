@@ -1,0 +1,54 @@
+<x-app-layout>
+    @php($totalRecords = $callLogs->count())
+    <style>
+        .customer-history { color:#c5d2f3; }
+        .customer-history-breadcrumb { margin-bottom:8px;color:#7185bd;font-size:11px;font-weight:800;letter-spacing:.22em;text-transform:uppercase; }
+        .customer-history-breadcrumb span { margin-left:8px;color:#35ccef; }
+        .customer-history-heading { display:flex;align-items:center;gap:12px;margin-bottom:18px; }
+        .customer-history-heading h1 { margin:0;color:#f7f9ff;font-size:25px;font-weight:800; }
+        .customer-history-count { display:inline-flex;align-items:center;min-height:31px;padding:0 16px;border:1px solid rgba(34,211,238,.48);border-radius:999px;background:rgba(34,211,238,.08);color:#28d7f4;font-size:13px;font-weight:800; }
+        .customer-history-card { overflow:hidden;border:1px solid rgba(85,126,218,.27);border-radius:14px;background:rgba(7,20,49,.54); }
+        .customer-history-scroll { overflow-x:auto; }
+        .customer-history-table { width:100%;min-width:1050px;border-collapse:collapse; }
+        .customer-history-table th { padding:14px;border-bottom:1px solid rgba(85,126,218,.24);color:#8395c4;font-size:11px;font-weight:800;letter-spacing:.09em;text-align:left;text-transform:uppercase;white-space:nowrap; }
+        .customer-history-table td { height:62px;padding:12px 14px;border-bottom:1px solid rgba(85,126,218,.18);color:#adbee6;font-size:13px;vertical-align:middle; }
+        .customer-history-table tbody tr:last-child td { border-bottom:0; }
+        .customer-history-status { display:inline-flex;padding:7px 12px;border:1px solid rgba(34,211,238,.34);border-radius:999px;color:#45d6ef;font-size:11px;font-weight:800;text-transform:uppercase; }
+        .customer-history-recording { width:210px;height:34px; }
+        .customer-history-empty { padding:38px 20px!important;color:#7d8fbd!important;text-align:center; }
+    </style>
+    <div class="customer-history">
+        <div class="customer-history-breadcrumb">Call Management <span>› &nbsp; Call History</span></div>
+        <div class="customer-history-heading"><h1>Call History</h1><span class="customer-history-count">{{ $totalRecords }} {{ $totalRecords === 1 ? 'record' : 'records' }}</span></div>
+        <section class="customer-history-card">
+            <div class="customer-history-scroll">
+                <table class="customer-history-table">
+                    <thead><tr><th>Agent</th><th>Firm Name</th><th>Contact Person</th><th>Mobile</th><th>Date &amp; Time</th><th>Duration</th><th>Status</th><th>Recording</th></tr></thead>
+                    <tbody>
+                        @forelse($callLogs as $callLog)
+                            @php($duration = (int) $callLog->duration)
+                            <tr>
+                                <td>{{ optional($callLog->user)->name ?: '—' }}</td>
+                                <td>{{ optional($callLog->callManagementEntry)->firm_name ?: '—' }}</td>
+                                <td>{{ optional($callLog->callManagementEntry)->contact_person_name ?: '—' }}</td>
+                                <td>{{ optional($callLog->callManagementEntry)->mobile_number ?: $callLog->number }}</td>
+                                <td>{{ optional($callLog->started_at)->format('d/m/Y h:i A') ?: '—' }}</td>
+                                <td>{{ sprintf('%02d:%02d:%02d', intdiv($duration, 3600), intdiv($duration % 3600, 60), $duration % 60) }}</td>
+                                <td><span class="customer-history-status">{{ $callLog->plivo_status ?: 'initiated' }}</span></td>
+                                <td>
+                                    @if($callLog->recording_url)
+                                        <audio class="customer-history-recording" controls preload="none"><source src="{{ route('call-management.recording', $callLog) }}" type="audio/mpeg"></audio>
+                                    @else
+                                        <span>Processing / unavailable</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @empty
+                            <tr><td class="customer-history-empty" colspan="8">No customer call history available.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+</x-app-layout>
