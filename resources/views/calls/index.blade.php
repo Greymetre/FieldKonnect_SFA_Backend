@@ -18,6 +18,7 @@
         .calls-icon-btn .material-icons, .calls-filter-btn .material-icons, .calls-add-btn .material-icons { font-size: 20px; }
         .calls-filter-panel { display: grid; grid-template-columns: minmax(230px, 1.2fr) repeat(2, minmax(170px, .65fr)) auto; align-items: end; gap: 12px; margin: 0 0 14px; }
         .calls-filter-field label { display: block; margin: 0 0 7px; color: #7f91c2; font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+        .calls-filter-field .select2-container { width: 100% !important; }
         .calls-search { position: relative; align-self: end; }
         .calls-search .material-icons { position: absolute; top: 11px; left: 13px; color: #7185b8; font-size: 19px; }
         .calls-control { width: 100%; height: 42px; padding: 0 13px; border: 1px solid rgba(85, 126, 218, .3) !important; border-radius: 10px; outline: 0; background: rgba(5, 17, 43, .68) !important; color: #c9d6f4 !important; box-shadow: none !important; }
@@ -41,6 +42,12 @@
         .calls-status { display: inline-flex; align-items: center; justify-content: center; min-width: 92px; min-height: 31px; padding: 0 13px; border: 1px solid rgba(34, 211, 238, .34); border-radius: 999px; background: rgba(34, 211, 238, .06); color: #45d6ef; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
         .calls-history { display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; background: transparent; color: #aebfe7; font-size: 13px; font-weight: 700; }
         .calls-history .material-icons { font-size: 17px; }
+        .calls-row-actions { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+        .calls-row-actions form { margin: 0; }
+        .calls-action-btn { display: inline-flex; align-items: center; justify-content: center; width: 31px; height: 31px; padding: 0; border: 1px solid rgba(85, 126, 218, .28); border-radius: 8px; background: rgba(8, 25, 59, .55); color: #9fb1dc; }
+        .calls-action-btn:hover { border-color: rgba(34, 211, 238, .45); color: #35d2ed; }
+        .calls-action-btn.delete:hover { border-color: rgba(248, 113, 113, .48); color: #fb8c9b; }
+        .calls-action-btn .material-icons { font-size: 17px; }
         .calls-footer { display: flex; align-items: center; justify-content: space-between; gap: 15px; min-height: 64px; padding: 12px 18px; border-top: 1px solid rgba(85, 126, 218, .22); color: #8193c2; font-size: 13px; }
         .calls-pagination { display: flex; align-items: center; gap: 5px; }
         .calls-page-btn { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 32px; border: 1px solid rgba(85, 126, 218, .27); border-radius: 10px; background: rgba(6, 18, 45, .56); color: #687bac; }
@@ -115,8 +122,23 @@
 
         <div class="calls-filter-panel" id="callsFilterPanel">
             <div class="calls-search"><i class="material-icons">search</i><input class="calls-control" id="callsSearch" type="search" placeholder="Search firm or mobile" autocomplete="off"></div>
-            <div class="calls-filter-field"><label for="callsStatus">Status</label><select class="calls-control" id="callsStatus"><option value="">All</option><option value="pending">Pending</option></select></div>
-            <div class="calls-filter-field"><label for="callsCaller">Caller</label><select class="calls-control" id="callsCaller"><option value="">All</option><option value="unassigned">Unassigned</option></select></div>
+            <div class="calls-filter-field">
+                <label for="callsStatus">Status</label>
+                <select class="form-control select2" id="callsStatus" style="width: 100%;">
+                    <option value="">All</option>
+                    <option value="pending">Pending</option>
+                </select>
+            </div>
+            <div class="calls-filter-field">
+                <label for="callsCaller">Caller</label>
+                <select class="form-control select2" id="callsCaller" style="width: 100%;">
+                    <option value="">All</option>
+                    <option value="unassigned">Unassigned</option>
+                    @foreach($callers as $filterCaller)
+                        <option value="{{ $filterCaller->id }}">{{ $filterCaller->name }}</option>
+                    @endforeach
+                </select>
+            </div>
             <button class="calls-assign" id="openAssignModal" type="button" disabled>Assign Selected (&nbsp;<span id="selectedCount">0</span>&nbsp;)</button>
         </div>
 
@@ -133,11 +155,21 @@
                     <thead><tr><th><input class="calls-check" id="selectAllCalls" type="checkbox" aria-label="Select all customers"></th><th>Firm Name</th><th>Contact Person</th><th>Mobile</th><th>Cust. Type</th><th>City</th><th>State</th><th>Status</th><th>Caller</th><th>Others</th></tr></thead>
                     <tbody id="callsTableBody">
                         @foreach($entries as $entry)
-                            <tr data-entry-id="{{ $entry->id }}" data-firm="{{ $entry->firm_name }}" data-mobile="{{ $entry->mobile_number }}" data-current-caller="{{ $entry->assigned_user_id }}" data-search="{{ strtolower($entry->firm_name . ' ' . $entry->mobile_number . ' ' . $entry->contact_person_name) }}" data-status="{{ $entry->status }}" data-caller="{{ $entry->assigned_user_id }}">
+                            <tr data-entry-id="{{ $entry->id }}" data-update-url="{{ route('calls.update', $entry) }}" data-firm="{{ $entry->firm_name }}" data-contact="{{ $entry->contact_person_name }}" data-mobile="{{ $entry->mobile_number }}" data-customer-type="{{ $entry->customer_type }}" data-address="{{ $entry->address }}" data-pincode-id="{{ $entry->pincode_id }}" data-custom-1="{{ $entry->custom_column_1 }}" data-custom-2="{{ $entry->custom_column_2 }}" data-custom-3="{{ $entry->custom_column_3 }}" data-custom-4="{{ $entry->custom_column_4 }}" data-current-caller="{{ $entry->assigned_user_id }}" data-current-caller-name="{{ optional($entry->assignedUser)->name }}" data-search="{{ strtolower($entry->firm_name . ' ' . $entry->mobile_number . ' ' . $entry->contact_person_name) }}" data-status="{{ $entry->status }}" data-caller="{{ $entry->assigned_user_id }}">
                                 <td><input class="calls-check calls-row-check" type="checkbox" value="{{ $entry->id }}" aria-label="Select {{ $entry->firm_name }}"></td>
                                 <td>{{ $entry->firm_name }}</td><td>{{ $entry->contact_person_name }}</td><td>{{ $entry->mobile_number }}</td><td>{{ $entry->customer_type ?: '—' }}</td><td>{{ $entry->city ?: '—' }}</td><td>{{ $entry->state ?: '—' }}</td>
                                 <td><span class="calls-status">{{ $entry->status }}</span></td><td>{{ optional($entry->assignedUser)->name ?: '—' }}</td>
-                                <td><button class="calls-history" type="button" disabled title="Call history will be enabled later"><i class="material-icons">history</i>History</button></td>
+                                <td>
+                                    <div class="calls-row-actions">
+                                        <button class="calls-action-btn edit-call-entry" type="button" title="Edit"><i class="material-icons">edit</i></button>
+                                        <form method="POST" action="{{ route('calls.destroy', $entry) }}" onsubmit="return confirm('Delete this call entry?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button class="calls-action-btn delete" type="submit" title="Delete"><i class="material-icons">delete</i></button>
+                                        </form>
+                                        <button class="calls-action-btn" type="button" disabled title="Call history will be enabled later"><i class="material-icons">history</i></button>
+                                    </div>
+                                </td>
                             </tr>
                         @endforeach
                         @if($entries->isEmpty())
@@ -195,6 +227,8 @@
             </div>
             <form class="calls-modal-form" id="addCallForm" method="POST" action="{{ route('calls.store') }}">
                 @csrf
+                <input id="callFormMethod" type="hidden" name="_method" value="PUT" disabled>
+                <input id="editEntryId" type="hidden" name="entry_id" value="">
                 <div class="calls-form-grid">
                     <div class="calls-form-field"><label for="manualFirmName">Firm Name</label><input id="manualFirmName" name="firm_name" type="text" value="{{ old('firm_name') }}" required>@error('firm_name', 'addCall')<span class="calls-field-error">{{ $message }}</span>@enderror</div>
                     <div class="calls-form-field"><label for="manualContactName">Contact Person Name</label><input id="manualContactName" name="contact_person_name" type="text" value="{{ old('contact_person_name') }}" required>@error('contact_person_name', 'addCall')<span class="calls-field-error">{{ $message }}</span>@enderror</div>
@@ -229,7 +263,7 @@
                     <div class="calls-form-field"><label for="manualCustom3">Custom Column 3</label><input id="manualCustom3" name="custom_column_3" type="text" value="{{ old('custom_column_3') }}"></div>
                     <div class="calls-form-field"><label for="manualCustom4">Custom Column 4</label><input id="manualCustom4" name="custom_column_4" type="text" value="{{ old('custom_column_4') }}"></div>
                 </div>
-                <div class="calls-modal-actions"><button class="calls-modal-submit" type="submit">Add Lead</button></div>
+                <div class="calls-modal-actions"><button class="calls-modal-submit" id="callFormSubmit" type="submit">Add Call</button></div>
             </form>
         </div>
     </div>
@@ -252,6 +286,11 @@
             const openAssignModal = document.getElementById('openAssignModal');
             const closeAssignModal = document.getElementById('closeAssignModal');
             const mobileInput = document.getElementById('manualMobile');
+            const callForm = document.getElementById('addCallForm');
+            const callFormMethod = document.getElementById('callFormMethod');
+            const callFormSubmit = document.getElementById('callFormSubmit');
+            const callFormTitle = document.getElementById('addCallModalTitle');
+            const createCallUrl = @json(route('calls.store'));
             const callerOptions = @json($callers->map(fn ($caller) => ['id' => $caller->id, 'name' => $caller->name])->values());
             const rows = () => Array.from(document.querySelectorAll('#callsTableBody tr[data-search]'));
             const visibleRows = () => rows().filter(row => !row.hidden);
@@ -263,7 +302,49 @@
                 if (open) document.getElementById('manualFirmName').focus();
             }
 
-            openModal.addEventListener('click', () => setModal(true));
+            function setSelectValue(element, value) {
+                element.value = value || '';
+                if (window.jQuery) jQuery(element).trigger('change');
+            }
+
+            function openCreateForm() {
+                callForm.reset();
+                callForm.action = createCallUrl;
+                callFormMethod.disabled = true;
+                document.getElementById('editEntryId').value = '';
+                callFormTitle.textContent = 'Add Call Manually';
+                callFormSubmit.textContent = 'Add Call';
+                setSelectValue(pincode, '');
+                setSelectValue(document.getElementById('manualCaller'), '');
+                fillLocation();
+                setModal(true);
+            }
+
+            function openEditForm(row) {
+                callForm.action = row.dataset.updateUrl;
+                callFormMethod.disabled = false;
+                document.getElementById('editEntryId').value = row.dataset.entryId;
+                callFormTitle.textContent = 'Edit Call';
+                callFormSubmit.textContent = 'Update Call';
+                document.getElementById('manualFirmName').value = row.dataset.firm || '';
+                document.getElementById('manualContactName').value = row.dataset.contact || '';
+                mobileInput.value = row.dataset.mobile || '';
+                document.getElementById('manualCustomerType').value = row.dataset.customerType || '';
+                document.getElementById('manualAddress').value = row.dataset.address || '';
+                document.getElementById('manualCustom1').value = row.dataset.custom1 || '';
+                document.getElementById('manualCustom2').value = row.dataset.custom2 || '';
+                document.getElementById('manualCustom3').value = row.dataset.custom3 || '';
+                document.getElementById('manualCustom4').value = row.dataset.custom4 || '';
+                setSelectValue(pincode, row.dataset.pincodeId);
+                setSelectValue(document.getElementById('manualCaller'), row.dataset.currentCaller);
+                fillLocation();
+                setModal(true);
+            }
+
+            openModal.addEventListener('click', openCreateForm);
+            document.querySelectorAll('.edit-call-entry').forEach(function (button) {
+                button.addEventListener('click', function () { openEditForm(button.closest('tr')); });
+            });
             closeModal.addEventListener('click', () => setModal(false));
             modal.addEventListener('click', event => { if (event.target === modal) setModal(false); });
 
@@ -297,7 +378,9 @@
 
                     const defaultOption = document.createElement('option');
                     defaultOption.value = '';
-                    defaultOption.textContent = 'Use bulk assignment';
+                    defaultOption.textContent = row.dataset.currentCallerName
+                        ? 'Use bulk assignment (Current: ' + row.dataset.currentCallerName + ')'
+                        : 'Use bulk assignment';
                     override.appendChild(defaultOption);
                     callerOptions.forEach(function (caller) {
                         const option = document.createElement('option');
@@ -305,7 +388,7 @@
                         option.textContent = caller.name;
                         override.appendChild(option);
                     });
-                    override.value = row.dataset.currentCaller || '';
+                    override.value = '';
 
                     const input = document.createElement('input');
                     input.type = 'hidden';
@@ -357,6 +440,10 @@
             @if($errors->addCall->any())
                 setModal(true);
             @endif
+            @if($errors->editCall->any())
+                const invalidEditRow = document.querySelector('tr[data-entry-id="{{ (int) old('entry_id') }}"]');
+                if (invalidEditRow) openEditForm(invalidEditRow);
+            @endif
 
             function updateCount() {
                 const total = document.querySelectorAll('.calls-row-check:checked').length;
@@ -380,6 +467,10 @@
             search.addEventListener('input', filterRows);
             status.addEventListener('change', filterRows);
             caller.addEventListener('change', filterRows);
+            if (window.jQuery) {
+                jQuery(status).on('change', filterRows);
+                jQuery(caller).on('change', filterRows);
+            }
             selectAll.addEventListener('change', function () {
                 visibleRows().forEach(row => row.querySelector('.calls-row-check').checked = selectAll.checked);
                 updateCount();
