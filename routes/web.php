@@ -107,6 +107,7 @@ use App\Http\Controllers\TaxInvoiceController;
 use App\Http\Controllers\CustomerCustomFieldController;
 use App\Http\Controllers\CustomerProcessController;
 use App\Http\Controllers\LeadCallLogController;
+use App\Http\Controllers\CallManagementController;
 use App\Models\CustomerCustomField;
 use App\Models\DealerPortalSettings;
 use App\Models\PowerBiSetting;
@@ -1391,6 +1392,9 @@ Route::post('ajax/user-cities-by-district', [TourController::class, 'ajaxUserCit
     Route::get('call-management/download', [LeadCallLogController::class, 'download'])->name('call-management.download');
     Route::get('call-management/{callLog}/recording', [LeadCallLogController::class, 'recording'])->name('call-management.recording');
     Route::get('call-management/{callLog}', [LeadCallLogController::class, 'show'])->name('call-management.show');
+
+    // Call Management
+    Route::get('calls', [CallManagementController::class, 'index'])->name('calls.index');
 
     //Process Management Routes
     Route::resource('customer_process', CustomerProcessController::class);

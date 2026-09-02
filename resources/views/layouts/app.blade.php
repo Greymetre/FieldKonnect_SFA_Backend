@@ -1930,6 +1930,16 @@
                             </div>
                         </li>
                         @endif
+                        @if(auth()->user()->can('call_management_access'))
+                        <li class="fk-menu-section"><span>Call Management</span></li>
+                        <li class="nav-link hide_icon {{ request()->routeIs('calls.index') ? 'active' : '' }}">
+                            <a class="collapsed hoveradd" href="{{ route('calls.index') }}">
+                                <i class="material-icons icon">call</i>
+                                <span>Calls</span>
+                                <div class="d-none mobile_hide">Calls</div>
+                            </a>
+                        </li>
+                        @endif
                         @if(auth()->user()->can(['expenses_type']))
                         <!-- <li class="nav-item {{ request()->is('expenses_type') ? 'active' : '' }}">
                         <a class="nav-link" href="{{ url('expenses_type') }}">
