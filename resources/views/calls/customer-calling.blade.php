@@ -26,6 +26,21 @@
         .customer-call-message.error { border-color: rgba(248, 113, 113, .4); background: rgba(248, 113, 113, .08); color: #fca5a5; }
         .customer-call-status { display: inline-flex; align-items: center; justify-content: center; min-width: 90px; min-height: 30px; padding: 0 12px; border: 1px solid rgba(34, 211, 238, .34); border-radius: 999px; background: rgba(34, 211, 238, .06); color: #45d6ef; font-size: 11px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
         .customer-calling-empty { padding: 38px 20px !important; color: #7d8fbd !important; text-align: center; }
+        .call-ended-modal { position:fixed;inset:0;z-index:4000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(1,8,24,.78);backdrop-filter:blur(4px); }
+        .call-ended-modal.show { display:flex; }
+        .call-ended-dialog { width:min(520px,100%);overflow:hidden;border:1px solid rgba(77,122,221,.42);border-radius:18px;background:#0b1e47;box-shadow:0 28px 80px rgba(0,0,0,.45); }
+        .call-ended-head { display:flex;align-items:flex-start;justify-content:space-between;padding:22px 24px 18px;border-bottom:1px solid rgba(85,126,218,.24); }
+        .call-ended-head h2 { margin:0;color:#f5f8ff;font-size:24px;font-weight:800; }
+        .call-ended-head p { margin:5px 0 0;color:#91a3ce;font-size:14px; }
+        .call-ended-close { border:0;background:transparent;color:#91a3ce; }
+        .call-ended-form { padding:22px 24px 24px; }
+        .call-ended-field { margin-bottom:17px; }
+        .call-ended-field label { display:block;margin-bottom:8px;color:#91a3ce;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase; }
+        .call-ended-field select,.call-ended-field textarea { width:100%;border:1px solid rgba(85,126,218,.38);border-radius:11px;outline:0;background:#081a3e;color:#dce7ff;font-size:14px; }
+        .call-ended-field select { height:45px;padding:0 13px; }
+        .call-ended-field textarea { min-height:120px;padding:13px;resize:vertical; }
+        .call-ended-save { width:100%;height:45px;border:0;border-radius:11px;background:linear-gradient(135deg,#2bd1e8,#62baf7);color:#061329;font-size:14px;font-weight:800; }
+        .call-ended-error { display:none;margin-bottom:12px;color:#fca5a5;font-size:12px; }
     </style>
 
     <div class="customer-calling-page">
@@ -61,10 +76,39 @@
         </section>
     </div>
 
+    <div class="call-ended-modal" id="callEndedModal" role="dialog" aria-modal="true" aria-labelledby="callEndedTitle" aria-hidden="true">
+        <div class="call-ended-dialog">
+            <div class="call-ended-head">
+                <div><h2 id="callEndedTitle">Call Ended</h2><p><span id="endedCustomerName"></span> · <span id="endedCallDuration">0:00</span></p></div>
+                <button class="call-ended-close" id="closeCallEnded" type="button" aria-label="Close"><i class="material-icons">close</i></button>
+            </div>
+            <form class="call-ended-form" id="callFeedbackForm">
+                <div class="call-ended-error" id="callFeedbackError"></div>
+                <div class="call-ended-field">
+                    <label for="callFeedbackStatus">Call Status *</label>
+                    <select id="callFeedbackStatus" name="feedback_status_id" required>
+                        <option value="">Select call status</option>
+                        @foreach($feedbackStatuses as $feedbackStatus)
+                            <option value="{{ $feedbackStatus->id }}">{{ $feedbackStatus->display_name ?: $feedbackStatus->status_name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="call-ended-field"><label for="callFeedbackMessage">Notes *</label><textarea id="callFeedbackMessage" name="message" maxlength="1000" placeholder="What happened on this call?" required></textarea></div>
+                <button class="call-ended-save" id="saveCallFeedback" type="submit">Save Call Record</button>
+            </form>
+        </div>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const message = document.getElementById('customerCallMessage');
             const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            const feedbackModal = document.getElementById('callEndedModal');
+            const feedbackForm = document.getElementById('callFeedbackForm');
+            const feedbackError = document.getElementById('callFeedbackError');
+            const feedbackSave = document.getElementById('saveCallFeedback');
+            let feedbackUrl = '';
+            let activeCallButton = null;
 
             function showMessage(text, isError) {
                 message.textContent = text;
@@ -72,10 +116,45 @@
                 message.classList.add('show');
             }
 
+            function formatDuration(seconds) {
+                const minutes = Math.floor(seconds / 60);
+                return minutes + ':' + String(seconds % 60).padStart(2, '0');
+            }
+
+            function showFeedback(call, duration) {
+                feedbackUrl = call.feedback_url;
+                document.getElementById('endedCustomerName').textContent = call.customer_name;
+                document.getElementById('endedCallDuration').textContent = formatDuration(duration);
+                feedbackForm.reset();
+                feedbackError.style.display = 'none';
+                feedbackModal.classList.add('show');
+                feedbackModal.setAttribute('aria-hidden', 'false');
+            }
+
+            async function pollCall(call) {
+                try {
+                    const response = await fetch(call.status_url, { headers: { 'Accept': 'application/json' } });
+                    const result = await response.json();
+                    if (!response.ok || !result.success) throw new Error(result.message || 'Unable to check call status.');
+                    if (result.data.completed) {
+                        if (activeCallButton) activeCallButton.querySelector('.material-icons').textContent = 'call';
+                        showMessage(result.data.duration > 0 ? 'Call completed.' : 'Call ended.', false);
+                        if (result.data.requires_feedback) showFeedback(call, result.data.duration);
+                        else if (activeCallButton) activeCallButton.disabled = false;
+                        return;
+                    }
+                    window.setTimeout(function () { pollCall(call); }, 2000);
+                } catch (error) {
+                    showMessage(error.message || 'Unable to check call status.', true);
+                    if (activeCallButton) activeCallButton.disabled = false;
+                }
+            }
+
             document.querySelectorAll('.customer-call-btn[data-call-url]').forEach(function (button) {
                 button.addEventListener('click', async function () {
                     const icon = button.querySelector('.material-icons');
                     button.disabled = true;
+                    activeCallButton = button;
                     icon.textContent = 'hourglass_top';
                     showMessage('Connecting with Plivo...', false);
 
@@ -87,13 +166,43 @@
                         const result = await response.json();
                         if (!response.ok || !result.success) throw new Error(result.message || 'Unable to initiate call.');
                         showMessage(result.message, false);
+                        pollCall(result.data);
                     } catch (error) {
                         showMessage(error.message || 'Unable to initiate call.', true);
-                    } finally {
                         button.disabled = false;
                         icon.textContent = 'call';
                     }
                 });
+            });
+
+            document.getElementById('closeCallEnded').addEventListener('click', function () {
+                feedbackModal.classList.remove('show');
+                feedbackModal.setAttribute('aria-hidden', 'true');
+                if (activeCallButton) activeCallButton.disabled = false;
+            });
+            feedbackForm.addEventListener('submit', async function (event) {
+                event.preventDefault();
+                feedbackSave.disabled = true;
+                feedbackSave.textContent = 'Saving...';
+                feedbackError.style.display = 'none';
+                try {
+                    const response = await fetch(feedbackUrl, {
+                        method: 'POST',
+                        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token },
+                        body: JSON.stringify({ feedback_status_id: document.getElementById('callFeedbackStatus').value, message: document.getElementById('callFeedbackMessage').value })
+                    });
+                    const result = await response.json();
+                    if (!response.ok || !result.success) throw new Error(result.message || 'Unable to save call record.');
+                    feedbackModal.classList.remove('show');
+                    showMessage(result.message, false);
+                    if (activeCallButton) activeCallButton.disabled = false;
+                } catch (error) {
+                    feedbackError.textContent = error.message || 'Unable to save call record.';
+                    feedbackError.style.display = 'block';
+                } finally {
+                    feedbackSave.disabled = false;
+                    feedbackSave.textContent = 'Save Call Record';
+                }
             });
         });
     </script>

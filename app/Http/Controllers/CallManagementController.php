@@ -7,6 +7,7 @@ use App\Imports\CallManagementEntryImport;
 use App\Models\CallManagementEntry;
 use App\Models\CallLog;
 use App\Models\Pincode;
+use App\Models\Status;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -72,15 +73,20 @@ class CallManagementController extends Controller
         $entries = CallManagementEntry::where('assigned_user_id', auth()->id())
             ->latest('id')
             ->get();
+        $feedbackStatuses = Status::query()
+            ->where('module', Status::MODULE_CALL_FEEDBACK_STATUS)
+            ->where('active', 'Y')
+            ->orderBy('id')
+            ->get(['id', 'status_name', 'display_name']);
 
-        return view('calls.customer-calling', compact('entries'));
+        return view('calls.customer-calling', compact('entries', 'feedbackStatuses'));
     }
 
     public function customerCallHistory()
     {
         abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $query = CallLog::with(['user:id,name', 'callManagementEntry:id,firm_name,contact_person_name,mobile_number'])
+        $query = CallLog::with(['user:id,name', 'feedbackStatus:id,status_name,display_name', 'callManagementEntry:id,firm_name,contact_person_name,mobile_number'])
             ->whereNotNull('call_management_entry_id');
 
         if (! auth()->user()->hasRole('superadmin') && ! auth()->user()->hasRole('Admin')) {
@@ -141,12 +147,56 @@ class CallManagementController extends Controller
             $callUuid = $response->json('request_uuid.0') ?: $response->json('request_uuid');
             $callLog->update(['plivo_call_uuid' => $callUuid, 'plivo_status' => 'queued']);
 
-            return response()->json(['success' => true, 'message' => 'Call initiated. Your phone will ring first.']);
+            return response()->json([
+                'success' => true,
+                'message' => 'Call initiated. Your phone will ring first.',
+                'data' => [
+                    'call_log_id' => $callLog->id,
+                    'status_url' => route('customer-calling.call-status', $callLog),
+                    'feedback_url' => route('customer-calling.call-feedback', $callLog),
+                    'customer_name' => $callManagementEntry->contact_person_name ?: $callManagementEntry->firm_name,
+                ],
+            ]);
         } catch (Throwable $exception) {
             report($exception);
             $callLog->update(['plivo_status' => 'failed']);
             return response()->json(['success' => false, 'message' => 'Unable to connect to Plivo.'], 502);
         }
+    }
+
+    public function customerCallStatus(CallLog $callLog)
+    {
+        abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        abort_unless((int) $callLog->user_id === (int) auth()->id() && $callLog->call_management_entry_id, Response::HTTP_FORBIDDEN, 'You cannot view this call.');
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'completed' => (bool) $callLog->completed_at,
+                'duration' => (int) $callLog->duration,
+                'status' => $callLog->plivo_status,
+                'requires_feedback' => (bool) $callLog->completed_at && ! $callLog->feedback_status_id,
+            ],
+        ]);
+    }
+
+    public function saveCustomerCallFeedback(Request $request, CallLog $callLog)
+    {
+        abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        abort_unless((int) $callLog->user_id === (int) auth()->id() && $callLog->call_management_entry_id, Response::HTTP_FORBIDDEN, 'You cannot update this call.');
+
+        $validated = $request->validate([
+            'feedback_status_id' => ['required', 'integer'],
+            'message' => ['required', 'string', 'max:1000'],
+        ]);
+        $status = Status::query()
+            ->whereKey($validated['feedback_status_id'])
+            ->where('module', Status::MODULE_CALL_FEEDBACK_STATUS)
+            ->where('active', 'Y')
+            ->firstOrFail();
+        $callLog->update(['feedback_status_id' => $status->id, 'remark' => trim($validated['message'])]);
+
+        return response()->json(['success' => true, 'message' => 'Call record saved successfully.']);
     }
 
     private function e164(?string $number): ?string

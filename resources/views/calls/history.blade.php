@@ -23,7 +23,7 @@
         <section class="customer-history-card">
             <div class="customer-history-scroll">
                 <table class="customer-history-table">
-                    <thead><tr><th>Agent</th><th>Firm Name</th><th>Contact Person</th><th>Mobile</th><th>Date &amp; Time</th><th>Duration</th><th>Status</th><th>Recording</th></tr></thead>
+                    <thead><tr><th>Agent</th><th>Firm Name</th><th>Contact Person</th><th>Mobile</th><th>Date &amp; Time</th><th>Duration</th><th>Status</th><th>Agent Status</th><th>Notes</th><th>Recording</th></tr></thead>
                     <tbody>
                         @forelse($callLogs as $callLog)
                             @php($duration = (int) $callLog->duration)
@@ -34,7 +34,9 @@
                                 <td>{{ optional($callLog->callManagementEntry)->mobile_number ?: $callLog->number }}</td>
                                 <td>{{ optional($callLog->started_at)->format('d/m/Y h:i A') ?: '—' }}</td>
                                 <td>{{ sprintf('%02d:%02d:%02d', intdiv($duration, 3600), intdiv($duration % 3600, 60), $duration % 60) }}</td>
-                                <td><span class="customer-history-status">{{ $callLog->plivo_status ?: 'initiated' }}</span></td>
+                                <td><span class="customer-history-status">{{ ((int) $callLog->duration > 0 || $callLog->recording_url || (int) $callLog->status === 1) ? 'Completed' : ($callLog->plivo_status ?: 'initiated') }}</span></td>
+                                <td>{{ optional($callLog->feedbackStatus)->display_name ?: optional($callLog->feedbackStatus)->status_name ?: '—' }}</td>
+                                <td>{{ $callLog->remark ?: '—' }}</td>
                                 <td>
                                     @if($callLog->recording_url)
                                         <audio class="customer-history-recording" controls preload="none"><source src="{{ route('call-management.recording', $callLog) }}" type="audio/mpeg"></audio>
@@ -44,7 +46,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td class="customer-history-empty" colspan="8">No customer call history available.</td></tr>
+                            <tr><td class="customer-history-empty" colspan="10">No customer call history available.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
