@@ -202,6 +202,11 @@ class CallManagementController extends Controller
         ]);
 
         try {
+            if (ob_get_contents()) {
+                ob_end_clean();
+            }
+            ob_start();
+
             $import = new CallManagementEntryImport(auth()->id());
             Excel::import($import, $request->file('import_file'));
 

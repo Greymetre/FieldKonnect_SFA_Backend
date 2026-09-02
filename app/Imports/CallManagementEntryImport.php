@@ -9,9 +9,10 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Concerns\ToCollection;
+use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 
-class CallManagementEntryImport implements ToCollection, WithHeadingRow
+class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChunkReading
 {
     private int $createdBy;
     private int $created = 0;
@@ -137,5 +138,10 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow
     public function errors(): array
     {
         return $this->errors;
+    }
+
+    public function chunkSize(): int
+    {
+        return 500;
     }
 }
