@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Symfony\Component\HttpFoundation\Response;
 use Gate;
+use Illuminate\Validation\Rule;
 
 class StatusRequest extends FormRequest
 {
@@ -17,25 +18,25 @@ class StatusRequest extends FormRequest
 
     public function rules()
     {
-        $rules = [];
-        switch($this) {
-            case !empty($this->id) :
-                $rules = [
-                    'status_name'   => 'required|min:2|max:100|string|regex:/[a-zA-Z0-9\s]+/',
-                    'display_name'  => 'required|min:2|max:100|string|regex:/[a-zA-Z0-9\s]+/',
-                    'status_message'=> 'required|min:2|max:100|string|regex:/[a-zA-Z0-9\s]+/',
-                    'module'        => 'nullable|min:2|max:100|string|regex:/[a-zA-Z0-9\s]+/',
-                ];
-                break;
-            default :
-                $rules = [
-                    'status_name'   => 'required|min:2|max:200|string|regex:/[a-zA-Z0-9\s]+/',
-                    'display_name'  => 'required|min:2|max:200|string|regex:/[a-zA-Z0-9\s]+/',
-                    'status_message'=> 'required|min:2|max:200|string|regex:/[a-zA-Z0-9\s]+/',
-                    'module'        => 'nullable|min:2|max:200|string|regex:/[a-zA-Z0-9\s]+/',
-                ];
-                break;
-        }
-        return $rules;
+        $max = $this->filled('id') ? 100 : 200;
+
+        return [
+            'status_name' => [
+                'required', 'string', 'min:2', 'max:'.$max, 'regex:/[a-zA-Z0-9\s]+/',
+                Rule::unique('statuses', 'status_name')
+                    ->where(fn ($query) => $query->where('module', $this->input('module')))
+                    ->ignore($this->input('id')),
+            ],
+            'display_name' => ['required', 'string', 'min:2', 'max:'.$max, 'regex:/[a-zA-Z0-9\s]+/'],
+            'status_message' => ['required', 'string', 'min:2', 'max:'.$max, 'regex:/[a-zA-Z0-9\s]+/'],
+            'module' => ['required', 'string', 'min:2', 'max:'.$max, 'regex:/[a-zA-Z0-9\s]+/'],
+        ];
+    }
+
+    public function messages()
+    {
+        return [
+            'status_name.unique' => 'This status name already exists in the selected module.',
+        ];
     }
 }
