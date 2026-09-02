@@ -62,6 +62,13 @@ class CallManagementController extends Controller
         return view('calls.index', compact('entries', 'pincodeOptions', 'callers'));
     }
 
+    public function customerCalling()
+    {
+        abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        return view('calls.customer-calling');
+    }
+
     public function store(Request $request)
     {
         abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');

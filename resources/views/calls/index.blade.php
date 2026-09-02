@@ -124,9 +124,9 @@
         @endif
         <header class="calls-page-head">
             <div>
-                <div class="calls-breadcrumb">Call Management <span>› &nbsp; Calls</span></div>
+                <div class="calls-breadcrumb">Call Management <span>› &nbsp; Call Assignment</span></div>
                 <div class="calls-heading">
-                    <h1>Calls</h1>
+                    <h1>Call Assignment</h1>
                     <span class="calls-count" id="callsRecordCount">{{ $totalRecords }} records</span>
                 </div>
             </div>

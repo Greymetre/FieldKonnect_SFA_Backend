@@ -1401,6 +1401,7 @@ Route::post('ajax/user-cities-by-district', [TourController::class, 'ajaxUserCit
     Route::get('calls/export', [CallManagementController::class, 'export'])->name('calls.export');
     Route::put('calls/{callManagementEntry}', [CallManagementController::class, 'update'])->name('calls.update');
     Route::delete('calls/{callManagementEntry}', [CallManagementController::class, 'destroy'])->name('calls.destroy');
+    Route::get('customer-calling', [CallManagementController::class, 'customerCalling'])->name('customer-calling.index');
 
     //Process Management Routes
     Route::resource('customer_process', CustomerProcessController::class);
