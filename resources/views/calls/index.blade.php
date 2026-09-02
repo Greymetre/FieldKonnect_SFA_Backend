@@ -203,14 +203,6 @@
                         <label for="manualPin">Pincode</label>
                         <select class="form-control pincode" id="manualPin" name="pincode_id" required style="width: 100%;">
                             <option value="">Select Pincode</option>
-                            @foreach($pincodes as $pincode)
-                                @php
-                                    $pinCity = $pincode->cityname;
-                                    $pinDistrict = optional($pinCity)->districtname;
-                                    $pinState = optional($pinDistrict)->statename ?: optional($pinCity)->statename;
-                                @endphp
-                                <option value="{{ $pincode->id }}" data-city="{{ optional($pinCity)->city_name }}" data-district="{{ optional($pinDistrict)->district_name }}" data-state="{{ optional($pinState)->state_name }}">{{ $pincode->pincode }}</option>
-                            @endforeach
                         </select>
                         @error('pincode_id', 'addCall')<span class="calls-field-error">{{ $message }}</span>@enderror
                     </div>
@@ -255,6 +247,7 @@
             const openAssignModal = document.getElementById('openAssignModal');
             const closeAssignModal = document.getElementById('closeAssignModal');
             const callerOptions = @json($callers->map(fn ($caller) => ['id' => $caller->id, 'name' => $caller->name])->values());
+            const pincodeOptions = @json($pincodeOptions);
             const rows = () => Array.from(document.querySelectorAll('#callsTableBody tr[data-search]'));
             const visibleRows = () => rows().filter(row => !row.hidden);
 
@@ -336,6 +329,16 @@
                 document.getElementById('manualDistrict').value = option ? option.dataset.district || '' : '';
                 document.getElementById('manualState').value = option ? option.dataset.state || '' : '';
             }
+
+            pincodeOptions.forEach(function (pin) {
+                const option = document.createElement('option');
+                option.value = pin.id;
+                option.textContent = pin.pincode;
+                option.dataset.city = pin.city;
+                option.dataset.district = pin.district;
+                option.dataset.state = pin.state;
+                pincode.appendChild(option);
+            });
 
             pincode.addEventListener('change', fillLocation);
             pincode.value = @json((string) old('pincode_id'));

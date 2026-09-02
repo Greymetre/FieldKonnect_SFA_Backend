@@ -42,12 +42,26 @@ class CallManagementController extends Controller
             ->orderByDesc('id')
             ->get();
 
+        $pincodeOptions = $pincodes->map(function ($pincode) {
+            $city = $pincode->cityname;
+            $district = optional($city)->districtname;
+            $state = optional($district)->statename ?: optional($city)->statename;
+
+            return [
+                'id' => $pincode->id,
+                'pincode' => $pincode->pincode,
+                'city' => optional($city)->city_name ?: '',
+                'district' => optional($district)->district_name ?: '',
+                'state' => optional($state)->state_name ?: '',
+            ];
+        })->values();
+
         $callers = User::permission('call_management_access')
             ->where('active', 'Y')
             ->orderBy('name')
             ->get(['id', 'name']);
 
-        return view('calls.index', compact('entries', 'pincodes', 'callers'));
+        return view('calls.index', compact('entries', 'pincodeOptions', 'callers'));
     }
 
     public function store(Request $request)
