@@ -1395,6 +1395,7 @@ Route::post('ajax/user-cities-by-district', [TourController::class, 'ajaxUserCit
 
     // Call Management
     Route::get('calls', [CallManagementController::class, 'index'])->name('calls.index');
+    Route::post('calls', [CallManagementController::class, 'store'])->name('calls.store');
 
     //Process Management Routes
     Route::resource('customer_process', CustomerProcessController::class);

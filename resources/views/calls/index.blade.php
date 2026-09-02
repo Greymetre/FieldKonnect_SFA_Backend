@@ -7,6 +7,7 @@
             ['id' => 4, 'firm' => 'Jai Hind Store', 'contact' => 'Anita Shah', 'mobile' => '9812345004', 'type' => 'Retailer', 'city' => 'Indore', 'state' => 'MP'],
             ['id' => 5, 'firm' => 'Krishna Mart', 'contact' => 'Deepak Joshi', 'mobile' => '9812345005', 'type' => 'Retailer', 'city' => 'Bhopal', 'state' => 'MP'],
         ];
+        $totalRecords = count($customers) + $entries->count();
     @endphp
 
     <style>
@@ -21,7 +22,7 @@
         .calls-icon-btn, .calls-filter-btn, .calls-add-btn { display: inline-flex; align-items: center; justify-content: center; border: 1px solid rgba(85, 126, 218, .32); border-radius: 12px; background: rgba(7, 20, 49, .62); color: #c7d5f5; box-shadow: none; }
         .calls-icon-btn { width: 45px; height: 45px; padding: 0; }
         .calls-filter-btn { height: 45px; gap: 8px; padding: 0 18px; }
-        .calls-add-btn { height: 45px; gap: 8px; padding: 0 20px; border-color: transparent; background: linear-gradient(135deg, #2bd1e8, #4398f5); color: #061329; font-weight: 700; }
+        .calls-add-btn { width: 168px; height: 42px; gap: 7px; padding: 0 16px; border-color: transparent; border-radius: 10px; background: linear-gradient(135deg, #31cfe5, #438ff0); color: #061329; font-size: 14px; font-weight: 700; }
         .calls-toolbar button[disabled] { cursor: default; opacity: 1; }
         .calls-icon-btn .material-icons, .calls-filter-btn .material-icons, .calls-add-btn .material-icons { font-size: 20px; }
         .calls-filter-panel { display: none; grid-template-columns: minmax(230px, 1.2fr) repeat(2, minmax(170px, .65fr)); gap: 12px; margin: 0 0 14px; padding: 14px; border: 1px solid rgba(85, 126, 218, .2); border-radius: 12px; background: rgba(9, 24, 58, .45); }
@@ -57,18 +58,21 @@
         .calls-empty { padding: 34px 20px !important; color: #7d8fbd !important; text-align: center; }
         .calls-modal { position: fixed; inset: 0; z-index: 9999; display: none; align-items: center; justify-content: center; padding: 28px 16px; background: rgba(1, 8, 24, .76); backdrop-filter: blur(3px); }
         .calls-modal.show { display: flex; }
-        .calls-modal-dialog { width: min(720px, 100%); max-height: calc(100vh - 56px); overflow-y: auto; border: 1px solid rgba(77, 122, 221, .4); border-radius: 18px; background: #0c214c; box-shadow: 0 26px 80px rgba(0, 0, 0, .38); }
-        .calls-modal-head { display: flex; align-items: center; justify-content: space-between; min-height: 76px; padding: 18px 28px; border-bottom: 1px solid rgba(85, 126, 218, .24); }
-        .calls-modal-head h2 { margin: 0; color: #f3f7ff; font-size: 24px; font-weight: 800; }
+        .calls-modal-dialog { width: min(760px, 100%); max-height: calc(100vh - 40px); overflow-y: auto; border: 1px solid rgba(77, 122, 221, .4); border-radius: 16px; background: #0b1e47; box-shadow: 0 26px 80px rgba(0, 0, 0, .38); scrollbar-width: thin; scrollbar-color: #22d3ee transparent; }
+        .calls-modal-head { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; min-height: 64px; padding: 14px 24px; border-bottom: 1px solid rgba(85, 126, 218, .24); background: #0b1e47; }
+        .calls-modal-head h2 { margin: 0; color: #f3f7ff; font-size: 20px; font-weight: 800; }
         .calls-modal-close { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: 0; background: transparent; color: #8fa1d0; }
         .calls-modal-close .material-icons { font-size: 27px; }
-        .calls-modal-form { padding: 28px; }
-        .calls-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 20px; }
+        .calls-modal-form { padding: 22px 24px 24px; }
+        .calls-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 18px; }
         .calls-form-field label { display: block; margin: 0 0 8px; color: #8fa1d0; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
-        .calls-form-field input, .calls-form-field select { width: 100%; height: 48px; padding: 0 14px; border: 1px solid rgba(85, 126, 218, .35); border-radius: 12px; outline: 0; background: rgba(5, 18, 47, .46); color: #d8e3ff; box-shadow: none; }
+        .calls-form-field input, .calls-form-field select { width: 100%; height: 42px; padding: 0 13px; border: 1px solid rgba(85, 126, 218, .35); border-radius: 10px; outline: 0; background: rgba(5, 18, 47, .46); color: #d8e3ff; font-size: 14px; box-shadow: none; }
+        .calls-form-field input[readonly] { background: rgba(20, 39, 78, .48); color: #91a3ce; cursor: default; }
+        .calls-field-error { display: block; margin-top: 5px; color: #ff8c9b; font-size: 11px; }
         .calls-form-field input:focus, .calls-form-field select:focus { border-color: rgba(34, 211, 238, .7); }
-        .calls-modal-actions { display: flex; justify-content: flex-end; margin-top: 26px; }
-        .calls-modal-submit { min-width: 145px; height: 46px; border: 0; border-radius: 12px; background: linear-gradient(135deg, #2bd1e8, #62baf7); color: #061329; font-size: 15px; font-weight: 800; }
+        .calls-modal-actions { display: flex; justify-content: flex-end; margin-top: 20px; }
+        .calls-modal-submit { min-width: 130px; height: 42px; border: 0; border-radius: 10px; background: linear-gradient(135deg, #2bd1e8, #62baf7); color: #061329; font-size: 14px; font-weight: 800; }
+        .calls-alert { margin-bottom: 14px; padding: 11px 14px; border: 1px solid rgba(45, 212, 191, .35); border-radius: 10px; background: rgba(45, 212, 191, .08); color: #76e4cf; font-size: 13px; }
         body.calls-modal-open { overflow: hidden; }
         @media (max-width: 991px) {
             .calls-page-head { align-items: flex-start; flex-direction: column; }
@@ -82,12 +86,15 @@
     </style>
 
     <div class="calls-page">
+        @if(session('message_success'))
+            <div class="calls-alert">{{ session('message_success') }}</div>
+        @endif
         <header class="calls-page-head">
             <div>
                 <div class="calls-breadcrumb">Call Management <span>› &nbsp; Calls</span></div>
                 <div class="calls-heading">
                     <h1>Calls</h1>
-                    <span class="calls-count" id="callsRecordCount">{{ count($customers) }} records</span>
+                    <span class="calls-count" id="callsRecordCount">{{ $totalRecords }} records</span>
                 </div>
             </div>
             <div class="calls-toolbar">
@@ -117,6 +124,14 @@
                 <table class="calls-table">
                     <thead><tr><th><input class="calls-check" id="selectAllCalls" type="checkbox" aria-label="Select all customers"></th><th>Firm Name</th><th>Contact Person</th><th>Mobile</th><th>Cust. Type</th><th>City</th><th>State</th><th>Status</th><th>Caller</th><th>Others</th></tr></thead>
                     <tbody id="callsTableBody">
+                        @foreach($entries as $entry)
+                            <tr data-search="{{ strtolower($entry->firm_name . ' ' . $entry->mobile_number . ' ' . $entry->contact_person_name) }}" data-status="{{ $entry->status }}" data-caller="{{ $entry->assigned_user_id }}">
+                                <td><input class="calls-check calls-row-check" type="checkbox" value="saved-{{ $entry->id }}" aria-label="Select {{ $entry->firm_name }}"></td>
+                                <td>{{ $entry->firm_name }}</td><td>{{ $entry->contact_person_name }}</td><td>{{ $entry->mobile_number }}</td><td>{{ $entry->customer_type ?: '—' }}</td><td>{{ $entry->city ?: '—' }}</td><td>{{ $entry->state ?: '—' }}</td>
+                                <td><span class="calls-status">{{ $entry->status }}</span></td><td>{{ optional($entry->assignedUser)->name ?: '—' }}</td>
+                                <td><button class="calls-history" type="button" disabled title="Call history will be enabled later"><i class="material-icons">history</i>History</button></td>
+                            </tr>
+                        @endforeach
                         @foreach($customers as $customer)
                             <tr data-search="{{ strtolower($customer['firm'] . ' ' . $customer['mobile'] . ' ' . $customer['contact']) }}" data-status="pending" data-caller="unassigned">
                                 <td><input class="calls-check calls-row-check" type="checkbox" value="{{ $customer['id'] }}" aria-label="Select {{ $customer['firm'] }}"></td>
@@ -131,7 +146,7 @@
             </div>
 
             <footer class="calls-footer">
-                <span id="callsShowing">Showing 1–{{ count($customers) }} of {{ count($customers) }} calls</span>
+                <span id="callsShowing">Showing 1–{{ $totalRecords }} of {{ $totalRecords }} calls</span>
                 <div class="calls-pagination" aria-label="Static pagination">
                     <button class="calls-page-btn" type="button" disabled><i class="material-icons">chevron_left</i></button>
                     <button class="calls-page-btn active" type="button" disabled>1</button>
@@ -147,25 +162,41 @@
                 <h2 id="addCallModalTitle">Add Call Manually</h2>
                 <button class="calls-modal-close" id="closeAddCallModal" type="button" aria-label="Close modal"><i class="material-icons">close</i></button>
             </div>
-            <form class="calls-modal-form" id="addCallForm">
+            <form class="calls-modal-form" id="addCallForm" method="POST" action="{{ route('calls.store') }}">
+                @csrf
                 <div class="calls-form-grid">
-                    <div class="calls-form-field"><label for="manualFirmName">Firm Name</label><input id="manualFirmName" type="text"></div>
-                    <div class="calls-form-field"><label for="manualContactName">Contact Person Name</label><input id="manualContactName" type="text"></div>
-                    <div class="calls-form-field"><label for="manualMobile">Mobile Number</label><input id="manualMobile" type="tel"></div>
-                    <div class="calls-form-field"><label for="manualCustomerType">Customer Type</label><input id="manualCustomerType" type="text"></div>
-                    <div class="calls-form-field"><label for="manualAddress">Address</label><input id="manualAddress" type="text"></div>
-                    <div class="calls-form-field"><label for="manualCity">City</label><input id="manualCity" type="text"></div>
-                    <div class="calls-form-field"><label for="manualDistrict">District</label><input id="manualDistrict" type="text"></div>
-                    <div class="calls-form-field"><label for="manualState">State</label><input id="manualState" type="text"></div>
-                    <div class="calls-form-field"><label for="manualPin">Pin</label><input id="manualPin" type="text"></div>
+                    <div class="calls-form-field"><label for="manualFirmName">Firm Name</label><input id="manualFirmName" name="firm_name" type="text" value="{{ old('firm_name') }}" required>@error('firm_name')<span class="calls-field-error">{{ $message }}</span>@enderror</div>
+                    <div class="calls-form-field"><label for="manualContactName">Contact Person Name</label><input id="manualContactName" name="contact_person_name" type="text" value="{{ old('contact_person_name') }}" required>@error('contact_person_name')<span class="calls-field-error">{{ $message }}</span>@enderror</div>
+                    <div class="calls-form-field"><label for="manualMobile">Mobile Number</label><input id="manualMobile" name="mobile_number" type="tel" value="{{ old('mobile_number') }}" required>@error('mobile_number')<span class="calls-field-error">{{ $message }}</span>@enderror</div>
+                    <div class="calls-form-field"><label for="manualCustomerType">Customer Type</label><input id="manualCustomerType" name="customer_type" type="text" value="{{ old('customer_type') }}"></div>
+                    <div class="calls-form-field"><label for="manualAddress">Address</label><input id="manualAddress" name="address" type="text" value="{{ old('address') }}"></div>
+                    <div class="calls-form-field">
+                        <label for="manualPin">Pincode</label>
+                        <select id="manualPin" name="pincode_id" required>
+                            <option value="">Select pincode</option>
+                            @foreach($pincodes as $pincode)
+                                @php
+                                    $pinCity = $pincode->cityname;
+                                    $pinDistrict = optional($pinCity)->districtname;
+                                    $pinState = optional($pinDistrict)->statename ?: optional($pinCity)->statename;
+                                @endphp
+                                <option value="{{ $pincode->id }}" data-city="{{ optional($pinCity)->city_name }}" data-district="{{ optional($pinDistrict)->district_name }}" data-state="{{ optional($pinState)->state_name }}" @selected(old('pincode_id') == $pincode->id)>{{ $pincode->pincode }}</option>
+                            @endforeach
+                        </select>
+                        @error('pincode_id')<span class="calls-field-error">{{ $message }}</span>@enderror
+                    </div>
+                    <div class="calls-form-field"><label for="manualCity">City</label><input id="manualCity" type="text" readonly></div>
+                    <div class="calls-form-field"><label for="manualDistrict">District</label><input id="manualDistrict" type="text" readonly></div>
+                    <div class="calls-form-field"><label for="manualState">State</label><input id="manualState" type="text" readonly></div>
                     <div class="calls-form-field">
                         <label for="manualCaller">Caller Assignment</label>
-                        <select id="manualCaller"><option value="">Select caller</option><option>Sales Executive 1</option><option>Sales Executive 2</option></select>
+                        <select id="manualCaller" name="assigned_user_id" required><option value="">Select caller</option>@foreach($callers as $caller)<option value="{{ $caller->id }}" @selected(old('assigned_user_id') == $caller->id)>{{ $caller->name }}</option>@endforeach</select>
+                        @error('assigned_user_id')<span class="calls-field-error">{{ $message }}</span>@enderror
                     </div>
-                    <div class="calls-form-field"><label for="manualCustom1">Custom Column 1</label><input id="manualCustom1" type="text"></div>
-                    <div class="calls-form-field"><label for="manualCustom2">Custom Column 2</label><input id="manualCustom2" type="text"></div>
-                    <div class="calls-form-field"><label for="manualCustom3">Custom Column 3</label><input id="manualCustom3" type="text"></div>
-                    <div class="calls-form-field"><label for="manualCustom4">Custom Column 4</label><input id="manualCustom4" type="text"></div>
+                    <div class="calls-form-field"><label for="manualCustom1">Custom Column 1</label><input id="manualCustom1" name="custom_column_1" type="text" value="{{ old('custom_column_1') }}"></div>
+                    <div class="calls-form-field"><label for="manualCustom2">Custom Column 2</label><input id="manualCustom2" name="custom_column_2" type="text" value="{{ old('custom_column_2') }}"></div>
+                    <div class="calls-form-field"><label for="manualCustom3">Custom Column 3</label><input id="manualCustom3" name="custom_column_3" type="text" value="{{ old('custom_column_3') }}"></div>
+                    <div class="calls-form-field"><label for="manualCustom4">Custom Column 4</label><input id="manualCustom4" name="custom_column_4" type="text" value="{{ old('custom_column_4') }}"></div>
                 </div>
                 <div class="calls-modal-actions"><button class="calls-modal-submit" type="submit">Add Lead</button></div>
             </form>
@@ -185,6 +216,7 @@
             const modal = document.getElementById('addCallModal');
             const openModal = document.getElementById('openAddCallModal');
             const closeModal = document.getElementById('closeAddCallModal');
+            const pincode = document.getElementById('manualPin');
             const rows = () => Array.from(document.querySelectorAll('#callsTableBody tr[data-search]'));
             const visibleRows = () => rows().filter(row => !row.hidden);
 
@@ -203,10 +235,20 @@
             closeModal.addEventListener('click', () => setModal(false));
             modal.addEventListener('click', event => { if (event.target === modal) setModal(false); });
             document.addEventListener('keydown', event => { if (event.key === 'Escape' && modal.classList.contains('show')) setModal(false); });
-            document.getElementById('addCallForm').addEventListener('submit', function (event) {
-                event.preventDefault();
-                setModal(false);
-            });
+
+            function fillLocation() {
+                const option = pincode.options[pincode.selectedIndex];
+                document.getElementById('manualCity').value = option ? option.dataset.city || '' : '';
+                document.getElementById('manualDistrict').value = option ? option.dataset.district || '' : '';
+                document.getElementById('manualState').value = option ? option.dataset.state || '' : '';
+            }
+
+            pincode.addEventListener('change', fillLocation);
+            fillLocation();
+
+            @if($errors->any())
+                setModal(true);
+            @endif
 
             function updateCount() { selectedCount.textContent = document.querySelectorAll('.calls-row-check:checked').length; }
             function filterRows() {
