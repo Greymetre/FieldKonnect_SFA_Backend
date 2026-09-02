@@ -6,7 +6,6 @@ use App\Models\CallManagementEntry;
 use App\Models\Pincode;
 use App\Models\User;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Concerns\ToCollection;
@@ -17,6 +16,7 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow
     private int $createdBy;
     private int $created = 0;
     private int $updated = 0;
+    private array $errors = [];
 
     public function __construct(int $createdBy)
     {
@@ -25,12 +25,12 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow
 
     public function collection(Collection $rows)
     {
-        DB::transaction(function () use ($rows) {
-            foreach ($rows as $index => $row) {
-                if ($row->filter()->isEmpty()) {
-                    continue;
-                }
+        foreach ($rows as $index => $row) {
+            if ($row->filter()->isEmpty()) {
+                continue;
+            }
 
+            try {
                 $data = $row->toArray();
                 $data['mobile_number'] = preg_replace('/\D/', '', (string) ($data['mobile_number'] ?? ''));
                 $data['pincode'] = trim((string) ($data['pincode'] ?? ''));
@@ -112,8 +112,11 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow
                     ]));
                     $this->created++;
                 }
+            } catch (ValidationException $exception) {
+                $this->errors[] = collect($exception->errors())->flatten()->first()
+                    ?: 'Row '.($index + 2).': Import failed.';
             }
-        });
+        }
     }
 
     public function createdCount(): int
@@ -124,5 +127,15 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow
     public function updatedCount(): int
     {
         return $this->updated;
+    }
+
+    public function skippedCount(): int
+    {
+        return count($this->errors);
+    }
+
+    public function errors(): array
+    {
+        return $this->errors;
     }
 }

@@ -195,11 +195,20 @@ class CallManagementController extends Controller
             $import = new CallManagementEntryImport(auth()->id());
             Excel::import($import, $request->file('import_file'));
 
-            return redirect()->route('calls.index')->with(
+            $redirect = redirect()->route('calls.index')->with(
                 'message_success',
                 $import->createdCount().' call entries created and '
                 .$import->updatedCount().' call entries updated successfully.'
             );
+
+            if ($import->skippedCount()) {
+                $redirect->with(
+                    'message_error',
+                    $import->skippedCount().' rows skipped. '.implode(' | ', array_slice($import->errors(), 0, 3))
+                );
+            }
+
+            return $redirect;
         } catch (ValidationException $exception) {
             return redirect()->route('calls.index')->withErrors(
                 $exception->errors(),

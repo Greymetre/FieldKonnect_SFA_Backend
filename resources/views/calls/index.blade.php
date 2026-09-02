@@ -107,6 +107,9 @@
         @if(session('message_success'))
             <div class="calls-alert">{{ session('message_success') }}</div>
         @endif
+        @if(session('message_error'))
+            <div class="calls-alert calls-alert-error">{{ session('message_error') }}</div>
+        @endif
         @if($errors->importCall->any())
             <div class="calls-alert calls-alert-error">
                 {{ $errors->importCall->first() }}
