@@ -345,6 +345,13 @@
             const rows = () => Array.from(document.querySelectorAll('#callsTableBody tr[data-search]'));
             const visibleRows = () => rows().filter(row => !row.hidden);
 
+            document.addEventListener('click', function (event) {
+                const editButton = event.target.closest('.edit-call-entry');
+                if (!editButton) return;
+                event.preventDefault();
+                openEditForm(editButton.closest('tr'));
+            });
+
             function setImportModal(open) {
                 importModal.classList.toggle('show', open);
                 importModal.setAttribute('aria-hidden', open ? 'false' : 'true');
@@ -356,23 +363,25 @@
                 importFile.click();
             }
 
-            openImport.addEventListener('click', chooseImportFile);
-            changeImportFile.addEventListener('click', chooseImportFile);
-            importFile.addEventListener('change', function () {
-                if (!this.files.length) return;
-                const file = this.files[0];
-                document.getElementById('callsImportFileName').textContent = file.name;
-                document.getElementById('callsImportFileSize').textContent = (file.size / 1024).toFixed(1) + ' KB';
-                setImportModal(true);
-            });
-            closeImport.addEventListener('click', function () { setImportModal(false); });
-            importModal.addEventListener('click', function (event) {
-                if (event.target === importModal) setImportModal(false);
-            });
-            importForm.addEventListener('submit', function () {
-                importSubmit.disabled = true;
-                importSubmit.textContent = 'Importing...';
-            });
+            if (openImport && changeImportFile && importFile && closeImport && importModal && importForm && importSubmit) {
+                openImport.addEventListener('click', chooseImportFile);
+                changeImportFile.addEventListener('click', chooseImportFile);
+                importFile.addEventListener('change', function () {
+                    if (!this.files.length) return;
+                    const file = this.files[0];
+                    document.getElementById('callsImportFileName').textContent = file.name;
+                    document.getElementById('callsImportFileSize').textContent = (file.size / 1024).toFixed(1) + ' KB';
+                    setImportModal(true);
+                });
+                closeImport.addEventListener('click', function () { setImportModal(false); });
+                importModal.addEventListener('click', function (event) {
+                    if (event.target === importModal) setImportModal(false);
+                });
+                importForm.addEventListener('submit', function () {
+                    importSubmit.disabled = true;
+                    importSubmit.textContent = 'Importing...';
+                });
+            }
 
             function setModal(open) {
                 modal.classList.toggle('show', open);
@@ -400,6 +409,8 @@
             }
 
             function openEditForm(row) {
+                if (!row) return;
+                setModal(true);
                 callForm.action = row.dataset.updateUrl;
                 callFormMethod.disabled = false;
                 document.getElementById('editEntryId').value = row.dataset.entryId;
@@ -417,13 +428,9 @@
                 setSelectValue(pincode, row.dataset.pincodeId);
                 setSelectValue(document.getElementById('manualCaller'), row.dataset.currentCaller);
                 fillLocation();
-                setModal(true);
             }
 
             openModal.addEventListener('click', openCreateForm);
-            document.querySelectorAll('.edit-call-entry').forEach(function (button) {
-                button.addEventListener('click', function () { openEditForm(button.closest('tr')); });
-            });
             closeModal.addEventListener('click', () => setModal(false));
             modal.addEventListener('click', event => { if (event.target === modal) setModal(false); });
 
