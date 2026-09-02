@@ -7,6 +7,7 @@ use App\Models\Pincode;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
@@ -50,7 +51,7 @@ class CallManagementController extends Controller
             ->where('active', 'Y')
             ->pluck('id');
 
-        $validated = $request->validate([
+        $validated = $request->validateWithBag('addCall', [
             'firm_name' => ['required', 'string', 'max:200'],
             'contact_person_name' => ['required', 'string', 'max:200'],
             'mobile_number' => ['required', 'regex:/^[0-9+ ]{10,15}$/'],
@@ -81,5 +82,38 @@ class CallManagementController extends Controller
         ]));
 
         return redirect()->route('calls.index')->with('message_success', 'Call entry added successfully.');
+    }
+
+    public function bulkAssign(Request $request)
+    {
+        abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $callerIds = User::permission('call_management_access')
+            ->where('active', 'Y')
+            ->pluck('id')
+            ->all();
+
+        $validated = $request->validateWithBag('bulkAssign', [
+            'entry_ids' => ['required', 'array', 'min:1'],
+            'entry_ids.*' => ['required', 'integer', 'distinct', 'exists:call_management_entries,id'],
+            'bulk_assigned_user_id' => ['required', 'integer', Rule::in($callerIds)],
+            'overrides' => ['nullable', 'array'],
+            'overrides.*' => ['nullable', 'integer', Rule::in($callerIds)],
+        ]);
+
+        DB::transaction(function () use ($validated) {
+            foreach ($validated['entry_ids'] as $entryId) {
+                $override = $validated['overrides'][$entryId] ?? null;
+
+                CallManagementEntry::whereKey($entryId)->update([
+                    'assigned_user_id' => $override ?: $validated['bulk_assigned_user_id'],
+                ]);
+            }
+        });
+
+        return redirect()->route('calls.index')->with(
+            'message_success',
+            count($validated['entry_ids']).' call entries assigned successfully.'
+        );
     }
 }
