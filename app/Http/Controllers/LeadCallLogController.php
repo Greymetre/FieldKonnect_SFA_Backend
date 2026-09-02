@@ -131,6 +131,7 @@ class LeadCallLogController extends Controller
                 }
 
                 return [
+                    'detail_url' => route('call-management.show', $row),
                     'user' => ['name' => $row->user?->name ?: '-'],
                     'customer_name' => $contact?->name ?: '-',
                     'lead' => ['company_name' => $row->lead?->company_name ?: '-'],
@@ -232,6 +233,7 @@ class LeadCallLogController extends Controller
     public function recording(CallLog $callLog)
     {
         abort_if(Gate::denies('call_management_access'), 403, '403 Forbidden');
+        $this->authorizeCallLog($callLog);
         abort_if(empty($callLog->recording_url), 404, 'Recording not available.');
 
         $recording = Http::withBasicAuth(
@@ -246,5 +248,34 @@ class LeadCallLogController extends Controller
             'Content-Disposition' => 'inline; filename="call-'.$callLog->id.'.mp3"',
             'Cache-Control' => 'private, max-age=3600',
         ]);
+    }
+
+    public function show(CallLog $callLog)
+    {
+        abort_if(Gate::denies('call_management_access'), 403, '403 Forbidden');
+        $this->authorizeCallLog($callLog);
+
+        $callLog->load([
+            'user:id,name,email',
+            'lead:id,company_name,status',
+            'lead.contacts:id,lead_id,name,phone_number',
+            'lead.status_is:id,status_name,display_name',
+            'feedbackStatus',
+        ]);
+
+        return view('call_logs.show', compact('callLog'));
+    }
+
+    private function authorizeCallLog(CallLog $callLog): void
+    {
+        if (Auth::user()->hasRole('superadmin') || Auth::user()->hasRole('Admin')) {
+            return;
+        }
+
+        abort_unless(
+            in_array((int) $callLog->user_id, array_map('intval', getUsersReportingToAuth()), true),
+            403,
+            '403 Forbidden'
+        );
     }
 }

@@ -19,6 +19,10 @@
       vertical-align: middle;
     }
 
+    #getleadcalllogs tbody tr {
+      cursor: pointer;
+    }
+
     #getleadcalllogs .badge {
       display: inline-block;
       padding: 9px 16px;
@@ -237,6 +241,17 @@
           }
 
         ],
+      });
+
+      $('#getleadcalllogs tbody').on('click', 'tr', function(event) {
+        if ($(event.target).closest('audio, a, button, input, select, label').length) {
+          return;
+        }
+
+        var row = table.row(this).data();
+        if (row && row.detail_url) {
+          window.location.href = row.detail_url;
+        }
       });
 
       $('#executive_id').change(function() {

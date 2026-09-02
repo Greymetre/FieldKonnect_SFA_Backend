@@ -1390,6 +1390,7 @@ Route::post('ajax/user-cities-by-district', [TourController::class, 'ajaxUserCit
     Route::get('call-management', [LeadCallLogController::class, 'index'])->name('call-management.index');
     Route::get('call-management/download', [LeadCallLogController::class, 'download'])->name('call-management.download');
     Route::get('call-management/{callLog}/recording', [LeadCallLogController::class, 'recording'])->name('call-management.recording');
+    Route::get('call-management/{callLog}', [LeadCallLogController::class, 'show'])->name('call-management.show');
 
     //Process Management Routes
     Route::resource('customer_process', CustomerProcessController::class);
