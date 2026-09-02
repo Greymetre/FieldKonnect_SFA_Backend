@@ -7,7 +7,6 @@ use App\Models\Pincode;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
@@ -26,7 +25,6 @@ class CallManagementController extends Controller
             ->latest('id')
             ->get();
 
-        $userIds = getUsersReportingToAuth();
         $pincodes = Pincode::with([
                 'cityname:id,city_name,district_id,state_id',
                 'cityname.districtname:id,district_name,state_id',
@@ -34,11 +32,6 @@ class CallManagementController extends Controller
                 'cityname.statename:id,state_name',
             ])
             ->where('active', 'Y')
-            ->whereHas('assigncitiesusers', function ($query) use ($userIds) {
-                if (!Auth::user()->hasRole('superadmin') && !Auth::user()->hasRole('Admin')) {
-                    $query->whereIn('userid', $userIds);
-                }
-            })
             ->orderByDesc('id')
             ->get();
 
