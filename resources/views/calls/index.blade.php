@@ -47,7 +47,7 @@
         .calls-page-btn.active { border-color: transparent; background: linear-gradient(135deg, #29d0e8, #439af5); color: #07142b; font-weight: 800; }
         .calls-page-btn .material-icons { font-size: 18px; }
         .calls-empty { padding: 34px 20px !important; color: #7d8fbd !important; text-align: center; }
-        .calls-modal { position: fixed; inset: 0; z-index: 9999; display: none; align-items: center; justify-content: center; padding: 28px 16px; background: rgba(1, 8, 24, .76); backdrop-filter: blur(3px); }
+        .calls-modal { position: fixed; inset: 0; z-index: 3000; display: none; align-items: center; justify-content: center; padding: 28px 16px; background: rgba(1, 8, 24, .76); backdrop-filter: blur(3px); }
         .calls-modal.show { display: flex; }
         .calls-modal-dialog { width: min(760px, 100%); max-height: calc(100vh - 40px); overflow-y: auto; border: 1px solid rgba(77, 122, 221, .4); border-radius: 16px; background: #0b1e47; box-shadow: 0 26px 80px rgba(0, 0, 0, .38); scrollbar-width: thin; scrollbar-color: #22d3ee transparent; }
         .calls-modal-head { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; min-height: 64px; padding: 14px 24px; border-bottom: 1px solid rgba(85, 126, 218, .24); background: #0b1e47; }
@@ -201,8 +201,11 @@
                     <div class="calls-form-field"><label for="manualAddress">Address</label><input id="manualAddress" name="address" type="text" value="{{ old('address') }}"></div>
                     <div class="calls-form-field">
                         <label for="manualPin">Pincode</label>
-                        <select class="form-control pincode" id="manualPin" name="pincode_id" required style="width: 100%;">
+                        <select class="form-control pincode select2" id="manualPin" name="pincode_id" required style="width: 100%;">
                             <option value="">Select Pincode</option>
+                            @foreach($pincodeOptions as $pin)
+                                <option value="{!! $pin['id'] !!}" data-city="{!! e($pin['city']) !!}" data-district="{!! e($pin['district']) !!}" data-state="{!! e($pin['state']) !!}">{!! e($pin['pincode']) !!}</option>
+                            @endforeach
                         </select>
                         @error('pincode_id', 'addCall')<span class="calls-field-error">{{ $message }}</span>@enderror
                     </div>
@@ -247,7 +250,6 @@
             const openAssignModal = document.getElementById('openAssignModal');
             const closeAssignModal = document.getElementById('closeAssignModal');
             const callerOptions = @json($callers->map(fn ($caller) => ['id' => $caller->id, 'name' => $caller->name])->values());
-            const pincodeOptions = @json($pincodeOptions);
             const rows = () => Array.from(document.querySelectorAll('#callsTableBody tr[data-search]'));
             const visibleRows = () => rows().filter(row => !row.hidden);
 
@@ -330,26 +332,10 @@
                 document.getElementById('manualState').value = option ? option.dataset.state || '' : '';
             }
 
-            pincodeOptions.forEach(function (pin) {
-                const option = document.createElement('option');
-                option.value = pin.id;
-                option.textContent = pin.pincode;
-                option.dataset.city = pin.city;
-                option.dataset.district = pin.district;
-                option.dataset.state = pin.state;
-                pincode.appendChild(option);
-            });
-
             pincode.addEventListener('change', fillLocation);
             pincode.value = @json((string) old('pincode_id'));
             document.getElementById('manualCaller').value = @json((string) old('assigned_user_id'));
-            if (window.jQuery && jQuery.fn.select2) {
-                jQuery(pincode).select2({
-                    dropdownParent: jQuery('#addCallModal'),
-                    placeholder: 'Select Pincode',
-                    width: '100%'
-                }).on('change', fillLocation);
-            }
+            if (window.jQuery) jQuery(pincode).on('change', fillLocation);
             fillLocation();
 
             @if($errors->addCall->any())
