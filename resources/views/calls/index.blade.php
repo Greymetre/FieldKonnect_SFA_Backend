@@ -65,6 +65,7 @@
         .calls-modal .select2-container--default .select2-selection--single { min-height: 42px !important; }
         .calls-modal-actions { display: flex; justify-content: flex-end; margin-top: 20px; }
         .calls-modal-submit { min-width: 130px; height: 42px; border: 0; border-radius: 10px; background: linear-gradient(135deg, #2bd1e8, #62baf7); color: #061329; font-size: 14px; font-weight: 800; }
+        .calls-confirm-submit { min-width: 220px; padding: 0 22px; white-space: nowrap; }
         .calls-alert { margin-bottom: 14px; padding: 11px 14px; border: 1px solid rgba(45, 212, 191, .35); border-radius: 10px; background: rgba(45, 212, 191, .08); color: #76e4cf; font-size: 13px; }
         .calls-assign:disabled { opacity: .5; cursor: not-allowed; }
         .calls-assign-dialog { width: min(680px, 100%); }
@@ -78,6 +79,7 @@
         .calls-assignment-row { border-bottom: 1px solid rgba(85, 126, 218, .2); color: #b9c8e9; font-size: 13px; }
         .calls-assignment-row:last-child { border-bottom: 0; }
         .calls-assignment-row select { width: 100%; height: 38px; padding: 0 10px; border: 1px solid rgba(85, 126, 218, .35); border-radius: 9px; background: #091a3e; color: #d8e3ff; }
+        .calls-assignment-row .select2-container { width: 100% !important; }
         body.calls-modal-open { overflow: hidden; }
         @media (max-width: 991px) {
             .calls-page-head { align-items: flex-start; flex-direction: column; }
@@ -168,7 +170,7 @@
                 <span class="calls-selected-chip"><span id="modalSelectedCount">0</span>&nbsp; selected</span>
                 <div class="calls-bulk-box">
                     <label for="bulkAssignedCaller">Bulk assign all to</label>
-                    <select class="calls-bulk-select" id="bulkAssignedCaller" name="bulk_assigned_user_id" required>
+                    <select class="calls-bulk-select select2" id="bulkAssignedCaller" name="bulk_assigned_user_id" required style="width: 100%;">
                         <option value="">Select caller</option>
                         @foreach($callers as $caller)<option value="{{ $caller->id }}">{{ $caller->name }}</option>@endforeach
                     </select>
@@ -180,7 +182,7 @@
                 </div>
                 <div id="assignmentInputs"></div>
                 @error('entry_ids', 'bulkAssign')<span class="calls-field-error">{{ $message }}</span>@enderror
-                <div class="calls-modal-actions"><button class="calls-modal-submit" type="submit">Confirm Assignment</button></div>
+                <div class="calls-modal-actions"><button class="calls-modal-submit calls-confirm-submit" type="submit">Confirm Assignment</button></div>
             </form>
         </div>
     </div>
@@ -196,7 +198,7 @@
                 <div class="calls-form-grid">
                     <div class="calls-form-field"><label for="manualFirmName">Firm Name</label><input id="manualFirmName" name="firm_name" type="text" value="{{ old('firm_name') }}" required>@error('firm_name', 'addCall')<span class="calls-field-error">{{ $message }}</span>@enderror</div>
                     <div class="calls-form-field"><label for="manualContactName">Contact Person Name</label><input id="manualContactName" name="contact_person_name" type="text" value="{{ old('contact_person_name') }}" required>@error('contact_person_name', 'addCall')<span class="calls-field-error">{{ $message }}</span>@enderror</div>
-                    <div class="calls-form-field"><label for="manualMobile">Mobile Number</label><input id="manualMobile" name="mobile_number" type="tel" value="{{ old('mobile_number') }}" required>@error('mobile_number', 'addCall')<span class="calls-field-error">{{ $message }}</span>@enderror</div>
+                    <div class="calls-form-field"><label for="manualMobile">Mobile Number</label><input id="manualMobile" name="mobile_number" type="tel" inputmode="numeric" minlength="10" maxlength="10" pattern="[0-9]{10}" value="{{ old('mobile_number') }}" required>@error('mobile_number', 'addCall')<span class="calls-field-error">{{ $message }}</span>@enderror</div>
                     <div class="calls-form-field"><label for="manualCustomerType">Customer Type</label><input id="manualCustomerType" name="customer_type" type="text" value="{{ old('customer_type') }}"></div>
                     <div class="calls-form-field"><label for="manualAddress">Address</label><input id="manualAddress" name="address" type="text" value="{{ old('address') }}"></div>
                     <div class="calls-form-field">
@@ -214,7 +216,7 @@
                     <div class="calls-form-field"><label for="manualState">State</label><input id="manualState" type="text" readonly></div>
                     <div class="calls-form-field">
                         <label for="manualCaller">Caller Assignment</label>
-                        <select id="manualCaller" name="assigned_user_id" required>
+                        <select class="form-control select2" id="manualCaller" name="assigned_user_id" required style="width: 100%;">
                             <option value="">Select caller</option>
                             @foreach($callers as $caller)
                                 <option value="{{ $caller->id }}">{{ $caller->name }}</option>
@@ -249,6 +251,7 @@
             const assignModal = document.getElementById('assignCallsModal');
             const openAssignModal = document.getElementById('openAssignModal');
             const closeAssignModal = document.getElementById('closeAssignModal');
+            const mobileInput = document.getElementById('manualMobile');
             const callerOptions = @json($callers->map(fn ($caller) => ['id' => $caller->id, 'name' => $caller->name])->values());
             const rows = () => Array.from(document.querySelectorAll('#callsTableBody tr[data-search]'));
             const visibleRows = () => rows().filter(row => !row.hidden);
@@ -302,6 +305,7 @@
                         option.textContent = caller.name;
                         override.appendChild(option);
                     });
+                    override.value = row.dataset.currentCaller || '';
 
                     const input = document.createElement('input');
                     input.type = 'hidden';
@@ -310,6 +314,14 @@
                     inputsContainer.appendChild(input);
                     item.append(firm, mobile, override);
                     rowsContainer.appendChild(item);
+
+                    if (window.jQuery && jQuery.fn.select2) {
+                        jQuery(override).select2({
+                            dropdownParent: jQuery('#assignCallsModal'),
+                            placeholder: 'Search caller',
+                            width: '100%'
+                        });
+                    }
                 });
             }
 
@@ -337,6 +349,10 @@
             document.getElementById('manualCaller').value = @json((string) old('assigned_user_id'));
             if (window.jQuery) jQuery(pincode).on('change', fillLocation);
             fillLocation();
+
+            mobileInput.addEventListener('input', function () {
+                this.value = this.value.replace(/\D/g, '').slice(0, 10);
+            });
 
             @if($errors->addCall->any())
                 setModal(true);
@@ -376,6 +392,7 @@
                 @endforeach
                 buildAssignmentRows();
                 document.getElementById('bulkAssignedCaller').value = @json((string) old('bulk_assigned_user_id'));
+                if (window.jQuery) jQuery('#bulkAssignedCaller').trigger('change');
                 setAssignModal(true);
             @endif
         });

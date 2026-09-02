@@ -68,7 +68,7 @@ class CallManagementController extends Controller
         $validated = $request->validateWithBag('addCall', [
             'firm_name' => ['required', 'string', 'max:200'],
             'contact_person_name' => ['required', 'string', 'max:200'],
-            'mobile_number' => ['required', 'regex:/^[0-9+ ]{10,15}$/'],
+            'mobile_number' => ['required', 'digits:10'],
             'customer_type' => ['nullable', 'string', 'max:100'],
             'address' => ['nullable', 'string', 'max:500'],
             'pincode_id' => ['required', 'integer', 'exists:pincodes,id'],
