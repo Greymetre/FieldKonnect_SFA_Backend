@@ -66,7 +66,11 @@ class CallManagementController extends Controller
     {
         abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        return view('calls.customer-calling');
+        $entries = CallManagementEntry::where('assigned_user_id', auth()->id())
+            ->latest('id')
+            ->get();
+
+        return view('calls.customer-calling', compact('entries'));
     }
 
     public function store(Request $request)
