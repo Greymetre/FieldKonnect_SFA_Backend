@@ -220,7 +220,7 @@
                                     $pinDistrict = optional($pinCity)->districtname;
                                     $pinState = optional($pinDistrict)->statename ?: optional($pinCity)->statename;
                                 @endphp
-                                <option value="{{ $pincode->id }}" data-city="{{ optional($pinCity)->city_name }}" data-district="{{ optional($pinDistrict)->district_name }}" data-state="{{ optional($pinState)->state_name }}" @selected(old('pincode_id') == $pincode->id)>{{ $pincode->pincode }}{{ optional($pinCity)->city_name ? ' — ' . optional($pinCity)->city_name : '' }}{{ optional($pinDistrict)->district_name ? ', ' . optional($pinDistrict)->district_name : '' }}</option>
+                                <option value="{{ $pincode->id }}" data-city="{{ optional($pinCity)->city_name }}" data-district="{{ optional($pinDistrict)->district_name }}" data-state="{{ optional($pinState)->state_name }}" {{ old('pincode_id') == $pincode->id ? 'selected' : '' }}>{{ $pincode->pincode }}{{ optional($pinCity)->city_name ? ' — ' . optional($pinCity)->city_name : '' }}{{ optional($pinDistrict)->district_name ? ', ' . optional($pinDistrict)->district_name : '' }}</option>
                             @endforeach
                         </select>
                         @error('pincode_id', 'addCall')<span class="calls-field-error">{{ $message }}</span>@enderror
@@ -230,7 +230,7 @@
                     <div class="calls-form-field"><label for="manualState">State</label><input id="manualState" type="text" readonly></div>
                     <div class="calls-form-field">
                         <label for="manualCaller">Caller Assignment</label>
-                        <select id="manualCaller" name="assigned_user_id" required><option value="">Select caller</option>@foreach($callers as $caller)<option value="{{ $caller->id }}" @selected(old('assigned_user_id') == $caller->id)>{{ $caller->name }}</option>@endforeach</select>
+                        <select id="manualCaller" name="assigned_user_id" required><option value="">Select caller</option>@foreach($callers as $caller)<option value="{{ $caller->id }}" {{ old('assigned_user_id') == $caller->id ? 'selected' : '' }}>{{ $caller->name }}</option>@endforeach</select>
                         @error('assigned_user_id', 'addCall')<span class="calls-field-error">{{ $message }}</span>@enderror
                     </div>
                     <div class="calls-form-field"><label for="manualCustom1">Custom Column 1</label><input id="manualCustom1" name="custom_column_1" type="text" value="{{ old('custom_column_1') }}"></div>
