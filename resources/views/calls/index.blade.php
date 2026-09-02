@@ -61,19 +61,8 @@
         .calls-form-field input[readonly] { background: rgba(20, 39, 78, .48); color: #91a3ce; cursor: default; }
         .calls-field-error { display: block; margin-top: 5px; color: #ff8c9b; font-size: 11px; }
         .calls-form-field input:focus, .calls-form-field select:focus { border-color: rgba(34, 211, 238, .7); }
-        .calls-modal .select2-container { width: 100% !important; }
-        .calls-modal .select2-container--default .select2-selection--single { height: 42px !important; border: 1px solid rgba(85, 126, 218, .35) !important; border-radius: 10px !important; background: rgba(5, 18, 47, .46) !important; box-shadow: none !important; }
-        .calls-modal .select2-container--default .select2-selection--single .select2-selection__rendered { height: 40px; padding: 0 38px 0 13px; color: #d8e3ff !important; font-size: 14px; line-height: 40px !important; }
-        .calls-modal .select2-container--default .select2-selection--single .select2-selection__placeholder { color: #7f91bd !important; }
-        .calls-modal .select2-container--default .select2-selection--single .select2-selection__arrow { top: 7px !important; right: 8px !important; }
-        .calls-pincode-dropdown { z-index: 10010 !important; overflow: hidden; border: 1px solid rgba(85, 126, 218, .45) !important; border-radius: 10px !important; background: #0a1c43 !important; box-shadow: 0 16px 40px rgba(0, 0, 0, .35); }
-        .calls-pincode-dropdown .select2-search--dropdown { padding: 10px !important; background: #0a1c43; }
-        .calls-pincode-dropdown .select2-search__field { height: 38px; padding: 0 12px !important; border: 1px solid rgba(34, 211, 238, .45) !important; border-radius: 8px; outline: 0; background: #071735 !important; color: #e2ebff !important; }
-        .calls-pincode-dropdown .select2-results { background: #0a1c43; }
-        .calls-pincode-dropdown .select2-results__options { max-height: 220px !important; }
-        .calls-pincode-dropdown .select2-results__option { padding: 9px 12px !important; color: #b8c7e9 !important; font-size: 13px; }
-        .calls-pincode-dropdown .select2-results__option--highlighted[aria-selected] { background: rgba(34, 211, 238, .16) !important; color: #ffffff !important; }
-        .calls-pincode-dropdown .select2-results__option[aria-selected=true] { background: rgba(59, 130, 246, .2) !important; }
+        .calls-modal .select2-container { width: 100% !important; z-index: 10010 !important; }
+        .calls-modal .select2-container--default .select2-selection--single { min-height: 42px !important; }
         .calls-modal-actions { display: flex; justify-content: flex-end; margin-top: 20px; }
         .calls-modal-submit { min-width: 130px; height: 42px; border: 0; border-radius: 10px; background: linear-gradient(135deg, #2bd1e8, #62baf7); color: #061329; font-size: 14px; font-weight: 800; }
         .calls-alert { margin-bottom: 14px; padding: 11px 14px; border: 1px solid rgba(45, 212, 191, .35); border-radius: 10px; background: rgba(45, 212, 191, .08); color: #76e4cf; font-size: 13px; }
@@ -212,15 +201,15 @@
                     <div class="calls-form-field"><label for="manualAddress">Address</label><input id="manualAddress" name="address" type="text" value="{{ old('address') }}"></div>
                     <div class="calls-form-field">
                         <label for="manualPin">Pincode</label>
-                        <select id="manualPin" name="pincode_id" required>
-                            <option value="">Select pincode</option>
+                        <select class="form-control pincode" id="manualPin" name="pincode_id" required style="width: 100%;">
+                            <option value="">Select Pincode</option>
                             @foreach($pincodes as $pincode)
                                 @php
                                     $pinCity = $pincode->cityname;
                                     $pinDistrict = optional($pinCity)->districtname;
                                     $pinState = optional($pinDistrict)->statename ?: optional($pinCity)->statename;
                                 @endphp
-                                <option value="{{ $pincode->id }}" data-city="{{ optional($pinCity)->city_name }}" data-district="{{ optional($pinDistrict)->district_name }}" data-state="{{ optional($pinState)->state_name }}" {{ old('pincode_id') == $pincode->id ? 'selected' : '' }}>{{ $pincode->pincode }}{{ optional($pinCity)->city_name ? ' — ' . optional($pinCity)->city_name : '' }}{{ optional($pinDistrict)->district_name ? ', ' . optional($pinDistrict)->district_name : '' }}</option>
+                                <option value="{{ $pincode->id }}" data-city="{{ optional($pinCity)->city_name }}" data-district="{{ optional($pinDistrict)->district_name }}" data-state="{{ optional($pinState)->state_name }}">{{ $pincode->pincode }}</option>
                             @endforeach
                         </select>
                         @error('pincode_id', 'addCall')<span class="calls-field-error">{{ $message }}</span>@enderror
@@ -230,7 +219,12 @@
                     <div class="calls-form-field"><label for="manualState">State</label><input id="manualState" type="text" readonly></div>
                     <div class="calls-form-field">
                         <label for="manualCaller">Caller Assignment</label>
-                        <select id="manualCaller" name="assigned_user_id" required><option value="">Select caller</option>@foreach($callers as $caller)<option value="{{ $caller->id }}" {{ old('assigned_user_id') == $caller->id ? 'selected' : '' }}>{{ $caller->name }}</option>@endforeach</select>
+                        <select id="manualCaller" name="assigned_user_id" required>
+                            <option value="">Select caller</option>
+                            @foreach($callers as $caller)
+                                <option value="{{ $caller->id }}">{{ $caller->name }}</option>
+                            @endforeach
+                        </select>
                         @error('assigned_user_id', 'addCall')<span class="calls-field-error">{{ $message }}</span>@enderror
                     </div>
                     <div class="calls-form-field"><label for="manualCustom1">Custom Column 1</label><input id="manualCustom1" name="custom_column_1" type="text" value="{{ old('custom_column_1') }}"></div>
@@ -344,11 +338,12 @@
             }
 
             pincode.addEventListener('change', fillLocation);
+            pincode.value = @json((string) old('pincode_id'));
+            document.getElementById('manualCaller').value = @json((string) old('assigned_user_id'));
             if (window.jQuery && jQuery.fn.select2) {
                 jQuery(pincode).select2({
                     dropdownParent: jQuery('#addCallModal'),
-                    dropdownCssClass: 'calls-pincode-dropdown',
-                    placeholder: 'Search or select pincode',
+                    placeholder: 'Select Pincode',
                     width: '100%'
                 }).on('change', fillLocation);
             }
