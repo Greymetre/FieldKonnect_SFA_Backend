@@ -12,8 +12,7 @@
         .calls-toolbar { display: flex; align-items: center; gap: 10px; }
         .calls-icon-btn, .calls-filter-btn, .calls-add-btn { display: inline-flex; align-items: center; justify-content: center; border: 1px solid rgba(85, 126, 218, .32); border-radius: 12px; background: rgba(7, 20, 49, .62); color: #c7d5f5; box-shadow: none; }
         .calls-icon-btn { width: 45px; height: 45px; padding: 0; text-decoration: none; cursor: pointer; }
-        .calls-toolbar form { display: flex; align-items: center; gap: 8px; margin: 0; }
-        .calls-import-file-name { max-width: 130px; overflow: hidden; color: #8fa1d0; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+        .calls-upload-btn { width: auto; height: 42px; gap: 7px; padding: 0 16px; font-size: 13px; font-weight: 700; }
         .calls-filter-btn { height: 45px; gap: 8px; padding: 0 18px; }
         .calls-add-btn { width: 168px; height: 42px; gap: 7px; padding: 0 16px; border-color: transparent; border-radius: 10px; background: linear-gradient(135deg, #31cfe5, #438ff0); color: #061329; font-size: 14px; font-weight: 700; }
         .calls-toolbar button[disabled] { cursor: default; opacity: 1; }
@@ -79,6 +78,13 @@
         .calls-alert-error { border-color: rgba(248, 113, 113, .4); background: rgba(248, 113, 113, .08); color: #fca5a5; }
         .calls-assign:disabled { opacity: .5; cursor: not-allowed; }
         .calls-assign-dialog { width: min(680px, 100%); }
+        .calls-import-dialog { width: min(520px, 100%); }
+        .calls-import-file-card { display: flex; align-items: center; gap: 13px; min-height: 70px; padding: 14px 16px; border: 1px solid rgba(85, 126, 218, .34); border-radius: 12px; background: rgba(5, 18, 47, .46); }
+        .calls-import-file-card > .material-icons { color: #2ed2ec; font-size: 30px; }
+        .calls-import-file-info { min-width: 0; flex: 1; }
+        .calls-import-file-info strong { display: block; overflow: hidden; color: #dce7ff; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+        .calls-import-file-info span { color: #8193c2; font-size: 11px; }
+        .calls-import-change { border: 0; background: transparent; color: #36d2ed; font-size: 12px; font-weight: 700; }
         .calls-selected-chip { display: inline-flex; align-items: center; min-height: 34px; margin-bottom: 16px; padding: 0 15px; border: 1px solid rgba(34, 211, 238, .45); border-radius: 999px; background: rgba(34, 211, 238, .08); color: #27d5f2; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
         .calls-bulk-box { margin-bottom: 18px; padding: 16px; border: 1px solid rgba(85, 126, 218, .3); border-radius: 12px; background: rgba(11, 31, 72, .55); }
         .calls-bulk-box label { display: block; margin: 0 0 9px; color: #8fa1d0; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
@@ -125,19 +131,7 @@
                 </div>
             </div>
             <div class="calls-toolbar">
-                <form id="callsImportForm" action="{{ route('calls.import') }}" method="POST" enctype="multipart/form-data">
-                    @csrf
-                    <input id="callsImportFile" name="import_file" type="file" accept=".xlsx,.xls,.csv" required hidden
-                           onchange="document.getElementById('callsImportFileName').textContent = this.files.length ? this.files[0].name : ''">
-                    <label class="calls-icon-btn" for="callsImportFile" title="Select Excel file" aria-label="Select Excel file"
-                           onclick="document.getElementById('callsImportFile').value = ''">
-                        <i class="material-icons">attach_file</i>
-                    </label>
-                    <span class="calls-import-file-name" id="callsImportFileName"></span>
-                    <button class="calls-icon-btn" type="submit" title="Upload Excel" aria-label="Upload Excel">
-                        <i class="material-icons">cloud_upload</i>
-                    </button>
-                </form>
+                <button class="calls-icon-btn calls-upload-btn" id="openCallsImport" type="button"><i class="material-icons">cloud_upload</i>Import Excel</button>
                 <a class="calls-icon-btn" href="{{ route('calls.export') }}" title="Export Excel" aria-label="Export Excel">
                     <i class="material-icons">cloud_download</i>
                 </a>
@@ -214,6 +208,30 @@
                 </div>
             </footer>
         </section>
+    </div>
+
+    <div class="calls-modal" id="importCallsModal" role="dialog" aria-modal="true" aria-labelledby="importCallsModalTitle" aria-hidden="true">
+        <div class="calls-modal-dialog calls-import-dialog">
+            <div class="calls-modal-head">
+                <h2 id="importCallsModalTitle">Import Calls</h2>
+                <button class="calls-modal-close" id="closeCallsImport" type="button" aria-label="Close modal"><i class="material-icons">close</i></button>
+            </div>
+            <form class="calls-modal-form" id="callsImportForm" action="{{ route('calls.import') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <input id="callsImportFile" name="import_file" type="file" accept=".xlsx,.xls,.csv" required hidden>
+                <div class="calls-import-file-card">
+                    <i class="material-icons">description</i>
+                    <div class="calls-import-file-info">
+                        <strong id="callsImportFileName">No file selected</strong>
+                        <span id="callsImportFileSize">XLSX, XLS or CSV</span>
+                    </div>
+                    <button class="calls-import-change" id="changeCallsImportFile" type="button">Change</button>
+                </div>
+                <div class="calls-modal-actions">
+                    <button class="calls-modal-submit" id="submitCallsImport" type="submit">Import</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <div class="calls-modal" id="assignCallsModal" role="dialog" aria-modal="true" aria-labelledby="assignCallsModalTitle" aria-hidden="true">
@@ -315,10 +333,46 @@
             const callFormMethod = document.getElementById('callFormMethod');
             const callFormSubmit = document.getElementById('callFormSubmit');
             const callFormTitle = document.getElementById('addCallModalTitle');
+            const importModal = document.getElementById('importCallsModal');
+            const openImport = document.getElementById('openCallsImport');
+            const closeImport = document.getElementById('closeCallsImport');
+            const changeImportFile = document.getElementById('changeCallsImportFile');
+            const importFile = document.getElementById('callsImportFile');
+            const importForm = document.getElementById('callsImportForm');
+            const importSubmit = document.getElementById('submitCallsImport');
             const createCallUrl = @json(route('calls.store'));
             const callerOptions = @json($callers->map(fn ($caller) => ['id' => $caller->id, 'name' => $caller->name])->values());
             const rows = () => Array.from(document.querySelectorAll('#callsTableBody tr[data-search]'));
             const visibleRows = () => rows().filter(row => !row.hidden);
+
+            function setImportModal(open) {
+                importModal.classList.toggle('show', open);
+                importModal.setAttribute('aria-hidden', open ? 'false' : 'true');
+                document.body.classList.toggle('calls-modal-open', open);
+            }
+
+            function chooseImportFile() {
+                importFile.value = '';
+                importFile.click();
+            }
+
+            openImport.addEventListener('click', chooseImportFile);
+            changeImportFile.addEventListener('click', chooseImportFile);
+            importFile.addEventListener('change', function () {
+                if (!this.files.length) return;
+                const file = this.files[0];
+                document.getElementById('callsImportFileName').textContent = file.name;
+                document.getElementById('callsImportFileSize').textContent = (file.size / 1024).toFixed(1) + ' KB';
+                setImportModal(true);
+            });
+            closeImport.addEventListener('click', function () { setImportModal(false); });
+            importModal.addEventListener('click', function (event) {
+                if (event.target === importModal) setImportModal(false);
+            });
+            importForm.addEventListener('submit', function () {
+                importSubmit.disabled = true;
+                importSubmit.textContent = 'Importing...';
+            });
 
             function setModal(open) {
                 modal.classList.toggle('show', open);
@@ -441,7 +495,8 @@
             assignModal.addEventListener('click', event => { if (event.target === assignModal) setAssignModal(false); });
             document.addEventListener('keydown', function (event) {
                 if (event.key !== 'Escape') return;
-                if (assignModal.classList.contains('show')) setAssignModal(false);
+                if (importModal.classList.contains('show')) setImportModal(false);
+                else if (assignModal.classList.contains('show')) setAssignModal(false);
                 else if (modal.classList.contains('show')) setModal(false);
             });
 
