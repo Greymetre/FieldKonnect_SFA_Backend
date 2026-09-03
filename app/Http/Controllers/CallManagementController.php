@@ -295,7 +295,7 @@ class CallManagementController extends Controller
             $response = Http::withBasicAuth(config('services.plivo.auth_id'), config('services.plivo.auth_token'))
                 ->asJson()
                 ->post('https://api.plivo.com/v1/Account/'.config('services.plivo.auth_id').'/Call/', [
-                    'from' => config('services.plivo.from_number'),
+                    'from' => $this->plivoFromNumber(),
                     'to' => $agentNumber,
                     'answer_url' => $this->plivoWebhookUrl('answer_url', 'api/plivo/answer').'?'.$query,
                     'answer_method' => 'POST',
@@ -514,7 +514,18 @@ class CallManagementController extends Controller
 
     private function ensurePlivoConfigured(): void
     {
-        abort_unless(config('services.plivo.auth_id') && config('services.plivo.auth_token') && config('services.plivo.from_number'), 500, 'Plivo credentials are not configured on the server.');
+        abort_unless(
+            config('services.plivo.auth_id')
+                && config('services.plivo.auth_token')
+                && $this->plivoFromNumber(),
+            500,
+            'Plivo credentials or caller number are not configured correctly on the server.'
+        );
+    }
+
+    private function plivoFromNumber(): ?string
+    {
+        return $this->e164(config('services.plivo.from_number'));
     }
 
     public function store(Request $request)

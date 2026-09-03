@@ -54,7 +54,7 @@ class PlivoController extends Controller
             $response = Http::withBasicAuth(config('services.plivo.auth_id'), config('services.plivo.auth_token'))
                 ->asJson()
                 ->post('https://api.plivo.com/v1/Account/'.config('services.plivo.auth_id').'/Call/', [
-                    'from' => config('services.plivo.from_number'),
+                    'from' => $this->fromNumber(),
                     'to' => $agentNumber,
                     'answer_url' => $this->webhookUrl('answer_url', 'api/plivo/answer').'?'.$query,
                     'answer_method' => 'POST',
@@ -106,7 +106,7 @@ class PlivoController extends Controller
         $xml = '<?xml version="1.0" encoding="UTF-8"?>'
             .'<Response>'
             .'<Record startOnDialAnswer="true" redirect="false" maxLength="'.self::RECORDING_MAX_LENGTH_SECONDS.'" finishOnKey="none" action="'.e($recordingUrl).'" method="POST" callbackUrl="'.e($recordingUrl).'" callbackMethod="POST" />'
-            .'<Dial callerId="'.e(config('services.plivo.from_number')).'" callbackUrl="'.e($statusUrl).'" callbackMethod="POST">'
+            .'<Dial callerId="'.e($this->fromNumber()).'" callbackUrl="'.e($statusUrl).'" callbackMethod="POST">'
             .'<Number>'.e($customerNumber).'</Number>'
             .'</Dial>'
             .'</Response>';
@@ -259,9 +259,9 @@ class PlivoController extends Controller
         abort_unless(
             config('services.plivo.auth_id')
                 && config('services.plivo.auth_token')
-                && config('services.plivo.from_number'),
+                && $this->fromNumber(),
             500,
-            'Plivo credentials are not configured on the server.'
+            'Plivo credentials or caller number are not configured correctly on the server.'
         );
 
         foreach (['answer_url', 'status_url', 'recording_url'] as $configKey) {
@@ -277,5 +277,10 @@ class PlivoController extends Controller
                 'Plivo webhook URLs must use a public HTTPS domain.'
             );
         }
+    }
+
+    private function fromNumber(): ?string
+    {
+        return $this->e164(config('services.plivo.from_number'));
     }
 }
