@@ -80,7 +80,7 @@
                                 <td>{{ $callLog->remark ?: '—' }}</td>
                                 <td>
                                     @if($callLog->recording_url)
-                                        <audio class="customer-history-recording" controls preload="none"><source src="{{ route('call-management.recording', $callLog) }}" type="audio/mpeg"></audio>
+                                        <audio class="customer-history-recording" controls preload="metadata" src="{{ route('call-management.recording', $callLog) }}">Your browser does not support audio playback.</audio>
                                     @else
                                         <span>Processing / unavailable</span>
                                     @endif

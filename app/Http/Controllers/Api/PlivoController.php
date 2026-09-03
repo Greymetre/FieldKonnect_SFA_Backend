@@ -8,6 +8,7 @@ use App\Models\Lead;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -104,7 +105,7 @@ class PlivoController extends Controller
 
         $xml = '<?xml version="1.0" encoding="UTF-8"?>'
             .'<Response>'
-            .'<Record startOnDialAnswer="true" redirect="false" maxLength="'.self::RECORDING_MAX_LENGTH_SECONDS.'" finishOnKey="none" callbackUrl="'.e($recordingUrl).'" callbackMethod="POST" />'
+            .'<Record startOnDialAnswer="true" redirect="false" maxLength="'.self::RECORDING_MAX_LENGTH_SECONDS.'" finishOnKey="none" action="'.e($recordingUrl).'" method="POST" callbackUrl="'.e($recordingUrl).'" callbackMethod="POST" />'
             .'<Dial callerId="'.e(config('services.plivo.from_number')).'" callbackUrl="'.e($statusUrl).'" callbackMethod="POST">'
             .'<Number>'.e($customerNumber).'</Number>'
             .'</Dial>'
@@ -141,6 +142,13 @@ class PlivoController extends Controller
             $updates['cost'] = $cost;
         }
 
+        $recordingUrl = $this->recordingUrlFromRequest($request);
+        if ($recordingUrl) {
+            $updates['recording_url'] = $recordingUrl;
+            $updates['recording_id'] = $this->recordingIdFromRequest($request);
+            $updates['status'] = 1;
+        }
+
         if (in_array(strtolower((string) $status), ['completed', 'hangup', 'failed', 'busy', 'no-answer', 'timeout', 'cancel'], true)) {
             $updates['completed_at'] = now();
         }
@@ -175,10 +183,22 @@ class PlivoController extends Controller
     {
         $callLog = $this->authorizedCallLog($request);
         $duration = $request->input('RecordingDuration');
-        $recordingUrl = $request->input('RecordUrl', $request->input('RecordingURL'));
+        if (! is_numeric($duration) && is_numeric($request->input('RecordingDurationMs'))) {
+            $duration = (int) round(((int) $request->input('RecordingDurationMs')) / 1000);
+        }
+        $recordingUrl = $this->recordingUrlFromRequest($request);
+
+        if (! $recordingUrl) {
+            Log::warning('Plivo recording callback received without a recording URL.', [
+                'call_log_id' => $callLog->id,
+                'recording_id' => $this->recordingIdFromRequest($request),
+                'parameter_names' => array_keys($request->all()),
+            ]);
+        }
+
         $callLog->update(array_filter([
             'recording_url' => $recordingUrl,
-            'recording_id' => $request->input('RecordingID', $request->input('RecordingUUID')),
+            'recording_id' => $this->recordingIdFromRequest($request),
             // Keep call duration and recording duration independent. Plivo may
             // deliver their webhooks in either order during concurrent calls.
             'recording_duration' => is_numeric($duration) && (int) $duration >= 0 ? (int) $duration : null,
@@ -186,6 +206,30 @@ class PlivoController extends Controller
         ], static fn ($value) => $value !== null && $value !== ''));
 
         return response('OK', 200);
+    }
+
+    private function recordingUrlFromRequest(Request $request): ?string
+    {
+        foreach (['RecordUrl', 'RecordingURL', 'RecordingUrl', 'recording_url', 'record_url'] as $key) {
+            $url = trim((string) $request->input($key));
+            if ($url !== '' && filter_var($url, FILTER_VALIDATE_URL)) {
+                return $url;
+            }
+        }
+
+        return null;
+    }
+
+    private function recordingIdFromRequest(Request $request): ?string
+    {
+        foreach (['RecordingID', 'RecordingUUID', 'RecordingId', 'recording_id'] as $key) {
+            $id = trim((string) $request->input($key));
+            if ($id !== '') {
+                return $id;
+            }
+        }
+
+        return null;
     }
 
     private function authorizedCallLog(Request $request): CallLog

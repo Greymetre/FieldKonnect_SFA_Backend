@@ -127,8 +127,8 @@ class LeadCallLogController extends Controller
 
                 $recording = '<span class="text-muted">Processing / unavailable</span>';
                 if (!empty($row->recording_url)) {
-                    $recording = '<audio controls preload="none" style="width:220px;height:36px">'
-                        .'<source src="'.e(route('call-management.recording', $row)).'" type="audio/mpeg">'
+                    $recording = '<audio controls preload="metadata" style="width:220px;height:36px" src="'
+                        .e(route('call-management.recording', $row)).'">'
                         .'Your browser does not support audio playback.</audio>';
                 }
 
@@ -240,18 +240,32 @@ class LeadCallLogController extends Controller
         $this->authorizeCallLog($callLog);
         abort_if(empty($callLog->recording_url), 404, 'Recording not available.');
 
+        $requestHeaders = [];
+        if (request()->hasHeader('Range')) {
+            $requestHeaders['Range'] = request()->header('Range');
+        }
+
         $recording = Http::withBasicAuth(
             config('services.plivo.auth_id'),
             config('services.plivo.auth_token')
-        )->timeout(30)->get($callLog->recording_url);
+        )->withHeaders($requestHeaders)->timeout(30)->get($callLog->recording_url);
 
         abort_unless($recording->successful(), 502, 'Unable to load recording from Plivo.');
 
-        return response($recording->body(), 200, [
+        $headers = [
             'Content-Type' => $recording->header('Content-Type') ?: 'audio/mpeg',
-            'Content-Disposition' => 'inline; filename="call-'.$callLog->id.'.mp3"',
+            'Content-Disposition' => 'inline; filename="call-'.$callLog->id.'"',
             'Cache-Control' => 'private, max-age=3600',
-        ]);
+            'Accept-Ranges' => $recording->header('Accept-Ranges') ?: 'bytes',
+        ];
+
+        foreach (['Content-Length', 'Content-Range', 'ETag', 'Last-Modified'] as $header) {
+            if ($recording->header($header)) {
+                $headers[$header] = $recording->header($header);
+            }
+        }
+
+        return response($recording->body(), $recording->status(), $headers);
     }
 
     public function show(CallLog $callLog)
