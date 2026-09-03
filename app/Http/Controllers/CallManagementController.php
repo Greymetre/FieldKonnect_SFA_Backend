@@ -140,11 +140,16 @@ class CallManagementController extends Controller
                 ->get(['id', 'name']);
         }
 
-        // Every calling agent can correct customer location details while a call
-        // is in progress, regardless of create/edit-delete permissions.
+        // Keep the same pincode visibility rules used by Create Customer.
+        $userIds = getUsersReportingToAuth();
         $pincodes = Pincode::where('active', 'Y')
+            ->whereHas('assigncitiesusers', function ($query) use ($userIds) {
+                if (! auth()->user()->hasRole('superadmin') && ! auth()->user()->hasRole('Admin')) {
+                    $query->whereIn('userid', $userIds);
+                }
+            })
             ->select('id', 'pincode')
-            ->orderBy('pincode')
+            ->orderByDesc('id')
             ->get();
 
         return view('calls.customer-calling', compact(
@@ -445,22 +450,12 @@ class CallManagementController extends Controller
             'feedback_status_id' => ['required', 'integer'],
             'message' => ['required', 'string', 'max:1000'],
             'follow_up_date' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:today'],
-            'project_name' => ['nullable', 'string', 'max:255'],
-            'project_id' => ['nullable', 'string', 'max:255'],
             'parent_name' => ['nullable', 'string', 'max:255'],
-            'firm_name' => ['required', 'string', 'max:200'],
-            'contact_person_name' => ['required', 'string', 'max:200'],
-            'mobile_number' => ['required', 'string', 'max:15'],
-            'customer_type' => ['nullable', 'string', 'max:100'],
             'address' => ['nullable', 'string', 'max:1000'],
             'pincode_id' => ['required', 'integer', Rule::exists('pincodes', 'id')->where('active', 'Y')],
             'city' => ['nullable', 'string', 'max:150'],
             'district' => ['nullable', 'string', 'max:150'],
             'state' => ['nullable', 'string', 'max:150'],
-            'custom_column_1' => ['nullable', 'string', 'max:255'],
-            'custom_column_2' => ['nullable', 'string', 'max:255'],
-            'custom_column_3' => ['nullable', 'string', 'max:255'],
-            'custom_column_4' => ['nullable', 'string', 'max:255'],
         ]);
         $status = Status::query()
             ->whereKey($validated['feedback_status_id'])
@@ -485,23 +480,13 @@ class CallManagementController extends Controller
             $pincode = Pincode::whereKey($validated['pincode_id'])->value('pincode');
             $entryUpdates = [
                 'follow_up_date' => $isFollowUp ? $validated['follow_up_date'] : null,
-                'project_name' => $validated['project_name'] ?? null,
-                'project_id' => $validated['project_id'] ?? null,
                 'parent_name' => $validated['parent_name'] ?? null,
-                'firm_name' => $validated['firm_name'],
-                'contact_person_name' => $validated['contact_person_name'],
-                'mobile_number' => $validated['mobile_number'],
-                'customer_type' => $validated['customer_type'] ?? null,
                 'address' => $validated['address'] ?? null,
                 'pincode_id' => $validated['pincode_id'],
                 'pincode' => $pincode,
                 'city' => $validated['city'] ?? null,
                 'district' => $validated['district'] ?? null,
                 'state' => $validated['state'] ?? null,
-                'custom_column_1' => $validated['custom_column_1'] ?? null,
-                'custom_column_2' => $validated['custom_column_2'] ?? null,
-                'custom_column_3' => $validated['custom_column_3'] ?? null,
-                'custom_column_4' => $validated['custom_column_4'] ?? null,
             ];
             if ($feedbackOutcome) $entryUpdates['status'] = $feedbackOutcome;
 
