@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\CallManagementEntryExport;
+use App\Exports\CustomerCallHistoryExport;
 use App\Imports\CallManagementEntryImport;
 use App\Models\CallManagementEntry;
 use App\Models\CallLog;
@@ -124,20 +125,79 @@ class CallManagementController extends Controller
         ));
     }
 
-    public function customerCallHistory()
+    public function customerCallHistory(Request $request)
     {
         abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $query = CallLog::with(['user:id,name', 'feedbackStatus:id,status_name,display_name', 'callManagementEntry:id,firm_name,contact_person_name,mobile_number'])
+        $callLogs = $this->customerCallHistoryQuery($request)->latest('started_at')->get();
+        $agents = auth()->user()->hasRole('superadmin')
+            ? User::whereIn('id', CallLog::whereNotNull('call_management_entry_id')->select('user_id'))
+                ->orderBy('name')
+                ->get(['id', 'name'])
+            : collect();
+        $feedbackStatuses = Status::query()
+            ->where('module', Status::MODULE_CALL_MANAGEMENT_FEEDBACK)
+            ->where('active', 'Y')
+            ->orderBy('id')
+            ->get(['id', 'status_name', 'display_name']);
+
+        return view('calls.history', compact('callLogs', 'agents', 'feedbackStatuses'));
+    }
+
+    public function exportCustomerCallHistory(Request $request)
+    {
+        abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $callLogs = $this->customerCallHistoryQuery($request)->latest('started_at')->get();
+
+        return Excel::download(new CustomerCallHistoryExport($callLogs), 'customer-call-history.xlsx');
+    }
+
+    private function customerCallHistoryQuery(Request $request)
+    {
+        $query = CallLog::with([
+                'user:id,name',
+                'feedbackStatus:id,status_name,display_name',
+                'callManagementEntry:id,firm_name,contact_person_name,mobile_number',
+            ])
             ->whereNotNull('call_management_entry_id');
 
         if (! auth()->user()->hasRole('superadmin')) {
             $query->where('user_id', auth()->id());
+        } elseif ($request->filled('agent_id')) {
+            $query->where('user_id', $request->input('agent_id'));
         }
 
-        $callLogs = $query->latest('started_at')->get();
+        if ($search = trim((string) $request->input('search'))) {
+            $query->where(function ($searchQuery) use ($search) {
+                $searchQuery->where('number', 'like', '%'.$search.'%')
+                    ->orWhere('remark', 'like', '%'.$search.'%')
+                    ->orWhereHas('callManagementEntry', function ($entryQuery) use ($search) {
+                        $entryQuery->where('firm_name', 'like', '%'.$search.'%')
+                            ->orWhere('contact_person_name', 'like', '%'.$search.'%')
+                            ->orWhere('mobile_number', 'like', '%'.$search.'%');
+                    });
+            });
+        }
 
-        return view('calls.history', compact('callLogs'));
+        if ($request->filled('feedback_status_id')) {
+            $query->where('feedback_status_id', $request->input('feedback_status_id'));
+        }
+
+        if ($request->input('call_status') === 'completed') {
+            $query->where(function ($statusQuery) {
+                $statusQuery->where('duration', '>', 0)
+                    ->orWhereNotNull('recording_url')
+                    ->orWhere('status', 1);
+            });
+        } elseif ($request->filled('call_status')) {
+            $query->where('plivo_status', $request->input('call_status'))
+                ->where('duration', '<=', 0)
+                ->whereNull('recording_url')
+                ->where('status', '!=', 1);
+        }
+
+        return $query;
     }
 
     public function initiateCustomerCall(CallManagementEntry $callManagementEntry)
