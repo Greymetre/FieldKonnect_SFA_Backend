@@ -490,7 +490,22 @@ class CallManagementController extends Controller
         foreach ($labels as $label) {
             $normalized = preg_replace('/[^a-z0-9]+/', '', strtolower((string) $label));
 
-            if (in_array($normalized, ['complete', 'completed', 'callcomplete', 'callcompleted', 'done'], true)) {
+            // Feedback names are configurable, so accept labels such as
+            // "Call Done" and "Completed Successfully" as completed outcomes.
+            // Negative labels must be checked first because "Not Completed"
+            // also contains the word "completed".
+            if (
+                str_contains($normalized, 'notcomplete')
+                || str_contains($normalized, 'incomplete')
+                || str_contains($normalized, 'uncomplete')
+            ) {
+                continue;
+            }
+
+            if (
+                str_contains($normalized, 'complete')
+                || in_array($normalized, ['done', 'calldone', 'closed', 'finished'], true)
+            ) {
                 return 'completed';
             }
         }

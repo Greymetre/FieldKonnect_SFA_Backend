@@ -885,6 +885,14 @@
                     if (!response.ok || !result.success) throw new Error(result.message || 'Unable to save call record.');
                     setFeedbackModalOpen(false);
                     showMessage(result.message, false);
+
+                    // Give immediate feedback when a completed call leaves the queue.
+                    // Reload afterwards so counts, pagination and the next queued row
+                    // are all refreshed from the server.
+                    if (result.data && result.data.queue_removed && activeCallButton) {
+                        const completedRow = activeCallButton.closest('tr');
+                        if (completedRow) completedRow.remove();
+                    }
                     window.location.reload();
                     return;
                 } catch (error) {
