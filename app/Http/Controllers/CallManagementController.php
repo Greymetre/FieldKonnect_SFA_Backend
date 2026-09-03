@@ -184,6 +184,14 @@ class CallManagementController extends Controller
             $query->where('feedback_status_id', $request->input('feedback_status_id'));
         }
 
+        if ($request->filled('from_date') && preg_match('/^\d{4}-\d{2}-\d{2}$/', $request->input('from_date'))) {
+            $query->whereDate('started_at', '>=', $request->input('from_date'));
+        }
+
+        if ($request->filled('to_date') && preg_match('/^\d{4}-\d{2}-\d{2}$/', $request->input('to_date'))) {
+            $query->whereDate('started_at', '<=', $request->input('to_date'));
+        }
+
         if ($request->input('call_status') === 'completed') {
             $query->where(function ($statusQuery) {
                 $statusQuery->where('duration', '>', 0)
