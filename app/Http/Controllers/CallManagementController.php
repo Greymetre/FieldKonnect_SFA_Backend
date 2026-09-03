@@ -50,10 +50,6 @@ class CallManagementController extends Controller
             });
         }
 
-        if ($request->input('status') === 'assigned') {
-            $query->where('status', 'assigned');
-        }
-
         $fromDate = $request->input('from_date');
         $toDate = $request->input('to_date');
 
@@ -68,6 +64,25 @@ class CallManagementController extends Controller
         $entries = $query
             ->latest('id')
             ->get()
+            ->filter(function (CallManagementEntry $entry) use ($request) {
+                $selectedStatus = (string) $request->input('status');
+
+                if ($selectedStatus === '') {
+                    return true;
+                }
+
+                $feedbackStatusId = optional($entry->latestCallLog)->feedback_status_id;
+
+                if ($selectedStatus === 'assigned') {
+                    return ! $feedbackStatusId;
+                }
+
+                if (str_starts_with($selectedStatus, 'feedback:')) {
+                    return (int) $feedbackStatusId === (int) substr($selectedStatus, 9);
+                }
+
+                return false;
+            })
             ->sortBy(function (CallManagementEntry $entry) {
                 $feedbackStatus = optional($entry->latestCallLog)->feedbackStatus;
 

@@ -35,6 +35,15 @@
         .customer-calling-filter-field input,.customer-calling-filter-field select { width:100%;height:46px;padding:0 14px;border:1px solid rgba(85,126,218,.38);border-radius:11px;outline:0;background:#071938;color:#d5e0fa;font-size:14px;box-shadow:none; }
         .customer-calling-filter-field input:focus,.customer-calling-filter-field select:focus { border-color:rgba(34,211,238,.62);box-shadow:0 0 0 3px rgba(34,211,238,.08); }
         .customer-calling-filter-field input::placeholder { color:#6f81ae; }
+        .customer-calling-filter-drawer .select2-container { width:100% !important; }
+        .customer-calling-filter-drawer .select2-container--default .select2-selection--single { height:46px;border:1px solid rgba(85,126,218,.38);border-radius:11px;background:#071938; }
+        .customer-calling-filter-drawer .select2-container--default .select2-selection--single .select2-selection__rendered { padding-left:14px;color:#d5e0fa;font-size:14px;line-height:44px; }
+        .customer-calling-filter-drawer .select2-container--default .select2-selection--single .select2-selection__arrow { height:44px;right:8px; }
+        .customer-calling-filter-drawer .select2-container--open .select2-selection--single { border-color:rgba(34,211,238,.62);box-shadow:0 0 0 3px rgba(34,211,238,.08); }
+        .customer-calling-status-dropdown { border:1px solid rgba(85,126,218,.42)!important;border-radius:11px!important;background:#071938!important;overflow:hidden; }
+        .customer-calling-status-dropdown .select2-results__option { padding:10px 14px;color:#b9c8e9;font-size:14px; }
+        .customer-calling-status-dropdown .select2-results__option--highlighted[aria-selected] { background:#123568!important;color:#fff!important; }
+        .customer-calling-status-dropdown .select2-results__option[aria-selected=true] { background:rgba(34,211,238,.14);color:#39d5ed; }
         .customer-calling-filter-actions { display:grid;grid-template-columns:132px 1fr;gap:12px;padding:18px 28px 24px;border-top:1px solid rgba(85,126,218,.28);background:#071837; }
         .customer-calling-filter-submit,.customer-calling-filter-clear { display:inline-flex;align-items:center;justify-content:center;height:46px;padding:0 18px;border-radius:11px;font-size:14px;font-weight:800;text-decoration:none;white-space:nowrap; }
         .customer-calling-filter-submit { border:0;background:linear-gradient(135deg,#2bd1e8,#438ff0);color:#061329; }
@@ -264,9 +273,12 @@
                         </div>
                         <div class="customer-calling-filter-field is-wide">
                             <label for="customerCallingStatus">Status</label>
-                            <select id="customerCallingStatus" name="status">
+                            <select class="select2" id="customerCallingStatus" name="status" style="width:100%;">
                                 <option value="">All statuses</option>
                                 <option value="assigned" @selected(request('status') === 'assigned')>Assigned</option>
+                                @foreach($feedbackStatuses as $feedbackStatus)
+                                    <option value="feedback:{{ $feedbackStatus->id }}" @selected(request('status') === 'feedback:'.$feedbackStatus->id)>{{ $feedbackStatus->display_name ?: $feedbackStatus->status_name }}</option>
+                                @endforeach
                             </select>
                         </div>
                         <div class="customer-calling-filter-field">
@@ -323,6 +335,17 @@
             const closeFilters = document.getElementById('closeCustomerCallingFilters');
             let feedbackUrl = '';
             let activeCallButton = null;
+
+            if (window.jQuery && jQuery.fn.select2) {
+                const statusSelect = jQuery('#customerCallingStatus');
+                if (statusSelect.hasClass('select2-hidden-accessible')) statusSelect.select2('destroy');
+                statusSelect.select2({
+                    dropdownParent: jQuery('#customerCallingFilterOverlay'),
+                    dropdownCssClass: 'customer-calling-status-dropdown',
+                    minimumResultsForSearch: Infinity,
+                    width: '100%'
+                });
+            }
 
             function setFiltersOpen(isOpen) {
                 filterOverlay.classList.toggle('show', isOpen);
