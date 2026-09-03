@@ -145,7 +145,11 @@ class CallManagementController extends Controller
         $pincodes = Pincode::where('active', 'Y')
             ->select('id', 'pincode')
             ->orderByDesc('id')
-            ->get();
+            ->get()
+            ->unique(function (Pincode $pincode) {
+                return trim((string) $pincode->pincode);
+            })
+            ->values();
 
         return view('calls.customer-calling', compact(
             'entries',

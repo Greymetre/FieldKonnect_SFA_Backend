@@ -144,7 +144,7 @@
         .call-pincode-read strong { flex:1; }
         .call-pincode-change { padding:3px 8px;border:1px solid rgba(34,211,238,.4);border-radius:7px;background:rgba(34,211,238,.08);color:#35d2ed;font-size:10px;font-weight:800;text-transform:uppercase; }
         .call-pincode-editor[hidden],.call-pincode-read[hidden] { display:none; }
-        #callEndedModal .select2-container { width:100% !important; }
+        #callEndedModal .call-pincode-editor > .select2-container { width:100% !important; }
         #callEndedModal .select2-container--default .select2-selection--single { height:30px;border:0;border-bottom:1px solid rgba(85,126,218,.35);border-radius:0;background:transparent; }
         #callEndedModal .select2-container--default .select2-selection--single .select2-selection__rendered { padding:0 20px 0 2px;color:#dce7ff;font-size:13px;font-weight:600;line-height:29px; }
         #callEndedModal .select2-container--default .select2-selection--single .select2-selection__arrow { height:29px;right:0; }
