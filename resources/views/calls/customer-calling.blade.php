@@ -140,6 +140,12 @@
         .call-customer-detail textarea { min-height:48px;padding:6px 2px;resize:vertical; }
         .call-customer-detail input:focus,.call-customer-detail select:focus,.call-customer-detail textarea:focus { border-bottom-color:#35d2ed; }
         .call-customer-detail input[readonly] { color:#8193c2;cursor:not-allowed; }
+        #callEndedModal .select2-container { width:100% !important; }
+        #callEndedModal .select2-container--default .select2-selection--single { height:30px;border:0;border-bottom:1px solid rgba(85,126,218,.35);border-radius:0;background:transparent; }
+        #callEndedModal .select2-container--default .select2-selection--single .select2-selection__rendered { padding:0 20px 0 2px;color:#dce7ff;font-size:13px;font-weight:600;line-height:29px; }
+        #callEndedModal .select2-container--default .select2-selection--single .select2-selection__arrow { height:29px;right:0; }
+        #callEndedModal .select2-container--open .select2-selection--single { border-bottom-color:#35d2ed; }
+        #callEndedModal .select2-container--open,#callEndedModal .select2-dropdown { z-index:4100; }
         .call-customer-detail.is-wide { grid-column:1/-1; }
         .call-customer-detail.is-wide strong { overflow:visible;line-height:1.45;text-overflow:clip;white-space:normal;word-break:break-word; }
         .feedback-previous-notes { margin-bottom:18px; }
@@ -523,6 +529,16 @@
                 }
             });
 
+            if (window.jQuery && jQuery.fn.select2) {
+                jQuery(feedbackPincode).select2({
+                    dropdownParent: jQuery(feedbackModal),
+                    placeholder: 'Search pincode',
+                    allowClear: true,
+                    width: '100%',
+                    language: { noResults: function () { return 'No matching pincode found'; } }
+                });
+            }
+
             const nextDay = new Date();
             nextDay.setHours(24, 0, 5, 0);
             window.setTimeout(function () { window.location.reload(); }, nextDay.getTime() - Date.now());
@@ -783,7 +799,25 @@
                 setFeedbackText('feedbackCustomerType', call.customer_type);
                 setFeedbackText('feedbackAssignedTo', call.assigned_to);
                 setFeedbackValue('feedbackAddress', call.address);
-                setFeedbackValue('feedbackPincode', call.pincode_id);
+                let popupPincodeId = call.pincode_id || '';
+                let popupPincodeOption = Array.from(feedbackPincode.options).find(function (option) {
+                    return option.value === String(popupPincodeId);
+                });
+                if (!popupPincodeOption && call.pincode) {
+                    popupPincodeOption = Array.from(feedbackPincode.options).find(function (option) {
+                        return option.text.trim() === String(call.pincode).trim();
+                    });
+                    if (popupPincodeOption) popupPincodeId = popupPincodeOption.value;
+                }
+                // Imported calls already contain a resolved system pincode. Keep
+                // it visible even when the current user's Create Customer list
+                // no longer includes that assignment.
+                if (!popupPincodeOption && popupPincodeId) {
+                    popupPincodeOption = new Option(call.pincode || '', popupPincodeId, true, true);
+                    feedbackPincode.add(popupPincodeOption);
+                }
+                setFeedbackValue('feedbackPincode', popupPincodeId);
+                if (window.jQuery && jQuery.fn.select2) jQuery(feedbackPincode).trigger('change.select2');
                 setFeedbackValue('feedbackCity', call.city);
                 setFeedbackValue('feedbackDistrict', call.district);
                 setFeedbackValue('feedbackState', call.state);
