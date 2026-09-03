@@ -184,7 +184,11 @@ class CallManagementController extends Controller
     {
         abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $callLogs = $this->customerCallHistoryQuery($request)->latest('started_at')->get();
+        $callLogs = $this->customerCallHistoryQuery($request)
+            ->latest('started_at')
+            ->latest('id')
+            ->paginate(10)
+            ->withQueryString();
         $agents = auth()->user()->hasRole('superadmin')
             ? User::whereIn('id', CallLog::whereNotNull('call_management_entry_id')->select('user_id'))
                 ->orderBy('name')

@@ -1,5 +1,5 @@
 <x-app-layout>
-    @php($totalRecords = $callLogs->count())
+    @php($totalRecords = $callLogs->total())
     <style>
         .customer-history { color:#c5d2f3; }
         .customer-history-breadcrumb { margin-bottom:8px;color:#7185bd;font-size:11px;font-weight:800;letter-spacing:.22em;text-transform:uppercase; }
@@ -69,7 +69,14 @@
         .recording-help { display:flex;align-items:center;gap:7px;margin:13px 0 0;color:#7184b4;font-size:12px; }
         .recording-help .material-icons { color:#35d2ed;font-size:17px; }
         .customer-history-empty { padding:38px 20px!important;color:#7d8fbd!important;text-align:center; }
-        @media (max-width:640px) { .customer-history-heading { align-items:flex-start; } .customer-history-heading h1 { font-size:22px; } .customer-history-export span:not(.material-icons),.customer-history-filter-trigger span:not(.material-icons) { display:none; } .customer-history-export,.customer-history-filter-trigger { min-width:44px;width:44px;padding:0; } .customer-history-filter-head,.customer-history-filter-body { padding-left:20px;padding-right:20px; } .customer-history-filter-grid { grid-template-columns:1fr; } .customer-history-filter.is-wide { grid-column:auto; } .customer-history-filter-actions { grid-template-columns:1fr 1.5fr;padding-left:20px;padding-right:20px; } }
+        .customer-history-footer { display:flex;align-items:center;justify-content:space-between;gap:18px;min-height:60px;padding:12px 18px;border-top:1px solid rgba(85,126,218,.22);color:#8193c2;font-size:13px; }
+        .customer-history-pagination { display:flex;align-items:center;gap:6px; }
+        .customer-history-page-link { display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:34px;padding:0 10px;border:1px solid rgba(85,126,218,.34);border-radius:9px;background:#081a3e;color:#91a3ce;font-size:12px;font-weight:800;text-decoration:none; }
+        .customer-history-page-link:hover { border-color:rgba(34,211,238,.5);color:#35d2ed;text-decoration:none; }
+        .customer-history-page-link .material-icons { font-size:18px; }
+        .customer-history-page-link.is-current { border-color:#2dd4ee;background:linear-gradient(135deg,#2bd1e8,#438ff0);color:#061329; }
+        .customer-history-page-link.is-disabled { cursor:not-allowed;opacity:.4; }
+        @media (max-width:640px) { .customer-history-heading { align-items:flex-start; } .customer-history-heading h1 { font-size:22px; } .customer-history-export span:not(.material-icons),.customer-history-filter-trigger span:not(.material-icons) { display:none; } .customer-history-export,.customer-history-filter-trigger { min-width:44px;width:44px;padding:0; } .customer-history-filter-head,.customer-history-filter-body { padding-left:20px;padding-right:20px; } .customer-history-filter-grid { grid-template-columns:1fr; } .customer-history-filter.is-wide { grid-column:auto; } .customer-history-filter-actions { grid-template-columns:1fr 1.5fr;padding-left:20px;padding-right:20px; } .customer-history-footer { align-items:flex-start;flex-direction:column; } }
     </style>
     <div class="customer-history">
         <div class="customer-history-breadcrumb">Call Management <span>› &nbsp; Call History</span></div>
@@ -111,6 +118,34 @@
                     </tbody>
                 </table>
             </div>
+            <footer class="customer-history-footer">
+                <span>
+                    @if($totalRecords)
+                        Showing {{ $callLogs->firstItem() }}–{{ $callLogs->lastItem() }} of {{ $totalRecords }} calls
+                    @else
+                        Showing 0 calls
+                    @endif
+                </span>
+                @if($callLogs->lastPage() > 1)
+                    <nav class="customer-history-pagination" aria-label="Call history pages">
+                        @if($callLogs->onFirstPage())
+                            <span class="customer-history-page-link is-disabled"><i class="material-icons">chevron_left</i></span>
+                        @else
+                            <a class="customer-history-page-link" href="{{ $callLogs->previousPageUrl() }}" rel="prev"><i class="material-icons">chevron_left</i></a>
+                        @endif
+                        @php($historyPageStart = max(1, $callLogs->currentPage() - 2))
+                        @php($historyPageEnd = min($callLogs->lastPage(), $callLogs->currentPage() + 2))
+                        @for($page = $historyPageStart; $page <= $historyPageEnd; $page++)
+                            <a class="customer-history-page-link {{ $page === $callLogs->currentPage() ? 'is-current' : '' }}" href="{{ $callLogs->url($page) }}" aria-current="{{ $page === $callLogs->currentPage() ? 'page' : 'false' }}">{{ $page }}</a>
+                        @endfor
+                        @if($callLogs->hasMorePages())
+                            <a class="customer-history-page-link" href="{{ $callLogs->nextPageUrl() }}" rel="next"><i class="material-icons">chevron_right</i></a>
+                        @else
+                            <span class="customer-history-page-link is-disabled"><i class="material-icons">chevron_right</i></span>
+                        @endif
+                    </nav>
+                @endif
+            </footer>
         </section>
     </div>
 
