@@ -105,6 +105,7 @@
         .customer-create-modal .select2-container--default .select2-selection--single .select2-selection__rendered { padding-left:13px;color:#d5e0fa;line-height:42px;font-size:14px; }
         .customer-create-modal .select2-container--default .select2-selection--single .select2-selection__arrow { height:42px;right:8px; }
         .customer-create-modal .select2-container--open .select2-selection--single { border-color:rgba(34,211,238,.62);box-shadow:0 0 0 3px rgba(34,211,238,.08); }
+        .customer-create-modal .select2-container--open,.customer-create-modal .select2-dropdown { z-index:4701; }
         .customer-create-field-error { display:block;margin-top:5px;color:#fca5a5;font-size:11px; }
         .customer-create-actions { display:flex;justify-content:flex-end;gap:10px;margin-top:22px; }
         .customer-create-cancel,.customer-create-submit { height:44px;padding:0 20px;border-radius:10px;font-size:14px;font-weight:800; }
@@ -566,15 +567,27 @@
                         placeholder: 'Search pincode',
                         allowClear: true,
                         width: '100%',
-                        minimumInputLength: 2,
+                        minimumInputLength: 0,
                         ajax: {
                             url: @json(route('customer-calling.pincodes.search')),
                             dataType: 'json',
                             delay: 250,
                             data: function (params) { return { q: params.term || '', page: params.page || 1 }; },
-                            processResults: function (data) { return data; },
+                            processResults: function (data) {
+                                return {
+                                    results: Array.isArray(data.results) ? data.results : [],
+                                    pagination: data.pagination || { more: false }
+                                };
+                            },
                             cache: true
-                        }
+                        },
+                        templateResult: function (item) {
+                            if (item.loading) return item.text;
+                            const location = [item.city, item.state].filter(Boolean).join(', ');
+                            return location ? item.text + ' — ' + location : item.text;
+                        },
+                        templateSelection: function (item) { return item.text || 'Select pincode'; },
+                        language: { noResults: function () { return 'No matching pincode found'; } }
                     }).on('select2:select', function (event) {
                         const location = event.params.data || {};
                         document.getElementById('createCity').value = location.city || '';
