@@ -292,6 +292,12 @@
                             <label for="createPincode">Pincode *</label>
                             <select class="select2" id="createPincode" name="pincode_id" required style="width:100%;">
                                 <option value="">Select pincode</option>
+                                @foreach($pincodes as $pincode)
+                                    @php($pincodeCity = $pincode->cityname)
+                                    @php($pincodeDistrict = optional($pincodeCity)->districtname)
+                                    @php($pincodeState = optional($pincodeDistrict)->statename ?: optional($pincodeCity)->statename)
+                                    <option value="{{ $pincode->id }}" data-city="{{ optional($pincodeCity)->city_name }}" data-district="{{ optional($pincodeDistrict)->district_name }}" data-state="{{ optional($pincodeState)->state_name }}" @selected((string) old('pincode_id') === (string) $pincode->id)>{{ $pincode->pincode }}{{ optional($pincodeCity)->city_name ? ' — '.optional($pincodeCity)->city_name : '' }}</option>
+                                @endforeach
                             </select>
                             @error('pincode_id', 'addCall')<span class="customer-create-field-error">{{ $message }}</span>@enderror
                         </div>
@@ -551,8 +557,8 @@
                         document.getElementById('customerCallEntryId').value = '';
                         customerCallFormTitle.textContent = 'Create New Call';
                         customerCallFormSubmit.textContent = 'Create Call';
-                        createPincode.replaceChildren(new Option('Select pincode', '', true, true));
-                        if (window.jQuery && jQuery.fn.select2) jQuery(createPincode).trigger('change.select2');
+                        createPincode.value = '';
+                        if (window.jQuery && jQuery.fn.select2) jQuery(createPincode).trigger('change');
                         fillCreateLocation();
                         setCreateModalOpen(true);
                     });
@@ -567,26 +573,6 @@
                         placeholder: 'Search pincode',
                         allowClear: true,
                         width: '100%',
-                        minimumInputLength: 0,
-                        ajax: {
-                            url: @json(route('customer-calling.pincodes.search')),
-                            dataType: 'json',
-                            delay: 250,
-                            data: function (params) { return { q: params.term || '', page: params.page || 1 }; },
-                            processResults: function (data) {
-                                return {
-                                    results: Array.isArray(data.results) ? data.results : [],
-                                    pagination: data.pagination || { more: false }
-                                };
-                            },
-                            cache: true
-                        },
-                        templateResult: function (item) {
-                            if (item.loading) return item.text;
-                            const location = [item.city, item.state].filter(Boolean).join(', ');
-                            return location ? item.text + ' — ' + location : item.text;
-                        },
-                        templateSelection: function (item) { return item.text || 'Select pincode'; },
                         language: { noResults: function () { return 'No matching pincode found'; } }
                     }).on('select2:select', function (event) {
                         const location = event.params.data || {};
@@ -620,12 +606,16 @@
                             document.getElementById('createCustomColumn2').value = row.dataset.customColumn2 || '';
                             document.getElementById('createCustomColumn3').value = row.dataset.customColumn3 || '';
                             document.getElementById('createCustomColumn4').value = row.dataset.customColumn4 || '';
-                            const selectedPincode = new Option(row.dataset.pincode || '', row.dataset.pincodeId || '', true, true);
-                            selectedPincode.dataset.city = row.dataset.city || '';
-                            selectedPincode.dataset.district = row.dataset.district || '';
-                            selectedPincode.dataset.state = row.dataset.state || '';
-                            createPincode.replaceChildren(selectedPincode);
-                            if (window.jQuery && jQuery.fn.select2) jQuery(createPincode).trigger('change.select2');
+                            let selectedPincode = Array.from(createPincode.options).find(function (option) { return option.value === (row.dataset.pincodeId || ''); });
+                            if (!selectedPincode && row.dataset.pincodeId) {
+                                selectedPincode = new Option(row.dataset.pincode || '', row.dataset.pincodeId, true, true);
+                                selectedPincode.dataset.city = row.dataset.city || '';
+                                selectedPincode.dataset.district = row.dataset.district || '';
+                                selectedPincode.dataset.state = row.dataset.state || '';
+                                createPincode.add(selectedPincode);
+                            }
+                            createPincode.value = row.dataset.pincodeId || '';
+                            if (window.jQuery && jQuery.fn.select2) jQuery(createPincode).trigger('change');
                             fillCreateLocation();
                         });
                     });

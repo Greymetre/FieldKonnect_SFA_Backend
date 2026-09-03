@@ -127,12 +127,22 @@ class CallManagementController extends Controller
             $status->setAttribute('is_follow_up', $this->isFollowUpFeedback($status));
         });
         $callers = collect();
+        $pincodes = collect();
 
         if ($canCreateCall || $canEditDelete) {
             $callers = User::permission('call_management_access')
                 ->where('active', 'Y')
                 ->orderBy('name')
                 ->get(['id', 'name']);
+            $pincodes = Pincode::with([
+                    'cityname:id,city_name,district_id,state_id',
+                    'cityname.districtname:id,district_name,state_id',
+                    'cityname.districtname.statename:id,state_name',
+                    'cityname.statename:id,state_name',
+                ])
+                ->where('active', 'Y')
+                ->orderBy('pincode')
+                ->get(['id', 'pincode', 'city_id']);
         }
 
         return view('calls.customer-calling', compact(
@@ -141,7 +151,8 @@ class CallManagementController extends Controller
             'canCreateCall',
             'canImportExport',
             'canEditDelete',
-            'callers'
+            'callers',
+            'pincodes'
         ));
     }
 
