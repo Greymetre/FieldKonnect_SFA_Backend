@@ -1,5 +1,5 @@
 <x-app-layout>
-    @php($totalRecords = $entries->count())
+    @php($totalRecords = $entries->total())
     <style>
         .customer-calling-page { color: #c5d2f3; }
         .customer-calling-breadcrumb { margin-bottom: 8px; color: #7185bd; font-size: 11px; font-weight: 800; letter-spacing: .22em; text-transform: uppercase; }
@@ -83,6 +83,12 @@
         .customer-note-view { margin-top:4px;padding:0;border:0;background:transparent;color:#35d2ed;font-size:11px;font-weight:800; }
         .customer-calling-empty { padding: 38px 20px !important; color: #7d8fbd !important; text-align: center; }
         .customer-calling-footer { display:flex;align-items:center;justify-content:space-between;min-height:58px;padding:12px 18px;border-top:1px solid rgba(85,126,218,.22);color:#8193c2;font-size:13px; }
+        .customer-calling-pagination { display:flex;align-items:center;gap:6px; }
+        .customer-calling-page-link { display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:34px;padding:0 10px;border:1px solid rgba(85,126,218,.34);border-radius:9px;background:#081a3e;color:#91a3ce;font-size:12px;font-weight:800;text-decoration:none; }
+        .customer-calling-page-link .material-icons { font-size:18px; }
+        .customer-calling-page-link:hover { border-color:rgba(34,211,238,.5);color:#35d2ed;text-decoration:none; }
+        .customer-calling-page-link.is-current { border-color:#2dd4ee;background:linear-gradient(135deg,#2bd1e8,#438ff0);color:#061329; }
+        .customer-calling-page-link.is-disabled { cursor:not-allowed;opacity:.4; }
         .customer-create-modal { position:fixed;inset:0;z-index:4600;display:none;align-items:center;justify-content:center;padding:24px 16px;background:rgba(1,8,24,.76);backdrop-filter:blur(4px); }
         .customer-create-modal.show { display:flex; }
         .customer-create-dialog { width:min(760px,100%);max-height:calc(100vh - 40px);overflow-y:auto;border:1px solid rgba(77,122,221,.42);border-radius:17px;background:#0b1e47;box-shadow:0 28px 80px rgba(0,0,0,.45); }
@@ -136,7 +142,7 @@
         .call-note-meta strong { color:#35d2ed;text-transform:uppercase; }
         .call-note-text { margin:0;color:#d5e0fa;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word; }
         .call-notes-empty { color:#8193c2;text-align:center; }
-        @media (max-width: 640px) { .customer-calling-heading { align-items:flex-start; } .customer-calling-title { font-size:22px; } .customer-calling-filter-trigger { min-width:44px;width:44px;padding:0; } .customer-calling-filter-trigger span:not(.material-icons),.customer-calling-create span:not(.material-icons) { display:none; } .customer-calling-create { width:44px;padding:0; } .customer-calling-filter-head,.customer-calling-filter-body { padding-left:20px;padding-right:20px; } .customer-calling-filter-grid,.customer-create-grid { grid-template-columns:1fr; } .customer-calling-filter-field.is-wide { grid-column:auto; } .customer-calling-filter-actions { grid-template-columns:1fr 1.5fr;padding-left:20px;padding-right:20px; } }
+        @media (max-width: 640px) { .customer-calling-heading { align-items:flex-start; } .customer-calling-title { font-size:22px; } .customer-calling-filter-trigger { min-width:44px;width:44px;padding:0; } .customer-calling-filter-trigger span:not(.material-icons),.customer-calling-create span:not(.material-icons) { display:none; } .customer-calling-create { width:44px;padding:0; } .customer-calling-filter-head,.customer-calling-filter-body { padding-left:20px;padding-right:20px; } .customer-calling-filter-grid,.customer-create-grid { grid-template-columns:1fr; } .customer-calling-filter-field.is-wide { grid-column:auto; } .customer-calling-filter-actions { grid-template-columns:1fr 1.5fr;padding-left:20px;padding-right:20px; } .customer-calling-footer { align-items:flex-start;flex-direction:column;gap:10px; } }
     </style>
 
     <div class="customer-calling-page">
@@ -164,7 +170,7 @@
         <section class="customer-calling-card">
             <div class="customer-calling-card-head">
                 <span class="customer-calling-directory-icon"><i class="material-icons">support_agent</i></span>
-                <div><strong>My Calling Queue</strong><small>Calls assigned to you</small></div>
+                <div><strong>My Calling Queue</strong><small>Calls assigned to you · Page {{ $entries->currentPage() }} of {{ $entries->lastPage() }}</small></div>
             </div>
             <div class="customer-calling-scroll">
                 <table class="customer-calling-table">
@@ -210,7 +216,36 @@
                 </table>
             </div>
             <footer class="customer-calling-footer">
-                <span>Showing {{ $totalRecords }} {{ $totalRecords === 1 ? 'call' : 'calls' }}</span>
+                <span>
+                    @if($totalRecords)
+                        Showing {{ $entries->firstItem() }}–{{ $entries->lastItem() }} of {{ $totalRecords }} calls
+                    @else
+                        Showing 0 calls
+                    @endif
+                </span>
+                @if($entries->lastPage() > 1)
+                    <nav class="customer-calling-pagination" aria-label="Customer calling pages">
+                        @if($entries->onFirstPage())
+                            <span class="customer-calling-page-link is-disabled"><i class="material-icons">chevron_left</i></span>
+                        @else
+                            <a class="customer-calling-page-link" href="{{ $entries->previousPageUrl() }}" rel="prev"><i class="material-icons">chevron_left</i></a>
+                        @endif
+
+                        @php
+                            $pageStart = max(1, $entries->currentPage() - 2);
+                            $pageEnd = min($entries->lastPage(), $entries->currentPage() + 2);
+                        @endphp
+                        @for($page = $pageStart; $page <= $pageEnd; $page++)
+                            <a class="customer-calling-page-link {{ $page === $entries->currentPage() ? 'is-current' : '' }}" href="{{ $entries->url($page) }}" @if($page === $entries->currentPage()) aria-current="page" @endif>{{ $page }}</a>
+                        @endfor
+
+                        @if($entries->hasMorePages())
+                            <a class="customer-calling-page-link" href="{{ $entries->nextPageUrl() }}" rel="next"><i class="material-icons">chevron_right</i></a>
+                        @else
+                            <span class="customer-calling-page-link is-disabled"><i class="material-icons">chevron_right</i></span>
+                        @endif
+                    </nav>
+                @endif
             </footer>
         </section>
     </div>

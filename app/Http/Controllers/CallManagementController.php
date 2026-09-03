@@ -12,6 +12,7 @@ use App\Models\Status;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Http;
@@ -74,7 +75,7 @@ class CallManagementController extends Controller
             $query->whereDate('updated_at', '<=', $toDate);
         }
 
-        $entries = $query
+        $entryCollection = $query
             ->orderByDesc('listing_order')
             ->orderByDesc('id')
             ->get()
@@ -107,6 +108,21 @@ class CallManagementController extends Controller
                 return $entry->follow_up_date && $entry->follow_up_date->lte(today()) ? 0 : 2;
             })
             ->values();
+
+        $perPage = 10;
+        $totalEntries = $entryCollection->count();
+        $lastPage = max(1, (int) ceil($totalEntries / $perPage));
+        $currentPage = min(max(1, $request->integer('page', 1)), $lastPage);
+        $entries = new LengthAwarePaginator(
+            $entryCollection->forPage($currentPage, $perPage)->values(),
+            $totalEntries,
+            $perPage,
+            $currentPage,
+            [
+                'path' => $request->url(),
+                'query' => $request->query(),
+            ]
+        );
         $feedbackStatuses->each(function (Status $status) {
             $status->setAttribute('is_follow_up', $this->isFollowUpFeedback($status));
         });
