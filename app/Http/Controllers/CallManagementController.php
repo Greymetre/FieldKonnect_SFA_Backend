@@ -100,12 +100,17 @@ class CallManagementController extends Controller
             })
             ->sortBy(function (CallManagementEntry $entry) {
                 $feedbackStatus = optional($entry->latestCallLog)->feedbackStatus;
+                $hasFeedback = (bool) optional($entry->latestCallLog)->feedback_status_id;
 
-                if (! $this->isFollowUpFeedback($feedbackStatus)) {
-                    return 1;
+                if ($this->isFollowUpFeedback($feedbackStatus)) {
+                    // A due follow-up is promoted to the top. Future follow-ups
+                    // remain below untouched assigned calls until their date.
+                    return $entry->follow_up_date && $entry->follow_up_date->lte(today()) ? 0 : 2;
                 }
 
-                return $entry->follow_up_date && $entry->follow_up_date->lte(today()) ? 0 : 2;
+                // Calls that have not yet received feedback stay ahead of Wrong
+                // Number, Disconnected, No Response and other retained outcomes.
+                return $hasFeedback ? 2 : 1;
             })
             ->values();
 
@@ -127,24 +132,20 @@ class CallManagementController extends Controller
             $status->setAttribute('is_follow_up', $this->isFollowUpFeedback($status));
         });
         $callers = collect();
-        $pincodes = collect();
 
         if ($canCreateCall || $canEditDelete) {
             $callers = User::permission('call_management_access')
                 ->where('active', 'Y')
                 ->orderBy('name')
                 ->get(['id', 'name']);
-            $userIds = getUsersReportingToAuth();
-            $pincodes = Pincode::where('active', 'Y')
-                ->whereHas('assigncitiesusers', function ($query) use ($userIds) {
-                    if (! auth()->user()->hasRole('superadmin') && ! auth()->user()->hasRole('Admin')) {
-                        $query->whereIn('userid', $userIds);
-                    }
-                })
-                ->select('id', 'pincode')
-                ->orderByDesc('id')
-                ->get();
         }
+
+        // Every calling agent can correct customer location details while a call
+        // is in progress, regardless of create/edit-delete permissions.
+        $pincodes = Pincode::where('active', 'Y')
+            ->select('id', 'pincode')
+            ->orderBy('pincode')
+            ->get();
 
         return view('calls.customer-calling', compact(
             'entries',
@@ -367,6 +368,7 @@ class CallManagementController extends Controller
                     'mobile' => $callManagementEntry->mobile_number,
                     'customer_type' => $callManagementEntry->customer_type,
                     'address' => $callManagementEntry->address,
+                    'pincode_id' => $callManagementEntry->pincode_id,
                     'pincode' => $callManagementEntry->pincode,
                     'city' => $callManagementEntry->city,
                     'district' => $callManagementEntry->district,
@@ -443,6 +445,22 @@ class CallManagementController extends Controller
             'feedback_status_id' => ['required', 'integer'],
             'message' => ['required', 'string', 'max:1000'],
             'follow_up_date' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:today'],
+            'project_name' => ['nullable', 'string', 'max:255'],
+            'project_id' => ['nullable', 'string', 'max:255'],
+            'parent_name' => ['nullable', 'string', 'max:255'],
+            'firm_name' => ['required', 'string', 'max:200'],
+            'contact_person_name' => ['required', 'string', 'max:200'],
+            'mobile_number' => ['required', 'string', 'max:15'],
+            'customer_type' => ['nullable', 'string', 'max:100'],
+            'address' => ['nullable', 'string', 'max:1000'],
+            'pincode_id' => ['required', 'integer', Rule::exists('pincodes', 'id')->where('active', 'Y')],
+            'city' => ['nullable', 'string', 'max:150'],
+            'district' => ['nullable', 'string', 'max:150'],
+            'state' => ['nullable', 'string', 'max:150'],
+            'custom_column_1' => ['nullable', 'string', 'max:255'],
+            'custom_column_2' => ['nullable', 'string', 'max:255'],
+            'custom_column_3' => ['nullable', 'string', 'max:255'],
+            'custom_column_4' => ['nullable', 'string', 'max:255'],
         ]);
         $status = Status::query()
             ->whereKey($validated['feedback_status_id'])
@@ -464,8 +482,26 @@ class CallManagementController extends Controller
                 'remark' => trim($validated['message']),
             ]);
 
+            $pincode = Pincode::whereKey($validated['pincode_id'])->value('pincode');
             $entryUpdates = [
                 'follow_up_date' => $isFollowUp ? $validated['follow_up_date'] : null,
+                'project_name' => $validated['project_name'] ?? null,
+                'project_id' => $validated['project_id'] ?? null,
+                'parent_name' => $validated['parent_name'] ?? null,
+                'firm_name' => $validated['firm_name'],
+                'contact_person_name' => $validated['contact_person_name'],
+                'mobile_number' => $validated['mobile_number'],
+                'customer_type' => $validated['customer_type'] ?? null,
+                'address' => $validated['address'] ?? null,
+                'pincode_id' => $validated['pincode_id'],
+                'pincode' => $pincode,
+                'city' => $validated['city'] ?? null,
+                'district' => $validated['district'] ?? null,
+                'state' => $validated['state'] ?? null,
+                'custom_column_1' => $validated['custom_column_1'] ?? null,
+                'custom_column_2' => $validated['custom_column_2'] ?? null,
+                'custom_column_3' => $validated['custom_column_3'] ?? null,
+                'custom_column_4' => $validated['custom_column_4'] ?? null,
             ];
             if ($feedbackOutcome) $entryUpdates['status'] = $feedbackOutcome;
 
@@ -504,7 +540,7 @@ class CallManagementController extends Controller
 
             if (
                 str_contains($normalized, 'complete')
-                || in_array($normalized, ['done', 'calldone', 'closed', 'finished'], true)
+                || in_array($normalized, ['done', 'calldone'], true)
             ) {
                 return 'completed';
             }

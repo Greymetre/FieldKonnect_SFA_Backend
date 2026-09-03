@@ -135,6 +135,11 @@
         .call-customer-detail { min-width:0; }
         .call-customer-detail span { display:block;margin-bottom:3px;color:#7184b4;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase; }
         .call-customer-detail strong { display:block;overflow:hidden;color:#dce7ff;font-size:13px;font-weight:600;text-overflow:ellipsis;white-space:nowrap; }
+        .call-customer-detail input,.call-customer-detail select,.call-customer-detail textarea { width:100%;border:0;border-bottom:1px solid rgba(85,126,218,.35);outline:0;background:transparent;color:#dce7ff;font-size:13px;font-weight:600;box-shadow:none; }
+        .call-customer-detail input,.call-customer-detail select { height:30px;padding:0 2px; }
+        .call-customer-detail textarea { min-height:48px;padding:6px 2px;resize:vertical; }
+        .call-customer-detail input:focus,.call-customer-detail select:focus,.call-customer-detail textarea:focus { border-bottom-color:#35d2ed; }
+        .call-customer-detail input[readonly] { color:#8193c2;cursor:not-allowed; }
         .call-customer-detail.is-wide { grid-column:1/-1; }
         .call-customer-detail.is-wide strong { overflow:visible;line-height:1.45;text-overflow:clip;white-space:normal;word-break:break-word; }
         .feedback-previous-notes { margin-bottom:18px; }
@@ -403,20 +408,23 @@
                     <section class="call-workspace-panel">
                         <h3 class="call-workspace-panel-title"><i class="material-icons">business</i> Customer &amp; Project Details</h3>
                         <div class="call-customer-details">
-                    <div class="call-customer-detail"><span>Project Name</span><strong id="feedbackProjectName">—</strong></div>
-                    <div class="call-customer-detail"><span>Project ID</span><strong id="feedbackProjectId">—</strong></div>
-                    <div class="call-customer-detail"><span>Parent Name</span><strong id="feedbackParentName">—</strong></div>
-                    <div class="call-customer-detail"><span>Firm</span><strong id="feedbackFirmName">—</strong></div>
-                    <div class="call-customer-detail"><span>Contact Person</span><strong id="feedbackContactPerson">—</strong></div>
-                    <div class="call-customer-detail"><span>Mobile</span><strong id="feedbackMobile">—</strong></div>
-                    <div class="call-customer-detail"><span>Customer Type</span><strong id="feedbackCustomerType">—</strong></div>
-                    <div class="call-customer-detail"><span>Assigned To</span><strong id="feedbackAssignedTo">—</strong></div>
-                    <div class="call-customer-detail is-wide"><span>Address</span><strong id="feedbackAddress">—</strong></div>
-                    <div class="call-customer-detail is-wide"><span>Location</span><strong id="feedbackLocation">—</strong></div>
-                            <div class="call-customer-detail"><span>Point Column 1</span><strong id="feedbackCustomColumn1">—</strong></div>
-                            <div class="call-customer-detail"><span>Point Column 2</span><strong id="feedbackCustomColumn2">—</strong></div>
-                            <div class="call-customer-detail"><span>Point Column 3</span><strong id="feedbackCustomColumn3">—</strong></div>
-                            <div class="call-customer-detail"><span>Point Column 4</span><strong id="feedbackCustomColumn4">—</strong></div>
+                            <div class="call-customer-detail"><span>Project Name</span><input id="feedbackProjectName" name="project_name" maxlength="255"></div>
+                            <div class="call-customer-detail"><span>Project ID</span><input id="feedbackProjectId" name="project_id" maxlength="255"></div>
+                            <div class="call-customer-detail"><span>Parent Name</span><input id="feedbackParentName" name="parent_name" maxlength="255"></div>
+                            <div class="call-customer-detail"><span>Firm</span><input id="feedbackFirmName" name="firm_name" maxlength="200" required></div>
+                            <div class="call-customer-detail"><span>Contact Person</span><input id="feedbackContactPerson" name="contact_person_name" maxlength="200" required></div>
+                            <div class="call-customer-detail"><span>Mobile</span><input id="feedbackMobile" name="mobile_number" maxlength="15" required></div>
+                            <div class="call-customer-detail"><span>Customer Type</span><input id="feedbackCustomerType" name="customer_type" maxlength="100"></div>
+                            <div class="call-customer-detail"><span>Assigned To</span><input id="feedbackAssignedTo" readonly></div>
+                            <div class="call-customer-detail is-wide"><span>Address</span><textarea id="feedbackAddress" name="address" maxlength="1000"></textarea></div>
+                            <div class="call-customer-detail"><span>Pincode</span><select id="feedbackPincode" name="pincode_id" required><option value="">Select pincode</option>@foreach($pincodes as $pincode)<option value="{{ $pincode->id }}">{{ $pincode->pincode }}</option>@endforeach</select></div>
+                            <div class="call-customer-detail"><span>City</span><input id="feedbackCity" name="city" maxlength="150"></div>
+                            <div class="call-customer-detail"><span>District</span><input id="feedbackDistrict" name="district" maxlength="150"></div>
+                            <div class="call-customer-detail"><span>State</span><input id="feedbackState" name="state" maxlength="150"></div>
+                            <div class="call-customer-detail"><span>Point Column 1</span><input id="feedbackCustomColumn1" name="custom_column_1" maxlength="255"></div>
+                            <div class="call-customer-detail"><span>Point Column 2</span><input id="feedbackCustomColumn2" name="custom_column_2" maxlength="255"></div>
+                            <div class="call-customer-detail"><span>Point Column 3</span><input id="feedbackCustomColumn3" name="custom_column_3" maxlength="255"></div>
+                            <div class="call-customer-detail"><span>Point Column 4</span><input id="feedbackCustomColumn4" name="custom_column_4" maxlength="255"></div>
                         </div>
                         <section class="feedback-previous-notes">
                             <h3 class="feedback-previous-notes-title">Previous Call Notes</h3>
@@ -465,6 +473,7 @@
             const feedbackError = document.getElementById('callFeedbackError');
             const feedbackSave = document.getElementById('saveCallFeedback');
             const feedbackStatus = document.getElementById('callFeedbackStatus');
+            const feedbackPincode = document.getElementById('feedbackPincode');
             const followUpDateField = document.getElementById('callFollowUpDateField');
             const followUpDate = document.getElementById('callFollowUpDate');
             const notesModal = document.getElementById('callNotesModal');
@@ -484,6 +493,35 @@
             }
 
             feedbackStatus.addEventListener('change', updateFollowUpDateVisibility);
+
+            feedbackPincode.addEventListener('change', async function () {
+                if (!feedbackPincode.value) {
+                    document.getElementById('feedbackCity').value = '';
+                    document.getElementById('feedbackDistrict').value = '';
+                    document.getElementById('feedbackState').value = '';
+                    return;
+                }
+
+                try {
+                    const response = await fetch(@json(url('getAddressData')), {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                            'X-CSRF-TOKEN': token
+                        },
+                        body: new URLSearchParams({ pincode_id: feedbackPincode.value }).toString()
+                    });
+                    const location = await response.json();
+                    if (!response.ok) throw new Error('Unable to load pincode location.');
+                    document.getElementById('feedbackCity').value = location.city_name || '';
+                    document.getElementById('feedbackDistrict').value = location.district_name || '';
+                    document.getElementById('feedbackState').value = location.state_name || '';
+                } catch (error) {
+                    feedbackError.textContent = error.message || 'Unable to load pincode location.';
+                    feedbackError.style.display = 'block';
+                }
+            });
 
             const nextDay = new Date();
             nextDay.setHours(24, 0, 5, 0);
@@ -726,28 +764,36 @@
                 if (element) element.textContent = value || '—';
             }
 
+            function setFeedbackValue(id, value) {
+                const element = document.getElementById(id);
+                if (element) element.value = value == null ? '' : value;
+            }
+
             function showFeedback(call, duration, resetForm) {
                 feedbackUrl = call.feedback_url;
+                if (resetForm !== false) feedbackForm.reset();
                 setFeedbackText('endedCustomerName', call.customer_name);
                 setFeedbackText('endedCallDuration', formatDuration(duration));
-                setFeedbackText('feedbackProjectName', call.project_name);
-                setFeedbackText('feedbackProjectId', call.project_id);
-                setFeedbackText('feedbackParentName', call.parent_name);
-                setFeedbackText('feedbackFirmName', call.firm_name);
-                setFeedbackText('feedbackContactPerson', call.contact_person);
-                setFeedbackText('feedbackMobile', call.mobile);
-                setFeedbackText('feedbackCustomerType', call.customer_type);
-                setFeedbackText('feedbackAssignedTo', call.assigned_to);
-                setFeedbackText('feedbackAddress', call.address);
-                setFeedbackText('feedbackLocation', [call.pincode, call.city, call.district, call.state].filter(Boolean).join(', '));
-                setFeedbackText('feedbackCustomColumn1', call.custom_column_1);
-                setFeedbackText('feedbackCustomColumn2', call.custom_column_2);
-                setFeedbackText('feedbackCustomColumn3', call.custom_column_3);
-                setFeedbackText('feedbackCustomColumn4', call.custom_column_4);
+                setFeedbackValue('feedbackProjectName', call.project_name);
+                setFeedbackValue('feedbackProjectId', call.project_id);
+                setFeedbackValue('feedbackParentName', call.parent_name);
+                setFeedbackValue('feedbackFirmName', call.firm_name);
+                setFeedbackValue('feedbackContactPerson', call.contact_person);
+                setFeedbackValue('feedbackMobile', call.mobile);
+                setFeedbackValue('feedbackCustomerType', call.customer_type);
+                setFeedbackValue('feedbackAssignedTo', call.assigned_to);
+                setFeedbackValue('feedbackAddress', call.address);
+                setFeedbackValue('feedbackPincode', call.pincode_id);
+                setFeedbackValue('feedbackCity', call.city);
+                setFeedbackValue('feedbackDistrict', call.district);
+                setFeedbackValue('feedbackState', call.state);
+                setFeedbackValue('feedbackCustomColumn1', call.custom_column_1);
+                setFeedbackValue('feedbackCustomColumn2', call.custom_column_2);
+                setFeedbackValue('feedbackCustomColumn3', call.custom_column_3);
+                setFeedbackValue('feedbackCustomColumn4', call.custom_column_4);
                 renderPreviousNotes(call.previous_notes || []);
                 setFeedbackText('callEndedTitle', 'Call in Progress');
                 if (resetForm !== false) {
-                    feedbackForm.reset();
                     updateFollowUpDateVisibility();
                 }
                 feedbackError.style.display = 'none';
@@ -875,11 +921,7 @@
                     const response = await fetch(feedbackUrl, {
                         method: 'POST',
                         headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token },
-                        body: JSON.stringify({
-                            feedback_status_id: feedbackStatus.value,
-                            follow_up_date: followUpDate.value || null,
-                            message: document.getElementById('callFeedbackMessage').value
-                        })
+                        body: JSON.stringify(Object.fromEntries(new FormData(feedbackForm).entries()))
                     });
                     const result = await response.json();
                     if (!response.ok || !result.success) throw new Error(result.message || 'Unable to save call record.');
