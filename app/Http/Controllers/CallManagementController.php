@@ -101,7 +101,13 @@ class CallManagementController extends Controller
 
         $entries = $query
             ->latest('id')
-            ->get();
+            ->get()
+            ->sortBy(function (CallManagementEntry $entry) {
+                $feedbackStatus = optional($entry->latestCallLog)->feedbackStatus;
+
+                return $this->isFollowUpFeedback($feedbackStatus) ? 1 : 0;
+            })
+            ->values();
         $feedbackStatuses = Status::query()
             ->where('module', Status::MODULE_CALL_MANAGEMENT_FEEDBACK)
             ->where('active', 'Y')
@@ -261,6 +267,23 @@ class CallManagementController extends Controller
         }
 
         return null;
+    }
+
+    private function isFollowUpFeedback(?Status $status): bool
+    {
+        if (! $status) {
+            return false;
+        }
+
+        foreach ([$status->status_name, $status->display_name] as $label) {
+            $normalized = preg_replace('/[^a-z0-9]+/', '', strtolower((string) $label));
+
+            if (str_contains($normalized, 'followup')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function e164(?string $number): ?string
