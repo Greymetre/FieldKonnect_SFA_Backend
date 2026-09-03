@@ -9,10 +9,11 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Concerns\ToCollection;
+use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 
-class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChunkReading
+class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChunkReading, SkipsEmptyRows
 {
     private int $createdBy;
     private int $created = 0;
@@ -44,10 +45,13 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChu
                 $data['project_name'] = trim((string) ($data['project_name'] ?? '')) ?: null;
                 $data['project_id'] = trim((string) ($data['project_id'] ?? '')) ?: null;
                 $data['parent_name'] = trim((string) ($data['parent_name'] ?? '')) ?: null;
-                $data['mobile_number'] = preg_replace('/\D/', '', (string) ($data['mobile_number'] ?? ''));
-                $data['pincode'] = trim((string) ($data['pincode'] ?? ''));
+                $data['mobile_number'] = $this->digitsFromExcel($data['mobile_number'] ?? null);
+                $data['pincode'] = $this->digitsFromExcel($data['pincode'] ?? null);
                 $data['caller_email'] = trim((string) ($data['caller_email'] ?? ''));
                 $data['caller_name'] = trim((string) ($data['caller_name'] ?? ''));
+                foreach (['custom_column_1', 'custom_column_2', 'custom_column_3', 'custom_column_4'] as $customColumn) {
+                    $data[$customColumn] = $this->textFromExcel($data[$customColumn] ?? null);
+                }
 
                 $validator = Validator::make($data, [
                     'project_name' => ['nullable', 'string', 'max:255'],
@@ -160,6 +164,32 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChu
         return in_array($normalized, ['complete', 'completed', 'callcomplete', 'callcompleted', 'done'], true)
             ? 'completed'
             : 'assigned';
+    }
+
+    private function digitsFromExcel($value): string
+    {
+        if (is_numeric($value)) {
+            $value = number_format((float) $value, 0, '.', '');
+        }
+
+        return preg_replace('/\D+/', '', (string) $value);
+    }
+
+    private function textFromExcel($value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('Y-m-d H:i:s');
+        }
+
+        if (is_scalar($value)) {
+            return trim((string) $value) ?: null;
+        }
+
+        return null;
     }
 
     public function updatedCount(): int
