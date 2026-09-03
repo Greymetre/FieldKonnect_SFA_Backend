@@ -254,10 +254,6 @@ class CallManagementController extends Controller
         foreach ($labels as $label) {
             $normalized = preg_replace('/[^a-z0-9]+/', '', strtolower((string) $label));
 
-            if (str_contains($normalized, 'followup')) {
-                return 'pending';
-            }
-
             if (in_array($normalized, ['complete', 'completed', 'callcomplete', 'callcompleted', 'done'], true)) {
                 return 'completed';
             }
