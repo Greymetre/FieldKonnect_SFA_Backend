@@ -18,7 +18,8 @@ class CallManagementEntryExport implements FromCollection, WithHeadings, WithMap
     public function headings(): array
     {
         return [
-            'Firm Name', 'Contact Person Name', 'Mobile Number', 'Customer Type',
+            'Project Name', 'Project ID', 'Parent Name', 'Firm Name',
+            'Contact Person Name', 'Mobile Number', 'Customer Type',
             'Address', 'Pincode', 'City', 'District', 'State', 'Caller Email',
             'Caller Name', 'Custom Column 1', 'Custom Column 2', 'Custom Column 3',
             'Custom Column 4', 'Status',
@@ -28,6 +29,9 @@ class CallManagementEntryExport implements FromCollection, WithHeadings, WithMap
     public function map($entry): array
     {
         return [
+            $entry->project_name,
+            $entry->project_id,
+            $entry->parent_name,
             $entry->firm_name,
             $entry->contact_person_name,
             $entry->mobile_number,

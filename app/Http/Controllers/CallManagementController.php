@@ -75,7 +75,8 @@ class CallManagementController extends Controller
         }
 
         $entries = $query
-            ->latest('id')
+            ->orderByDesc('listing_order')
+            ->orderByDesc('id')
             ->get()
             ->filter(function (CallManagementEntry $entry) use ($request) {
                 $selectedStatus = (string) $request->input('status');

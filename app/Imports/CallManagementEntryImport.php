@@ -18,6 +18,7 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChu
     private int $created = 0;
     private int $updated = 0;
     private array $errors = [];
+    private ?int $nextListingOrder = null;
 
     public function __construct(int $createdBy)
     {
@@ -26,6 +27,13 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChu
 
     public function collection(Collection $rows)
     {
+        if ($this->nextListingOrder === null) {
+            $this->nextListingOrder = max(
+                (int) round(microtime(true) * 1000),
+                ((int) CallManagementEntry::max('listing_order')) + 1000000
+            );
+        }
+
         foreach ($rows as $index => $row) {
             if ($row->filter()->isEmpty()) {
                 continue;
@@ -33,11 +41,17 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChu
 
             try {
                 $data = $row->toArray();
+                $data['project_name'] = trim((string) ($data['project_name'] ?? '')) ?: null;
+                $data['project_id'] = trim((string) ($data['project_id'] ?? '')) ?: null;
+                $data['parent_name'] = trim((string) ($data['parent_name'] ?? '')) ?: null;
                 $data['mobile_number'] = preg_replace('/\D/', '', (string) ($data['mobile_number'] ?? ''));
                 $data['pincode'] = trim((string) ($data['pincode'] ?? ''));
                 $data['caller_email'] = trim((string) ($data['caller_email'] ?? ''));
 
                 $validator = Validator::make($data, [
+                    'project_name' => ['nullable', 'string', 'max:255'],
+                    'project_id' => ['nullable', 'string', 'max:100'],
+                    'parent_name' => ['nullable', 'string', 'max:255'],
                     'firm_name' => ['required', 'string', 'max:200'],
                     'contact_person_name' => ['required', 'string', 'max:200'],
                     'mobile_number' => ['required', 'digits:10'],
@@ -86,6 +100,9 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChu
                 $state = optional($district)->statename ?: optional($city)->statename;
 
                 $values = [
+                    'project_name' => $data['project_name'] ?? null,
+                    'project_id' => $data['project_id'] ?? null,
+                    'parent_name' => $data['parent_name'] ?? null,
                     'firm_name' => $data['firm_name'],
                     'contact_person_name' => $data['contact_person_name'],
                     'mobile_number' => $data['mobile_number'],
@@ -102,6 +119,7 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChu
                     'custom_column_3' => $data['custom_column_3'] ?? null,
                     'custom_column_4' => $data['custom_column_4'] ?? null,
                     'status' => strtolower(trim((string) ($data['status'] ?? ''))) ?: ($entry ? $entry->status : 'pending'),
+                    'listing_order' => $this->nextListingOrder--,
                 ];
 
                 if ($entry) {
