@@ -47,6 +47,7 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChu
                 $data['mobile_number'] = preg_replace('/\D/', '', (string) ($data['mobile_number'] ?? ''));
                 $data['pincode'] = trim((string) ($data['pincode'] ?? ''));
                 $data['caller_email'] = trim((string) ($data['caller_email'] ?? ''));
+                $data['caller_name'] = trim((string) ($data['caller_name'] ?? ''));
 
                 $validator = Validator::make($data, [
                     'project_name' => ['nullable', 'string', 'max:255'],
@@ -59,6 +60,7 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChu
                     'address' => ['nullable', 'string', 'max:500'],
                     'pincode' => ['required'],
                     'caller_email' => ['nullable', 'email'],
+                    'caller_name' => ['nullable', 'string', 'max:255'],
                     'custom_column_1' => ['nullable', 'string', 'max:255'],
                     'custom_column_2' => ['nullable', 'string', 'max:255'],
                     'custom_column_3' => ['nullable', 'string', 'max:255'],
@@ -83,6 +85,11 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChu
                         ->where('active', 'Y')
                         ->where('email', $data['caller_email'])
                         ->first();
+                } elseif ($data['caller_name'] !== '') {
+                    $caller = User::permission('call_management_access')
+                        ->where('active', 'Y')
+                        ->where('name', $data['caller_name'])
+                        ->first();
                 }
 
                 if (! $pincode) {
@@ -91,8 +98,11 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChu
                 if ($data['caller_email'] !== '' && ! $caller) {
                     throw ValidationException::withMessages(['import_file' => 'Row '.($index + 2).': Caller email is not an active call-management user.']);
                 }
+                if ($data['caller_email'] === '' && $data['caller_name'] !== '' && ! $caller) {
+                    throw ValidationException::withMessages(['import_file' => 'Row '.($index + 2).': Caller name is not an active call-management user.']);
+                }
                 if (! $entry && ! $caller) {
-                    throw ValidationException::withMessages(['import_file' => 'Row '.($index + 2).': Caller email is required for a new call entry.']);
+                    throw ValidationException::withMessages(['import_file' => 'Row '.($index + 2).': Caller email or caller name is required for a new call entry.']);
                 }
 
                 $city = $pincode->cityname;
@@ -118,7 +128,7 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChu
                     'custom_column_2' => $data['custom_column_2'] ?? null,
                     'custom_column_3' => $data['custom_column_3'] ?? null,
                     'custom_column_4' => $data['custom_column_4'] ?? null,
-                    'status' => strtolower(trim((string) ($data['status'] ?? ''))) ?: ($entry ? $entry->status : 'pending'),
+                    'status' => $this->importedEntryStatus($data['status'] ?? null),
                     'listing_order' => $this->nextListingOrder--,
                 ];
 
@@ -141,6 +151,15 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChu
     public function createdCount(): int
     {
         return $this->created;
+    }
+
+    private function importedEntryStatus($status): string
+    {
+        $normalized = preg_replace('/[^a-z0-9]+/', '', strtolower(trim((string) $status)));
+
+        return in_array($normalized, ['complete', 'completed', 'callcomplete', 'callcompleted', 'done'], true)
+            ? 'completed'
+            : 'assigned';
     }
 
     public function updatedCount(): int
