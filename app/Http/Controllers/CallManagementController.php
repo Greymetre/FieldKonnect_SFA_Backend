@@ -134,15 +134,16 @@ class CallManagementController extends Controller
                 ->where('active', 'Y')
                 ->orderBy('name')
                 ->get(['id', 'name']);
-            $pincodes = Pincode::with([
-                    'cityname:id,city_name,district_id,state_id',
-                    'cityname.districtname:id,district_name,state_id',
-                    'cityname.districtname.statename:id,state_name',
-                    'cityname.statename:id,state_name',
-                ])
-                ->where('active', 'Y')
-                ->orderBy('pincode')
-                ->get(['id', 'pincode', 'city_id']);
+            $userIds = getUsersReportingToAuth();
+            $pincodes = Pincode::where('active', 'Y')
+                ->whereHas('assigncitiesusers', function ($query) use ($userIds) {
+                    if (! auth()->user()->hasRole('superadmin') && ! auth()->user()->hasRole('Admin')) {
+                        $query->whereIn('userid', $userIds);
+                    }
+                })
+                ->select('id', 'pincode')
+                ->orderByDesc('id')
+                ->get();
         }
 
         return view('calls.customer-calling', compact(

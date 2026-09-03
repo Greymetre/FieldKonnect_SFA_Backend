@@ -293,10 +293,7 @@
                             <select class="select2" id="createPincode" name="pincode_id" required style="width:100%;">
                                 <option value="">Select pincode</option>
                                 @foreach($pincodes as $pincode)
-                                    @php($pincodeCity = $pincode->cityname)
-                                    @php($pincodeDistrict = optional($pincodeCity)->districtname)
-                                    @php($pincodeState = optional($pincodeDistrict)->statename ?: optional($pincodeCity)->statename)
-                                    <option value="{{ $pincode->id }}" data-city="{{ optional($pincodeCity)->city_name }}" data-district="{{ optional($pincodeDistrict)->district_name }}" data-state="{{ optional($pincodeState)->state_name }}" @selected((string) old('pincode_id') === (string) $pincode->id)>{{ $pincode->pincode }}{{ optional($pincodeCity)->city_name ? ' — '.optional($pincodeCity)->city_name : '' }}</option>
+                                    <option value="{{ $pincode->id }}" @selected((string) old('pincode_id') === (string) $pincode->id)>{{ $pincode->pincode }}</option>
                                 @endforeach
                             </select>
                             @error('pincode_id', 'addCall')<span class="customer-create-field-error">{{ $message }}</span>@enderror
@@ -542,11 +539,37 @@
                     document.body.style.overflow = isOpen ? 'hidden' : '';
                 }
 
-                function fillCreateLocation() {
-                    const option = createPincode.options[createPincode.selectedIndex];
-                    document.getElementById('createCity').value = option ? option.dataset.city || '' : '';
-                    document.getElementById('createDistrict').value = option ? option.dataset.district || '' : '';
-                    document.getElementById('createState').value = option ? option.dataset.state || '' : '';
+                async function fillCreateLocation() {
+                    const pincodeId = createPincode.value;
+                    const cityInput = document.getElementById('createCity');
+                    const districtInput = document.getElementById('createDistrict');
+                    const stateInput = document.getElementById('createState');
+                    if (!pincodeId) {
+                        cityInput.value = '';
+                        districtInput.value = '';
+                        stateInput.value = '';
+                        return;
+                    }
+                    try {
+                        const response = await fetch(@json(url('getAddressData')), {
+                            method: 'POST',
+                            headers: {
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                                'X-CSRF-TOKEN': token
+                            },
+                            body: new URLSearchParams({ pincode_id: pincodeId }).toString()
+                        });
+                        const location = await response.json();
+                        if (!response.ok) throw new Error('Unable to load pincode location.');
+                        cityInput.value = location.city_name || '';
+                        districtInput.value = location.district_name || '';
+                        stateInput.value = location.state_name || '';
+                    } catch (error) {
+                        cityInput.value = '';
+                        districtInput.value = '';
+                        stateInput.value = '';
+                    }
                 }
 
                 @if($canCreateCall)
@@ -574,12 +597,7 @@
                         allowClear: true,
                         width: '100%',
                         language: { noResults: function () { return 'No matching pincode found'; } }
-                    }).on('select2:select', function (event) {
-                        const location = event.params.data || {};
-                        document.getElementById('createCity').value = location.city || '';
-                        document.getElementById('createDistrict').value = location.district || '';
-                        document.getElementById('createState').value = location.state || '';
-                    }).on('select2:clear', fillCreateLocation);
+                    }).on('select2:select select2:clear', fillCreateLocation);
                 }
                 document.getElementById('createMobile').addEventListener('input', function () {
                     this.value = this.value.replace(/\D/g, '').slice(0, 10);
