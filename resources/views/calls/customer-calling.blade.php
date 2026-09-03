@@ -628,6 +628,15 @@
                 message.classList.add('show');
             }
 
+            async function readJsonResponse(response, fallbackMessage) {
+                const body = await response.text();
+                try {
+                    return JSON.parse(body);
+                } catch (error) {
+                    throw new Error(response.ok ? fallbackMessage : fallbackMessage + ' (HTTP ' + response.status + ')');
+                }
+            }
+
             function formatDuration(seconds) {
                 const minutes = Math.floor(seconds / 60);
                 return minutes + ':' + String(seconds % 60).padStart(2, '0');
@@ -640,6 +649,7 @@
 
             function renderPreviousNotes(notes) {
                 const container = document.getElementById('feedbackPreviousNotes');
+                if (!container) return;
                 container.replaceChildren();
                 if (!notes || !notes.length) {
                     const empty = document.createElement('p');
@@ -666,26 +676,31 @@
                 });
             }
 
+            function setFeedbackText(id, value) {
+                const element = document.getElementById(id);
+                if (element) element.textContent = value || '—';
+            }
+
             function showFeedback(call, duration, resetForm) {
                 feedbackUrl = call.feedback_url;
-                document.getElementById('endedCustomerName').textContent = call.customer_name;
-                document.getElementById('endedCallDuration').textContent = formatDuration(duration);
-                document.getElementById('feedbackProjectName').textContent = call.project_name || '—';
-                document.getElementById('feedbackProjectId').textContent = call.project_id || '—';
-                document.getElementById('feedbackParentName').textContent = call.parent_name || '—';
-                document.getElementById('feedbackFirmName').textContent = call.firm_name || '—';
-                document.getElementById('feedbackContactPerson').textContent = call.contact_person || '—';
-                document.getElementById('feedbackMobile').textContent = call.mobile || '—';
-                document.getElementById('feedbackCustomerType').textContent = call.customer_type || '—';
-                document.getElementById('feedbackAssignedTo').textContent = call.assigned_to || '—';
-                document.getElementById('feedbackAddress').textContent = call.address || '—';
-                document.getElementById('feedbackLocation').textContent = [call.pincode, call.city, call.district, call.state].filter(Boolean).join(', ') || '—';
-                document.getElementById('feedbackCustomColumn1').textContent = call.custom_column_1 || '—';
-                document.getElementById('feedbackCustomColumn2').textContent = call.custom_column_2 || '—';
-                document.getElementById('feedbackCustomColumn3').textContent = call.custom_column_3 || '—';
-                document.getElementById('feedbackCustomColumn4').textContent = call.custom_column_4 || '—';
+                setFeedbackText('endedCustomerName', call.customer_name);
+                setFeedbackText('endedCallDuration', formatDuration(duration));
+                setFeedbackText('feedbackProjectName', call.project_name);
+                setFeedbackText('feedbackProjectId', call.project_id);
+                setFeedbackText('feedbackParentName', call.parent_name);
+                setFeedbackText('feedbackFirmName', call.firm_name);
+                setFeedbackText('feedbackContactPerson', call.contact_person);
+                setFeedbackText('feedbackMobile', call.mobile);
+                setFeedbackText('feedbackCustomerType', call.customer_type);
+                setFeedbackText('feedbackAssignedTo', call.assigned_to);
+                setFeedbackText('feedbackAddress', call.address);
+                setFeedbackText('feedbackLocation', [call.pincode, call.city, call.district, call.state].filter(Boolean).join(', '));
+                setFeedbackText('feedbackCustomColumn1', call.custom_column_1);
+                setFeedbackText('feedbackCustomColumn2', call.custom_column_2);
+                setFeedbackText('feedbackCustomColumn3', call.custom_column_3);
+                setFeedbackText('feedbackCustomColumn4', call.custom_column_4);
                 renderPreviousNotes(call.previous_notes || []);
-                document.getElementById('callEndedTitle').textContent = 'Call in Progress';
+                setFeedbackText('callEndedTitle', 'Call in Progress');
                 if (resetForm !== false) {
                     feedbackForm.reset();
                     updateFollowUpDateVisibility();
@@ -728,10 +743,14 @@
                             method: 'POST',
                             headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': token }
                         });
-                        const result = await response.json();
+                        const result = await readJsonResponse(response, 'Unable to initiate call. Please contact the administrator');
                         if (!response.ok || !result.success) throw new Error(result.message || 'Unable to initiate call.');
                         showMessage(result.message, false);
-                        showFeedback(result.data, 0, true);
+                        try {
+                            showFeedback(result.data, 0, true);
+                        } catch (popupError) {
+                            console.error('Unable to open call workspace:', popupError);
+                        }
                         pollCall(result.data);
                     } catch (error) {
                         showMessage(error.message || 'Unable to initiate call.', true);

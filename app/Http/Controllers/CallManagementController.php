@@ -277,20 +277,21 @@ class CallManagementController extends Controller
             return response()->json(['success' => false, 'message' => 'Agent or customer mobile number is invalid.'], 422);
         }
 
-        $this->ensurePlivoConfigured();
-        $callLog = CallLog::create([
-            'call_management_entry_id' => $callManagementEntry->id,
-            'user_id' => $user->id,
-            'number' => $customerNumber,
-            'started_at' => now(),
-            'duration' => 0,
-            'status' => 0,
-            'plivo_status' => 'initiating',
-            'webhook_token' => Str::random(64),
-        ]);
-        $query = http_build_query(['call_log_id' => $callLog->id, 'token' => $callLog->webhook_token]);
-
+        $callLog = null;
         try {
+            $this->ensurePlivoConfigured();
+            $callLog = CallLog::create([
+                'call_management_entry_id' => $callManagementEntry->id,
+                'user_id' => $user->id,
+                'number' => $customerNumber,
+                'started_at' => now(),
+                'duration' => 0,
+                'status' => 0,
+                'plivo_status' => 'initiating',
+                'webhook_token' => Str::random(64),
+            ]);
+            $query = http_build_query(['call_log_id' => $callLog->id, 'token' => $callLog->webhook_token]);
+
             $response = Http::withBasicAuth(config('services.plivo.auth_id'), config('services.plivo.auth_token'))
                 ->asJson()
                 ->post('https://api.plivo.com/v1/Account/'.config('services.plivo.auth_id').'/Call/', [
@@ -311,23 +312,28 @@ class CallManagementController extends Controller
 
             $callUuid = $response->json('request_uuid.0') ?: $response->json('request_uuid');
             $callLog->update(['plivo_call_uuid' => $callUuid, 'plivo_status' => 'queued']);
-            $previousNotes = CallLog::with('feedbackStatus:id,status_name,display_name')
-                ->where('call_management_entry_id', $callManagementEntry->id)
-                ->whereKeyNot($callLog->id)
-                ->whereNotNull('remark')
-                ->where('remark', '!=', '')
-                ->latest('started_at')
-                ->get()
-                ->map(function (CallLog $previousCall) {
-                    return [
-                        'note' => $previousCall->remark,
-                        'status' => optional($previousCall->feedbackStatus)->display_name
-                            ?: optional($previousCall->feedbackStatus)->status_name
-                            ?: '—',
-                        'date' => optional($previousCall->started_at)->format('d M Y, h:i A') ?: '—',
-                    ];
-                })
-                ->values();
+            $previousNotes = collect();
+            try {
+                $previousNotes = CallLog::with('feedbackStatus:id,status_name,display_name')
+                    ->where('call_management_entry_id', $callManagementEntry->id)
+                    ->where('id', '!=', $callLog->id)
+                    ->whereNotNull('remark')
+                    ->where('remark', '!=', '')
+                    ->latest('started_at')
+                    ->get()
+                    ->map(function (CallLog $previousCall) {
+                        return [
+                            'note' => $previousCall->remark,
+                            'status' => optional($previousCall->feedbackStatus)->display_name
+                                ?: optional($previousCall->feedbackStatus)->status_name
+                                ?: '—',
+                            'date' => optional($previousCall->started_at)->format('d M Y, h:i A') ?: '—',
+                        ];
+                    })
+                    ->values();
+            } catch (Throwable $exception) {
+                report($exception);
+            }
 
             return response()->json([
                 'success' => true,
@@ -359,8 +365,12 @@ class CallManagementController extends Controller
             ]);
         } catch (Throwable $exception) {
             report($exception);
-            $callLog->update(['plivo_status' => 'failed']);
-            return response()->json(['success' => false, 'message' => 'Unable to connect to Plivo.'], 502);
+            if ($callLog) $callLog->update(['plivo_status' => 'failed']);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Calling service is currently unavailable. Please contact the administrator.',
+            ], 502);
         }
     }
 
