@@ -21,8 +21,8 @@ class CallManagementEntryExport implements FromCollection, WithHeadings, WithMap
             'Project Name', 'Project ID', 'Parent Name', 'Firm Name',
             'Contact Person Name', 'Mobile Number', 'Customer Type',
             'Address', 'Pincode', 'City', 'District', 'State', 'Caller Email',
-            'Caller Name', 'Custom Column 1', 'Custom Column 2', 'Custom Column 3',
-            'Custom Column 4', 'Status',
+            'Caller Name', 'Point Column 1', 'Point Column 2', 'Point Column 3',
+            'Point Column 4', 'Status',
         ];
     }
 

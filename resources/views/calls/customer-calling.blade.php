@@ -147,7 +147,23 @@
         .call-note-meta strong { color:#35d2ed;text-transform:uppercase; }
         .call-note-text { margin:0;color:#d5e0fa;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word; }
         .call-notes-empty { color:#8193c2;text-align:center; }
-        @media (max-width: 640px) { .customer-calling-heading { align-items:flex-start; } .customer-calling-title { font-size:22px; } .customer-calling-filter-trigger { min-width:44px;width:44px;padding:0; } .customer-calling-filter-trigger span:not(.material-icons),.customer-calling-create span:not(.material-icons) { display:none; } .customer-calling-create { width:44px;padding:0; } .customer-calling-filter-head,.customer-calling-filter-body { padding-left:20px;padding-right:20px; } .customer-calling-filter-grid,.customer-create-grid { grid-template-columns:1fr; } .customer-calling-filter-field.is-wide { grid-column:auto; } .customer-calling-filter-actions { grid-template-columns:1fr 1.5fr;padding-left:20px;padding-right:20px; } .customer-calling-footer { align-items:flex-start;flex-direction:column;gap:10px; } }
+        #callEndedModal { padding:12px; }
+        #callEndedModal .call-ended-dialog { display:flex;flex-direction:column;width:calc(100vw - 24px);height:calc(100vh - 24px);max-height:none;overflow:hidden;border-radius:16px;background:linear-gradient(145deg,#0b214e,#081a3e); }
+        #callEndedModal .call-ended-head { flex:0 0 auto;padding:18px 24px;background:rgba(8,26,62,.92); }
+        #callEndedModal .call-ended-head h2 { font-size:22px; }
+        #callEndedModal .call-ended-form { display:flex;flex:1;flex-direction:column;min-height:0;padding:20px 24px 24px; }
+        .call-workspace-grid { display:grid;flex:1;grid-template-columns:minmax(0,1.35fr) minmax(340px,.65fr);gap:20px;min-height:0; }
+        .call-workspace-panel { min-height:0;overflow-y:auto;padding:18px;border:1px solid rgba(85,126,218,.28);border-radius:14px;background:rgba(5,18,44,.56);scrollbar-width:thin;scrollbar-color:#17386f #04112d; }
+        .call-workspace-panel-title { display:flex;align-items:center;gap:9px;margin:0 0 15px;color:#f1f5ff;font-size:15px;font-weight:800; }
+        .call-workspace-panel-title .material-icons { color:#35d2ed;font-size:20px; }
+        .call-workspace-panel .call-customer-details { grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:20px;padding:0;border:0;background:transparent; }
+        .call-workspace-panel .call-customer-detail { min-height:62px;padding:11px 12px;border:1px solid rgba(85,126,218,.2);border-radius:10px;background:rgba(8,26,62,.72); }
+        .call-workspace-panel .feedback-previous-notes { margin-bottom:0; }
+        .call-workspace-panel .feedback-previous-notes-list { max-height:none; }
+        .call-feedback-panel { display:flex;flex-direction:column; }
+        .call-feedback-panel .call-ended-save { margin-top:auto; }
+        @media (max-width: 800px) { #callEndedModal { padding:0; } #callEndedModal .call-ended-dialog { width:100vw;height:100vh;border:0;border-radius:0; } #callEndedModal .call-ended-form { overflow-y:auto;padding:16px; } .call-workspace-grid { display:block; } .call-workspace-panel { margin-bottom:14px;overflow:visible;padding:14px; } .call-workspace-panel .call-customer-details { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+        @media (max-width: 640px) { .customer-calling-heading { align-items:flex-start; } .customer-calling-title { font-size:22px; } .customer-calling-filter-trigger { min-width:44px;width:44px;padding:0; } .customer-calling-filter-trigger span:not(.material-icons),.customer-calling-create span:not(.material-icons) { display:none; } .customer-calling-create { width:44px;padding:0; } .customer-calling-filter-head,.customer-calling-filter-body { padding-left:20px;padding-right:20px; } .customer-calling-filter-grid,.customer-create-grid { grid-template-columns:1fr; } .customer-calling-filter-field.is-wide { grid-column:auto; } .customer-calling-filter-actions { grid-template-columns:1fr 1.5fr;padding-left:20px;padding-right:20px; } .customer-calling-footer { align-items:flex-start;flex-direction:column;gap:10px; } .call-workspace-panel .call-customer-details { grid-template-columns:1fr; } .call-customer-detail.is-wide { grid-column:auto; } }
     </style>
 
     <div class="customer-calling-page">
@@ -289,10 +305,10 @@
                             </select>
                             @error('assigned_user_id', 'addCall')<span class="customer-create-field-error">{{ $message }}</span>@enderror
                         </div>
-                        <div class="customer-create-field"><label for="createCustomColumn1">Custom Column 1</label><input id="createCustomColumn1" name="custom_column_1" type="text" value="{{ old('custom_column_1') }}" maxlength="255">@error('custom_column_1', 'addCall')<span class="customer-create-field-error">{{ $message }}</span>@enderror</div>
-                        <div class="customer-create-field"><label for="createCustomColumn2">Custom Column 2</label><input id="createCustomColumn2" name="custom_column_2" type="text" value="{{ old('custom_column_2') }}" maxlength="255">@error('custom_column_2', 'addCall')<span class="customer-create-field-error">{{ $message }}</span>@enderror</div>
-                        <div class="customer-create-field"><label for="createCustomColumn3">Custom Column 3</label><input id="createCustomColumn3" name="custom_column_3" type="text" value="{{ old('custom_column_3') }}" maxlength="255">@error('custom_column_3', 'addCall')<span class="customer-create-field-error">{{ $message }}</span>@enderror</div>
-                        <div class="customer-create-field"><label for="createCustomColumn4">Custom Column 4</label><input id="createCustomColumn4" name="custom_column_4" type="text" value="{{ old('custom_column_4') }}" maxlength="255">@error('custom_column_4', 'addCall')<span class="customer-create-field-error">{{ $message }}</span>@enderror</div>
+                        <div class="customer-create-field"><label for="createCustomColumn1">Point Column 1</label><input id="createCustomColumn1" name="custom_column_1" type="text" value="{{ old('custom_column_1') }}" maxlength="255">@error('custom_column_1', 'addCall')<span class="customer-create-field-error">{{ $message }}</span>@enderror</div>
+                        <div class="customer-create-field"><label for="createCustomColumn2">Point Column 2</label><input id="createCustomColumn2" name="custom_column_2" type="text" value="{{ old('custom_column_2') }}" maxlength="255">@error('custom_column_2', 'addCall')<span class="customer-create-field-error">{{ $message }}</span>@enderror</div>
+                        <div class="customer-create-field"><label for="createCustomColumn3">Point Column 3</label><input id="createCustomColumn3" name="custom_column_3" type="text" value="{{ old('custom_column_3') }}" maxlength="255">@error('custom_column_3', 'addCall')<span class="customer-create-field-error">{{ $message }}</span>@enderror</div>
+                        <div class="customer-create-field"><label for="createCustomColumn4">Point Column 4</label><input id="createCustomColumn4" name="custom_column_4" type="text" value="{{ old('custom_column_4') }}" maxlength="255">@error('custom_column_4', 'addCall')<span class="customer-create-field-error">{{ $message }}</span>@enderror</div>
                     </div>
                     <div class="customer-create-actions">
                         <button class="customer-create-cancel" id="cancelCustomerCreateCall" type="button">Cancel</button>
@@ -379,7 +395,10 @@
             </div>
             <form class="call-ended-form" id="callFeedbackForm">
                 <div class="call-ended-error" id="callFeedbackError"></div>
-                <div class="call-customer-details">
+                <div class="call-workspace-grid">
+                    <section class="call-workspace-panel">
+                        <h3 class="call-workspace-panel-title"><i class="material-icons">business</i> Customer &amp; Project Details</h3>
+                        <div class="call-customer-details">
                     <div class="call-customer-detail"><span>Project Name</span><strong id="feedbackProjectName">—</strong></div>
                     <div class="call-customer-detail"><span>Project ID</span><strong id="feedbackProjectId">—</strong></div>
                     <div class="call-customer-detail"><span>Parent Name</span><strong id="feedbackParentName">—</strong></div>
@@ -390,30 +409,35 @@
                     <div class="call-customer-detail"><span>Assigned To</span><strong id="feedbackAssignedTo">—</strong></div>
                     <div class="call-customer-detail is-wide"><span>Address</span><strong id="feedbackAddress">—</strong></div>
                     <div class="call-customer-detail is-wide"><span>Location</span><strong id="feedbackLocation">—</strong></div>
-                    <div class="call-customer-detail"><span>Custom Column 1</span><strong id="feedbackCustomColumn1">—</strong></div>
-                    <div class="call-customer-detail"><span>Custom Column 2</span><strong id="feedbackCustomColumn2">—</strong></div>
-                    <div class="call-customer-detail"><span>Custom Column 3</span><strong id="feedbackCustomColumn3">—</strong></div>
-                    <div class="call-customer-detail"><span>Custom Column 4</span><strong id="feedbackCustomColumn4">—</strong></div>
+                            <div class="call-customer-detail"><span>Point Column 1</span><strong id="feedbackCustomColumn1">—</strong></div>
+                            <div class="call-customer-detail"><span>Point Column 2</span><strong id="feedbackCustomColumn2">—</strong></div>
+                            <div class="call-customer-detail"><span>Point Column 3</span><strong id="feedbackCustomColumn3">—</strong></div>
+                            <div class="call-customer-detail"><span>Point Column 4</span><strong id="feedbackCustomColumn4">—</strong></div>
+                        </div>
+                        <section class="feedback-previous-notes">
+                            <h3 class="feedback-previous-notes-title">Previous Call Notes</h3>
+                            <div class="feedback-previous-notes-list" id="feedbackPreviousNotes"><p class="call-notes-empty">No previous notes.</p></div>
+                        </section>
+                    </section>
+                    <section class="call-workspace-panel call-feedback-panel">
+                        <h3 class="call-workspace-panel-title"><i class="material-icons">edit_note</i> Call Feedback</h3>
+                        <div class="call-ended-field">
+                            <label for="callFeedbackStatus">Call Status *</label>
+                            <select id="callFeedbackStatus" name="feedback_status_id" required>
+                                <option value="">Select call status</option>
+                                @foreach($feedbackStatuses as $feedbackStatus)
+                                    <option value="{{ $feedbackStatus->id }}" data-follow-up="{{ $feedbackStatus->is_follow_up ? '1' : '0' }}">{{ $feedbackStatus->display_name ?: $feedbackStatus->status_name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="call-ended-field" id="callFollowUpDateField" hidden>
+                            <label for="callFollowUpDate">Follow-up Date *</label>
+                            <input id="callFollowUpDate" name="follow_up_date" type="date" min="{{ now()->format('Y-m-d') }}" style="width:100%;height:45px;padding:0 13px;border:1px solid rgba(85,126,218,.38);border-radius:11px;outline:0;background:#081a3e;color:#dce7ff;font-size:14px;">
+                        </div>
+                        <div class="call-ended-field"><label for="callFeedbackMessage">Notes *</label><textarea id="callFeedbackMessage" name="message" maxlength="1000" placeholder="Write the discussion and next action here..." required></textarea></div>
+                        <button class="call-ended-save" id="saveCallFeedback" type="submit">Save Call Record</button>
+                    </section>
                 </div>
-                <section class="feedback-previous-notes">
-                    <h3 class="feedback-previous-notes-title">Previous Call Notes</h3>
-                    <div class="feedback-previous-notes-list" id="feedbackPreviousNotes"><p class="call-notes-empty">No previous notes.</p></div>
-                </section>
-                <div class="call-ended-field">
-                    <label for="callFeedbackStatus">Call Status *</label>
-                    <select id="callFeedbackStatus" name="feedback_status_id" required>
-                        <option value="">Select call status</option>
-                        @foreach($feedbackStatuses as $feedbackStatus)
-                            <option value="{{ $feedbackStatus->id }}" data-follow-up="{{ $feedbackStatus->is_follow_up ? '1' : '0' }}">{{ $feedbackStatus->display_name ?: $feedbackStatus->status_name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="call-ended-field" id="callFollowUpDateField" hidden>
-                    <label for="callFollowUpDate">Follow-up Date *</label>
-                    <input id="callFollowUpDate" name="follow_up_date" type="date" min="{{ now()->format('Y-m-d') }}" style="width:100%;height:45px;padding:0 13px;border:1px solid rgba(85,126,218,.38);border-radius:11px;outline:0;background:#081a3e;color:#dce7ff;font-size:14px;">
-                </div>
-                <div class="call-ended-field"><label for="callFeedbackMessage">Notes *</label><textarea id="callFeedbackMessage" name="message" maxlength="1000" placeholder="What happened on this call?" required></textarea></div>
-                <button class="call-ended-save" id="saveCallFeedback" type="submit">Save Call Record</button>
             </form>
         </div>
     </div>

@@ -50,7 +50,8 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChu
                 $data['caller_email'] = trim((string) ($data['caller_email'] ?? ''));
                 $data['caller_name'] = trim((string) ($data['caller_name'] ?? ''));
                 foreach (['custom_column_1', 'custom_column_2', 'custom_column_3', 'custom_column_4'] as $customColumn) {
-                    $data[$customColumn] = $this->textFromExcel($data[$customColumn] ?? null);
+                    $pointColumn = str_replace('custom_', 'point_', $customColumn);
+                    $data[$customColumn] = $this->textFromExcel($data[$pointColumn] ?? $data[$customColumn] ?? null);
                 }
 
                 $validator = Validator::make($data, [
