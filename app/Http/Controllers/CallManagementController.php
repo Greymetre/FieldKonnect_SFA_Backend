@@ -73,6 +73,7 @@ class CallManagementController extends Controller
 
         $canCreateCall = auth()->user()->can('call_management_create');
         $canImportExport = auth()->user()->can('call_management_import_export');
+        $canEditDelete = auth()->user()->can('call_management_edit_delete');
 
         $query = CallManagementEntry::query()
             ->with([
@@ -126,7 +127,7 @@ class CallManagementController extends Controller
         $pincodeOptions = collect();
         $callers = collect();
 
-        if ($canCreateCall) {
+        if ($canCreateCall || $canEditDelete) {
             $pincodeOptions = Pincode::with([
                     'cityname:id,city_name,district_id,state_id',
                     'cityname.districtname:id,district_name,state_id',
@@ -162,6 +163,7 @@ class CallManagementController extends Controller
             'feedbackStatuses',
             'canCreateCall',
             'canImportExport',
+            'canEditDelete',
             'pincodeOptions',
             'callers'
         ));
@@ -443,7 +445,7 @@ class CallManagementController extends Controller
 
     public function update(Request $request, CallManagementEntry $callManagementEntry)
     {
-        abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        abort_if(Gate::denies('call_management_edit_delete'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $callerIds = User::permission('call_management_access')
             ->where('active', 'Y')
@@ -461,7 +463,11 @@ class CallManagementController extends Controller
             'custom_column_2' => ['nullable', 'string', 'max:255'],
             'custom_column_3' => ['nullable', 'string', 'max:255'],
             'custom_column_4' => ['nullable', 'string', 'max:255'],
+            'redirect_to' => ['nullable', Rule::in(['customer-calling'])],
         ]);
+
+        $redirectTo = $validated['redirect_to'] ?? null;
+        unset($validated['redirect_to']);
 
         $pincode = Pincode::with(['cityname.districtname.statename', 'cityname.statename'])
             ->findOrFail($validated['pincode_id']);
@@ -476,16 +482,17 @@ class CallManagementController extends Controller
             'state' => optional($state)->state_name,
         ]));
 
-        return redirect()->route('calls.index')->with('message_success', 'Call entry updated successfully.');
+        return redirect()->route($redirectTo === 'customer-calling' ? 'customer-calling.index' : 'calls.index')
+            ->with('message_success', 'Call entry updated successfully.');
     }
 
     public function destroy(CallManagementEntry $callManagementEntry)
     {
-        abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        abort_if(Gate::denies('call_management_edit_delete'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $callManagementEntry->delete();
 
-        return redirect()->route('calls.index')->with('message_success', 'Call entry deleted successfully.');
+        return redirect()->back()->with('message_success', 'Call entry deleted successfully.');
     }
 
     public function import(Request $request)

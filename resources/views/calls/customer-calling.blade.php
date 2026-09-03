@@ -54,6 +54,12 @@
         .customer-call-btn .material-icons { font-size: 19px; }
         .customer-call-btn:disabled { cursor: wait; opacity: .55; }
         .customer-call-btn.is-view-only:disabled { cursor:not-allowed;opacity:.5; }
+        .customer-call-actions { display:flex;align-items:center;gap:6px;white-space:nowrap; }
+        .customer-call-actions form { margin:0; }
+        .customer-call-edit,.customer-call-delete { display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;padding:0;border:1px solid rgba(85,126,218,.34);border-radius:10px;background:rgba(8,25,59,.55);color:#9fb1dc; }
+        .customer-call-edit:hover { border-color:rgba(34,211,238,.48);color:#35d2ed; }
+        .customer-call-delete:hover { border-color:rgba(248,113,113,.52);color:#fb7185; }
+        .customer-call-edit .material-icons,.customer-call-delete .material-icons { font-size:18px; }
         .customer-call-message { display: none; margin-bottom: 14px; padding: 11px 14px; border: 1px solid rgba(34, 211, 238, .35); border-radius: 10px; background: rgba(34, 211, 238, .08); color: #73def0; font-size: 13px; }
         .customer-call-message.show { display: block; }
         .customer-call-message.error { border-color: rgba(248, 113, 113, .4); background: rgba(248, 113, 113, .08); color: #fca5a5; }
@@ -135,13 +141,23 @@
                     <thead><tr><th>Call</th><th>Firm Name</th><th>Contact Person</th><th>Mobile</th><th>Customer Type</th><th>City</th><th>State</th><th>Status</th>@role('superadmin')<th>Assigned To</th>@endrole</tr></thead>
                     <tbody>
                         @forelse($entries as $entry)
-                            <tr>
+                            <tr data-entry-id="{{ $entry->id }}" data-update-url="{{ route('calls.update', $entry) }}" data-firm="{{ $entry->firm_name }}" data-contact="{{ $entry->contact_person_name }}" data-mobile="{{ $entry->mobile_number }}" data-customer-type="{{ $entry->customer_type }}" data-address="{{ $entry->address }}" data-pincode-id="{{ $entry->pincode_id }}" data-caller-id="{{ $entry->assigned_user_id }}">
                                 <td>
-                                    @if((int) $entry->assigned_user_id === (int) auth()->id())
-                                        <button class="customer-call-btn" type="button" data-call-url="{{ route('customer-calling.call', $entry) }}" title="Call {{ $entry->mobile_number }}" aria-label="Call {{ $entry->mobile_number }}"><i class="material-icons">call</i></button>
-                                    @else
-                                        <button class="customer-call-btn is-view-only" type="button" disabled title="Assigned to {{ optional($entry->assignedUser)->name }}"><i class="material-icons">visibility</i></button>
-                                    @endif
+                                    <div class="customer-call-actions">
+                                        @if((int) $entry->assigned_user_id === (int) auth()->id())
+                                            <button class="customer-call-btn" type="button" data-call-url="{{ route('customer-calling.call', $entry) }}" title="Call {{ $entry->mobile_number }}" aria-label="Call {{ $entry->mobile_number }}"><i class="material-icons">call</i></button>
+                                        @else
+                                            <button class="customer-call-btn is-view-only" type="button" disabled title="Assigned to {{ optional($entry->assignedUser)->name }}"><i class="material-icons">visibility</i></button>
+                                        @endif
+                                        @if($canEditDelete)
+                                            <button class="customer-call-edit edit-customer-call" type="button" title="Edit call" aria-label="Edit call"><i class="material-icons">edit</i></button>
+                                            <form method="POST" action="{{ route('calls.destroy', $entry) }}" onsubmit="return confirm('Delete this call entry?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button class="customer-call-delete" type="submit" title="Delete call" aria-label="Delete call"><i class="material-icons">delete</i></button>
+                                            </form>
+                                        @endif
+                                    </div>
                                 </td>
                                 <td>{{ $entry->firm_name }}</td><td>{{ $entry->contact_person_name }}</td><td>{{ $entry->mobile_number }}</td>
                                 <td>{{ $entry->customer_type ?: '—' }}</td><td>{{ $entry->city ?: '—' }}</td><td>{{ $entry->state ?: '—' }}</td>
@@ -160,7 +176,7 @@
         </section>
     </div>
 
-    @if($canCreateCall)
+    @if($canCreateCall || $canEditDelete)
         <div class="customer-create-modal" id="customerCreateCallModal" role="dialog" aria-modal="true" aria-labelledby="customerCreateCallTitle" aria-hidden="true">
             <div class="customer-create-dialog">
                 <div class="customer-create-head">
@@ -169,6 +185,8 @@
                 </div>
                 <form class="customer-create-form" method="POST" action="{{ route('calls.store') }}">
                     @csrf
+                    <input id="customerCallFormMethod" type="hidden" name="_method" value="PUT" disabled>
+                    <input id="customerCallEntryId" type="hidden" name="entry_id" value="">
                     <input type="hidden" name="redirect_to" value="customer-calling">
                     <div class="customer-create-grid">
                         <div class="customer-create-field"><label for="createFirmName">Firm Name *</label><input id="createFirmName" name="firm_name" type="text" value="{{ old('firm_name') }}" maxlength="200" required>@error('firm_name', 'addCall')<span class="customer-create-field-error">{{ $message }}</span>@enderror</div>
@@ -200,7 +218,7 @@
                     </div>
                     <div class="customer-create-actions">
                         <button class="customer-create-cancel" id="cancelCustomerCreateCall" type="button">Cancel</button>
-                        <button class="customer-create-submit" type="submit">Create Call</button>
+                        <button class="customer-create-submit" id="customerCallFormSubmit" type="submit">Create Call</button>
                     </div>
                 </form>
             </div>
@@ -324,7 +342,7 @@
             document.addEventListener('keydown', function (event) {
                 if (event.key !== 'Escape') return;
                 if (filterOverlay.classList.contains('show')) setFiltersOpen(false);
-                @if($canCreateCall)
+                @if($canCreateCall || $canEditDelete)
                     else if (createModal.classList.contains('show')) setCreateModalOpen(false);
                 @endif
                 @if($canImportExport)
@@ -332,9 +350,13 @@
                 @endif
             });
 
-            @if($canCreateCall)
+            @if($canCreateCall || $canEditDelete)
                 const createModal = document.getElementById('customerCreateCallModal');
                 const createPincode = document.getElementById('createPincode');
+                const customerCallForm = createModal.querySelector('form');
+                const customerCallFormMethod = document.getElementById('customerCallFormMethod');
+                const customerCallFormTitle = document.getElementById('customerCreateCallTitle');
+                const customerCallFormSubmit = document.getElementById('customerCallFormSubmit');
 
                 function setCreateModalOpen(isOpen) {
                     createModal.classList.toggle('show', isOpen);
@@ -349,7 +371,19 @@
                     document.getElementById('createState').value = option ? option.dataset.state || '' : '';
                 }
 
-                document.getElementById('openCustomerCreateCall').addEventListener('click', function () { setCreateModalOpen(true); });
+                @if($canCreateCall)
+                    document.getElementById('openCustomerCreateCall').addEventListener('click', function () {
+                        customerCallForm.reset();
+                        customerCallForm.action = @json(route('calls.store'));
+                        customerCallFormMethod.disabled = true;
+                        document.getElementById('customerCallEntryId').value = '';
+                        customerCallFormTitle.textContent = 'Create New Call';
+                        customerCallFormSubmit.textContent = 'Create Call';
+                        if (window.jQuery && jQuery.fn.select2) jQuery(createPincode).val('').trigger('change');
+                        fillCreateLocation();
+                        setCreateModalOpen(true);
+                    });
+                @endif
                 document.getElementById('closeCustomerCreateCall').addEventListener('click', function () { setCreateModalOpen(false); });
                 document.getElementById('cancelCustomerCreateCall').addEventListener('click', function () { setCreateModalOpen(false); });
                 createModal.addEventListener('click', function (event) { if (event.target === createModal) setCreateModalOpen(false); });
@@ -367,8 +401,35 @@
                 });
                 fillCreateLocation();
 
+                @if($canEditDelete)
+                    document.querySelectorAll('.edit-customer-call').forEach(function (button) {
+                        button.addEventListener('click', function () {
+                            const row = button.closest('tr');
+                            customerCallForm.action = row.dataset.updateUrl;
+                            customerCallFormMethod.disabled = false;
+                            document.getElementById('customerCallEntryId').value = row.dataset.entryId || '';
+                            document.getElementById('createFirmName').value = row.dataset.firm || '';
+                            document.getElementById('createContactName').value = row.dataset.contact || '';
+                            document.getElementById('createMobile').value = row.dataset.mobile || '';
+                            document.getElementById('createCustomerType').value = row.dataset.customerType || '';
+                            document.getElementById('createAddress').value = row.dataset.address || '';
+                            createPincode.value = row.dataset.pincodeId || '';
+                            document.getElementById('createCaller').value = row.dataset.callerId || '';
+                            if (window.jQuery && jQuery.fn.select2) jQuery(createPincode).trigger('change');
+                            fillCreateLocation();
+                            customerCallFormTitle.textContent = 'Edit Call';
+                            customerCallFormSubmit.textContent = 'Update Call';
+                            setCreateModalOpen(true);
+                        });
+                    });
+                @endif
+
                 @if($errors->addCall->any())
                     setCreateModalOpen(true);
+                @endif
+                @if($errors->editCall->any())
+                    const invalidEditRow = document.querySelector('tr[data-entry-id="{{ (int) old('entry_id') }}"]');
+                    if (invalidEditRow) invalidEditRow.querySelector('.edit-customer-call')?.click();
                 @endif
             @endif
 

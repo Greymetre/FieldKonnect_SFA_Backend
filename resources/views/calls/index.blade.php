@@ -180,12 +180,14 @@
                                 <td><span class="calls-status">{{ $entry->status }}</span></td><td>{{ optional($entry->assignedUser)->name ?: '—' }}</td>
                                 <td>
                                     <div class="calls-row-actions">
-                                        <button class="calls-action-btn edit-call-entry" type="button" title="Edit"><i class="material-icons">edit</i></button>
-                                        <form method="POST" action="{{ route('calls.destroy', $entry) }}" onsubmit="return confirm('Delete this call entry?');">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button class="calls-action-btn delete" type="submit" title="Delete"><i class="material-icons">delete</i></button>
-                                        </form>
+                                        @can('call_management_edit_delete')
+                                            <button class="calls-action-btn edit-call-entry" type="button" title="Edit"><i class="material-icons">edit</i></button>
+                                            <form method="POST" action="{{ route('calls.destroy', $entry) }}" onsubmit="return confirm('Delete this call entry?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button class="calls-action-btn delete" type="submit" title="Delete"><i class="material-icons">delete</i></button>
+                                            </form>
+                                        @endcan
                                         <button class="calls-action-btn" type="button" disabled title="Call history will be enabled later"><i class="material-icons">history</i></button>
                                     </div>
                                 </td>
