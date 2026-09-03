@@ -49,9 +49,14 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChu
                 $data['pincode'] = $this->digitsFromExcel($data['pincode'] ?? null);
                 $data['caller_email'] = trim((string) ($data['caller_email'] ?? ''));
                 $data['caller_name'] = trim((string) ($data['caller_name'] ?? ''));
-                foreach (['custom_column_1', 'custom_column_2', 'custom_column_3', 'custom_column_4'] as $customColumn) {
-                    $pointColumn = str_replace('custom_', 'point_', $customColumn);
-                    $data[$customColumn] = $this->textFromExcel($data[$pointColumn] ?? $data[$customColumn] ?? null);
+                foreach ([1, 2, 3, 4] as $columnNumber) {
+                    $customColumn = 'custom_column_'.$columnNumber;
+                    $data[$customColumn] = $this->textFromExcel($this->firstExcelValue($data, [
+                        'point_column_'.$columnNumber,
+                        $customColumn,
+                        'column_'.$columnNumber,
+                        'point_'.$columnNumber,
+                    ]));
                 }
 
                 $validator = Validator::make($data, [
@@ -188,6 +193,17 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChu
 
         if (is_scalar($value)) {
             return trim((string) $value) ?: null;
+        }
+
+        return null;
+    }
+
+    private function firstExcelValue(array $data, array $keys)
+    {
+        foreach ($keys as $key) {
+            if (array_key_exists($key, $data) && $data[$key] !== null && $data[$key] !== '') {
+                return $data[$key];
+            }
         }
 
         return null;

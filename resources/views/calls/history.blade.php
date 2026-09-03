@@ -47,8 +47,27 @@
         .customer-history-table th { padding:14px;border-bottom:1px solid rgba(85,126,218,.24);color:#8395c4;font-size:11px;font-weight:800;letter-spacing:.09em;text-align:left;text-transform:uppercase;white-space:nowrap; }
         .customer-history-table td { height:62px;padding:12px 14px;border-bottom:1px solid rgba(85,126,218,.18);color:#adbee6;font-size:13px;vertical-align:middle; }
         .customer-history-table tbody tr:last-child td { border-bottom:0; }
-        .customer-history-status { display:inline-flex;padding:7px 12px;border:1px solid rgba(34,211,238,.34);border-radius:999px;color:#45d6ef;font-size:11px;font-weight:800;text-transform:uppercase; }
-        .customer-history-recording { width:210px;height:34px; }
+        .customer-history-status { display:inline-flex;padding:7px 12px;border:1px solid rgba(34,211,238,.34);border-radius:999px;color:#45d6ef;font-size:11px;font-weight:800;text-transform:uppercase;white-space:nowrap; }
+        .customer-history-note { width:210px;max-height:42px;overflow-y:auto;padding-right:5px;color:#adbee6;line-height:21px;white-space:pre-wrap;word-break:break-word;scrollbar-width:thin;scrollbar-color:#17386f transparent; }
+        .customer-history-note::-webkit-scrollbar { width:5px; }
+        .customer-history-note::-webkit-scrollbar-thumb { border-radius:10px;background:#17386f; }
+        .customer-history-play { display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;padding:0;border:1px solid rgba(34,211,238,.45);border-radius:50%;background:rgba(34,211,238,.09);color:#35d2ed;transition:.18s ease; }
+        .customer-history-play:hover { border-color:#35d2ed;background:rgba(34,211,238,.17);box-shadow:0 0 18px rgba(34,211,238,.14);transform:translateY(-1px); }
+        .customer-history-play .material-icons { font-size:22px; }
+        .customer-history-recording-unavailable { color:#7184b4;font-size:12px;white-space:nowrap; }
+        .recording-modal { position:fixed;inset:0;z-index:4800;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(1,8,24,.82);backdrop-filter:blur(5px); }
+        .recording-modal.show { display:flex; }
+        .recording-dialog { width:min(600px,100%);overflow:hidden;border:1px solid rgba(77,122,221,.42);border-radius:18px;background:linear-gradient(145deg,#0b214e,#081a3e);box-shadow:0 30px 90px rgba(0,0,0,.5); }
+        .recording-head { display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:20px 22px;border-bottom:1px solid rgba(85,126,218,.25); }
+        .recording-heading { display:flex;align-items:center;gap:13px; }
+        .recording-heading-icon { display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:1px solid rgba(34,211,238,.45);border-radius:12px;background:rgba(34,211,238,.09);color:#35d2ed; }
+        .recording-heading h2 { margin:0;color:#f5f8ff;font-size:19px;font-weight:800; }
+        .recording-heading p { margin:4px 0 0;color:#8193c2;font-size:12px; }
+        .recording-close { display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;padding:0;border:1px solid rgba(85,126,218,.35);border-radius:10px;background:transparent;color:#9fb1dc; }
+        .recording-body { padding:26px 22px 28px; }
+        .recording-body audio { display:block;width:100%;height:46px;accent-color:#2dd4ee; }
+        .recording-help { display:flex;align-items:center;gap:7px;margin:13px 0 0;color:#7184b4;font-size:12px; }
+        .recording-help .material-icons { color:#35d2ed;font-size:17px; }
         .customer-history-empty { padding:38px 20px!important;color:#7d8fbd!important;text-align:center; }
         @media (max-width:640px) { .customer-history-heading { align-items:flex-start; } .customer-history-heading h1 { font-size:22px; } .customer-history-export span:not(.material-icons),.customer-history-filter-trigger span:not(.material-icons) { display:none; } .customer-history-export,.customer-history-filter-trigger { min-width:44px;width:44px;padding:0; } .customer-history-filter-head,.customer-history-filter-body { padding-left:20px;padding-right:20px; } .customer-history-filter-grid { grid-template-columns:1fr; } .customer-history-filter.is-wide { grid-column:auto; } .customer-history-filter-actions { grid-template-columns:1fr 1.5fr;padding-left:20px;padding-right:20px; } }
     </style>
@@ -77,12 +96,12 @@
                                 <td>{{ sprintf('%02d:%02d:%02d', intdiv($duration, 3600), intdiv($duration % 3600, 60), $duration % 60) }}</td>
                                 <td><span class="customer-history-status">{{ ((int) $callLog->duration > 0 || $callLog->recording_url || (int) $callLog->status === 1) ? 'Completed' : ($callLog->plivo_status ?: 'initiated') }}</span></td>
                                 <td>{{ optional($callLog->feedbackStatus)->display_name ?: optional($callLog->feedbackStatus)->status_name ?: '—' }}</td>
-                                <td>{{ $callLog->remark ?: '—' }}</td>
+                                <td><div class="customer-history-note" title="{{ $callLog->remark ?: '' }}">{{ $callLog->remark ?: '—' }}</div></td>
                                 <td>
                                     @if($callLog->recording_url)
-                                        <audio class="customer-history-recording" controls preload="metadata" src="{{ route('call-management.recording', $callLog) }}">Your browser does not support audio playback.</audio>
+                                        <button class="customer-history-play open-recording-player" type="button" data-recording-url="{{ route('call-management.recording', $callLog) }}" data-customer="{{ optional($callLog->callManagementEntry)->contact_person_name ?: optional($callLog->callManagementEntry)->firm_name ?: $callLog->number }}" data-date="{{ optional($callLog->started_at)->format('d M Y, h:i A') }}" title="Play recording" aria-label="Play call recording"><i class="material-icons">play_arrow</i></button>
                                     @else
-                                        <span>Processing / unavailable</span>
+                                        <span class="customer-history-recording-unavailable">Processing / unavailable</span>
                                     @endif
                                 </td>
                             </tr>
@@ -93,6 +112,22 @@
                 </table>
             </div>
         </section>
+    </div>
+
+    <div class="recording-modal" id="recordingModal" role="dialog" aria-modal="true" aria-labelledby="recordingModalTitle" aria-hidden="true">
+        <div class="recording-dialog">
+            <div class="recording-head">
+                <div class="recording-heading">
+                    <span class="recording-heading-icon"><i class="material-icons">graphic_eq</i></span>
+                    <div><h2 id="recordingModalTitle">Call Recording</h2><p><span id="recordingCustomer">—</span> · <span id="recordingDate">—</span></p></div>
+                </div>
+                <button class="recording-close" id="closeRecordingModal" type="button" aria-label="Close recording"><i class="material-icons">close</i></button>
+            </div>
+            <div class="recording-body">
+                <audio id="recordingPlayer" controls preload="metadata">Your browser does not support audio playback.</audio>
+                <p class="recording-help"><i class="material-icons">swipe</i> Use the seek bar to move forward or backward in the recording.</p>
+            </div>
+        </div>
     </div>
 
     <div class="customer-history-filter-overlay" id="historyFilterOverlay" aria-hidden="true">
@@ -152,6 +187,8 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const overlay = document.getElementById('historyFilterOverlay');
+            const recordingModal = document.getElementById('recordingModal');
+            const recordingPlayer = document.getElementById('recordingPlayer');
 
             function setHistoryFiltersOpen(isOpen) {
                 overlay.classList.toggle('show', isOpen);
@@ -163,7 +200,37 @@
             document.getElementById('openHistoryFilters').addEventListener('click', function () { setHistoryFiltersOpen(true); });
             document.getElementById('closeHistoryFilters').addEventListener('click', function () { setHistoryFiltersOpen(false); });
             overlay.addEventListener('click', function (event) { if (event.target === overlay) setHistoryFiltersOpen(false); });
-            document.addEventListener('keydown', function (event) { if (event.key === 'Escape' && overlay.classList.contains('show')) setHistoryFiltersOpen(false); });
+
+            function setRecordingOpen(isOpen) {
+                recordingModal.classList.toggle('show', isOpen);
+                recordingModal.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+                document.body.style.overflow = isOpen ? 'hidden' : '';
+                if (!isOpen) {
+                    recordingPlayer.pause();
+                    recordingPlayer.removeAttribute('src');
+                    recordingPlayer.load();
+                }
+            }
+
+            document.querySelectorAll('.open-recording-player').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    document.getElementById('recordingCustomer').textContent = button.dataset.customer || '—';
+                    document.getElementById('recordingDate').textContent = button.dataset.date || '—';
+                    recordingPlayer.src = button.dataset.recordingUrl;
+                    recordingPlayer.load();
+                    setRecordingOpen(true);
+                    const playRequest = recordingPlayer.play();
+                    if (playRequest) playRequest.catch(function () {});
+                });
+            });
+
+            document.getElementById('closeRecordingModal').addEventListener('click', function () { setRecordingOpen(false); });
+            recordingModal.addEventListener('click', function (event) { if (event.target === recordingModal) setRecordingOpen(false); });
+            document.addEventListener('keydown', function (event) {
+                if (event.key !== 'Escape') return;
+                if (recordingModal.classList.contains('show')) setRecordingOpen(false);
+                else if (overlay.classList.contains('show')) setHistoryFiltersOpen(false);
+            });
         });
     </script>
 </x-app-layout>
