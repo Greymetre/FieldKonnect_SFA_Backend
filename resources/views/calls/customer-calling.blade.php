@@ -11,6 +11,9 @@
         .customer-calling-filter-trigger { display:inline-flex;align-items:center;justify-content:center;gap:9px;min-width:148px;height:44px;padding:0 20px;border:1px solid rgba(85,126,218,.38);border-radius:12px;background:rgba(7,20,49,.62);color:#c7d5f5;font-size:14px;font-weight:700; }
         .customer-calling-filter-trigger .material-icons { font-size:20px; }
         .customer-calling-filter-trigger.is-active::after { content:'';width:7px;height:7px;border-radius:50%;background:#2dd4ee;box-shadow:0 0 10px rgba(45,212,238,.8); }
+        .customer-calling-create { display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border:0;border-radius:12px;background:linear-gradient(135deg,#2bd1e8,#438ff0);color:#061329;font-size:14px;font-weight:800; }
+        .customer-calling-create .material-icons { font-size:20px; }
+        .customer-calling-heading-actions { display:flex;align-items:center;gap:10px; }
         .customer-calling-filter-overlay { position:fixed;inset:0;z-index:4500;visibility:hidden;background:rgba(1,8,24,.68);opacity:0;transition:opacity .22s ease,visibility .22s ease;backdrop-filter:blur(3px); }
         .customer-calling-filter-overlay.show { visibility:visible;opacity:1; }
         .customer-calling-filter-drawer { position:absolute;top:0;right:0;display:flex;flex-direction:column;width:min(560px,100%);height:100%;border-left:1px solid rgba(85,126,218,.36);background:#081b42;box-shadow:-24px 0 70px rgba(0,0,0,.36);transform:translateX(100%);transition:transform .25s ease; }
@@ -53,6 +56,22 @@
         .customer-call-status { display: inline-flex; align-items: center; justify-content: center; min-width: 90px; min-height: 30px; padding: 0 12px; border: 1px solid rgba(34, 211, 238, .34); border-radius: 999px; background: rgba(34, 211, 238, .06); color: #45d6ef; font-size: 11px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
         .customer-calling-empty { padding: 38px 20px !important; color: #7d8fbd !important; text-align: center; }
         .customer-calling-footer { display:flex;align-items:center;justify-content:space-between;min-height:58px;padding:12px 18px;border-top:1px solid rgba(85,126,218,.22);color:#8193c2;font-size:13px; }
+        .customer-create-modal { position:fixed;inset:0;z-index:4600;display:none;align-items:center;justify-content:center;padding:24px 16px;background:rgba(1,8,24,.76);backdrop-filter:blur(4px); }
+        .customer-create-modal.show { display:flex; }
+        .customer-create-dialog { width:min(760px,100%);max-height:calc(100vh - 40px);overflow-y:auto;border:1px solid rgba(77,122,221,.42);border-radius:17px;background:#0b1e47;box-shadow:0 28px 80px rgba(0,0,0,.45); }
+        .customer-create-head { position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid rgba(85,126,218,.25);background:#0b1e47; }
+        .customer-create-head h2 { margin:0;color:#f5f8ff;font-size:20px;font-weight:800; }
+        .customer-create-close { display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border:0;background:transparent;color:#91a3ce; }
+        .customer-create-form { padding:22px 24px 24px; }
+        .customer-create-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 18px; }
+        .customer-create-field label { display:block;margin-bottom:7px;color:#91a3ce;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase; }
+        .customer-create-field input,.customer-create-field select { width:100%;height:44px;padding:0 13px;border:1px solid rgba(85,126,218,.38);border-radius:10px;outline:0;background:#071938;color:#d5e0fa;font-size:14px; }
+        .customer-create-field input[readonly] { color:#8193c2;background:#0a2048; }
+        .customer-create-field-error { display:block;margin-top:5px;color:#fca5a5;font-size:11px; }
+        .customer-create-actions { display:flex;justify-content:flex-end;gap:10px;margin-top:22px; }
+        .customer-create-cancel,.customer-create-submit { height:44px;padding:0 20px;border-radius:10px;font-size:14px;font-weight:800; }
+        .customer-create-cancel { border:1px solid rgba(85,126,218,.4);background:transparent;color:#b8c7e9; }
+        .customer-create-submit { min-width:130px;border:0;background:linear-gradient(135deg,#2bd1e8,#438ff0);color:#061329; }
         .call-ended-modal { position:fixed;inset:0;z-index:4000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(1,8,24,.78);backdrop-filter:blur(4px); }
         .call-ended-modal.show { display:flex; }
         .call-ended-dialog { width:min(520px,100%);overflow:hidden;border:1px solid rgba(77,122,221,.42);border-radius:18px;background:#0b1e47;box-shadow:0 28px 80px rgba(0,0,0,.45); }
@@ -68,7 +87,7 @@
         .call-ended-field textarea { min-height:120px;padding:13px;resize:vertical; }
         .call-ended-save { width:100%;height:45px;border:0;border-radius:11px;background:linear-gradient(135deg,#2bd1e8,#62baf7);color:#061329;font-size:14px;font-weight:800; }
         .call-ended-error { display:none;margin-bottom:12px;color:#fca5a5;font-size:12px; }
-        @media (max-width: 640px) { .customer-calling-heading { align-items:flex-start; } .customer-calling-title { font-size:22px; } .customer-calling-filter-trigger { min-width:44px;width:44px;padding:0; } .customer-calling-filter-trigger span:not(.material-icons) { display:none; } .customer-calling-filter-head,.customer-calling-filter-body { padding-left:20px;padding-right:20px; } .customer-calling-filter-grid { grid-template-columns:1fr; } .customer-calling-filter-field.is-wide { grid-column:auto; } .customer-calling-filter-actions { grid-template-columns:1fr 1.5fr;padding-left:20px;padding-right:20px; } }
+        @media (max-width: 640px) { .customer-calling-heading { align-items:flex-start; } .customer-calling-title { font-size:22px; } .customer-calling-filter-trigger { min-width:44px;width:44px;padding:0; } .customer-calling-filter-trigger span:not(.material-icons),.customer-calling-create span:not(.material-icons) { display:none; } .customer-calling-create { width:44px;padding:0; } .customer-calling-filter-head,.customer-calling-filter-body { padding-left:20px;padding-right:20px; } .customer-calling-filter-grid,.customer-create-grid { grid-template-columns:1fr; } .customer-calling-filter-field.is-wide { grid-column:auto; } .customer-calling-filter-actions { grid-template-columns:1fr 1.5fr;padding-left:20px;padding-right:20px; } }
     </style>
 
     <div class="customer-calling-page">
@@ -78,9 +97,14 @@
                 <h1 class="customer-calling-title">Customer Calling</h1>
                 <span class="customer-calling-count">{{ $totalRecords }} {{ $totalRecords === 1 ? 'record' : 'records' }}</span>
             </div>
-            <button class="customer-calling-filter-trigger {{ request()->hasAny(['search', 'status', 'from_date', 'to_date']) ? 'is-active' : '' }}" id="openCustomerCallingFilters" type="button">
-                <span class="material-icons">tune</span><span>Filters</span>
-            </button>
+            <div class="customer-calling-heading-actions">
+                <button class="customer-calling-filter-trigger {{ request()->hasAny(['search', 'status', 'from_date', 'to_date']) ? 'is-active' : '' }}" id="openCustomerCallingFilters" type="button">
+                    <span class="material-icons">tune</span><span>Filters</span>
+                </button>
+                @if($canCreateCall)
+                    <button class="customer-calling-create" id="openCustomerCreateCall" type="button"><span class="material-icons">add_circle_outline</span><span>Create Call</span></button>
+                @endif
+            </div>
         </div>
         <div class="customer-call-message" id="customerCallMessage" role="status"></div>
 
@@ -111,6 +135,53 @@
             </footer>
         </section>
     </div>
+
+    @if($canCreateCall)
+        <div class="customer-create-modal" id="customerCreateCallModal" role="dialog" aria-modal="true" aria-labelledby="customerCreateCallTitle" aria-hidden="true">
+            <div class="customer-create-dialog">
+                <div class="customer-create-head">
+                    <h2 id="customerCreateCallTitle">Create New Call</h2>
+                    <button class="customer-create-close" id="closeCustomerCreateCall" type="button" aria-label="Close"><i class="material-icons">close</i></button>
+                </div>
+                <form class="customer-create-form" method="POST" action="{{ route('calls.store') }}">
+                    @csrf
+                    <input type="hidden" name="redirect_to" value="customer-calling">
+                    <div class="customer-create-grid">
+                        <div class="customer-create-field"><label for="createFirmName">Firm Name *</label><input id="createFirmName" name="firm_name" type="text" value="{{ old('firm_name') }}" maxlength="200" required>@error('firm_name', 'addCall')<span class="customer-create-field-error">{{ $message }}</span>@enderror</div>
+                        <div class="customer-create-field"><label for="createContactName">Contact Person *</label><input id="createContactName" name="contact_person_name" type="text" value="{{ old('contact_person_name') }}" maxlength="200" required>@error('contact_person_name', 'addCall')<span class="customer-create-field-error">{{ $message }}</span>@enderror</div>
+                        <div class="customer-create-field"><label for="createMobile">Mobile Number *</label><input id="createMobile" name="mobile_number" type="tel" inputmode="numeric" value="{{ old('mobile_number') }}" minlength="10" maxlength="10" pattern="[0-9]{10}" required>@error('mobile_number', 'addCall')<span class="customer-create-field-error">{{ $message }}</span>@enderror</div>
+                        <div class="customer-create-field"><label for="createCustomerType">Customer Type</label><input id="createCustomerType" name="customer_type" type="text" value="{{ old('customer_type') }}" maxlength="100"></div>
+                        <div class="customer-create-field"><label for="createAddress">Address</label><input id="createAddress" name="address" type="text" value="{{ old('address') }}" maxlength="500"></div>
+                        <div class="customer-create-field">
+                            <label for="createPincode">Pincode *</label>
+                            <select id="createPincode" name="pincode_id" required>
+                                <option value="">Select pincode</option>
+                                @foreach($pincodeOptions as $pin)
+                                    <option value="{{ $pin['id'] }}" data-city="{{ $pin['city'] }}" data-district="{{ $pin['district'] }}" data-state="{{ $pin['state'] }}" @selected((string) old('pincode_id') === (string) $pin['id'])>{{ $pin['pincode'] }}</option>
+                                @endforeach
+                            </select>
+                            @error('pincode_id', 'addCall')<span class="customer-create-field-error">{{ $message }}</span>@enderror
+                        </div>
+                        <div class="customer-create-field"><label for="createCity">City</label><input id="createCity" type="text" readonly></div>
+                        <div class="customer-create-field"><label for="createDistrict">District</label><input id="createDistrict" type="text" readonly></div>
+                        <div class="customer-create-field"><label for="createState">State</label><input id="createState" type="text" readonly></div>
+                        <div class="customer-create-field">
+                            <label for="createCaller">Assign To *</label>
+                            <select id="createCaller" name="assigned_user_id" required>
+                                <option value="">Select caller</option>
+                                @foreach($callers as $caller)<option value="{{ $caller->id }}" @selected((string) old('assigned_user_id') === (string) $caller->id)>{{ $caller->name }}</option>@endforeach
+                            </select>
+                            @error('assigned_user_id', 'addCall')<span class="customer-create-field-error">{{ $message }}</span>@enderror
+                        </div>
+                    </div>
+                    <div class="customer-create-actions">
+                        <button class="customer-create-cancel" id="cancelCustomerCreateCall" type="button">Cancel</button>
+                        <button class="customer-create-submit" type="submit">Create Call</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endif
 
     <div class="customer-calling-filter-overlay" id="customerCallingFilterOverlay" aria-hidden="true">
         <aside class="customer-calling-filter-drawer" role="dialog" aria-modal="true" aria-labelledby="customerCallingFilterTitle">
@@ -203,8 +274,44 @@
                 if (event.target === filterOverlay) setFiltersOpen(false);
             });
             document.addEventListener('keydown', function (event) {
-                if (event.key === 'Escape' && filterOverlay.classList.contains('show')) setFiltersOpen(false);
+                if (event.key !== 'Escape') return;
+                if (filterOverlay.classList.contains('show')) setFiltersOpen(false);
+                @if($canCreateCall)
+                    else if (createModal.classList.contains('show')) setCreateModalOpen(false);
+                @endif
             });
+
+            @if($canCreateCall)
+                const createModal = document.getElementById('customerCreateCallModal');
+                const createPincode = document.getElementById('createPincode');
+
+                function setCreateModalOpen(isOpen) {
+                    createModal.classList.toggle('show', isOpen);
+                    createModal.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+                    document.body.style.overflow = isOpen ? 'hidden' : '';
+                }
+
+                function fillCreateLocation() {
+                    const option = createPincode.options[createPincode.selectedIndex];
+                    document.getElementById('createCity').value = option ? option.dataset.city || '' : '';
+                    document.getElementById('createDistrict').value = option ? option.dataset.district || '' : '';
+                    document.getElementById('createState').value = option ? option.dataset.state || '' : '';
+                }
+
+                document.getElementById('openCustomerCreateCall').addEventListener('click', function () { setCreateModalOpen(true); });
+                document.getElementById('closeCustomerCreateCall').addEventListener('click', function () { setCreateModalOpen(false); });
+                document.getElementById('cancelCustomerCreateCall').addEventListener('click', function () { setCreateModalOpen(false); });
+                createModal.addEventListener('click', function (event) { if (event.target === createModal) setCreateModalOpen(false); });
+                createPincode.addEventListener('change', fillCreateLocation);
+                document.getElementById('createMobile').addEventListener('input', function () {
+                    this.value = this.value.replace(/\D/g, '').slice(0, 10);
+                });
+                fillCreateLocation();
+
+                @if($errors->addCall->any())
+                    setCreateModalOpen(true);
+                @endif
+            @endif
 
             function showMessage(text, isError) {
                 message.textContent = text;

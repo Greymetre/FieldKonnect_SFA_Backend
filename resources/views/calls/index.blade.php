@@ -135,7 +135,7 @@
                 <a class="calls-icon-btn" href="{{ route('calls.export') }}" title="Export Excel" aria-label="Export Excel">
                     <i class="material-icons">cloud_download</i>
                 </a>
-                <button class="calls-add-btn" id="openAddCallModal" type="button"><i class="material-icons">add_circle_outline</i>Add Manually</button>
+                <button class="calls-add-btn" id="openAddCallModal" type="button" hidden><i class="material-icons">add_circle_outline</i>Add Manually</button>
             </div>
         </header>
 

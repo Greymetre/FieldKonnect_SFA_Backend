@@ -71,6 +71,8 @@ class CallManagementController extends Controller
     {
         abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
+        $canCreateCall = auth()->user()->can('call_management_create');
+
         $query = CallManagementEntry::query()
             ->with('latestCallLog.feedbackStatus:id,status_name,display_name')
             ->where('assigned_user_id', auth()->id())
@@ -114,7 +116,47 @@ class CallManagementController extends Controller
             ->orderBy('id')
             ->get(['id', 'status_name', 'display_name']);
 
-        return view('calls.customer-calling', compact('entries', 'feedbackStatuses'));
+        $pincodeOptions = collect();
+        $callers = collect();
+
+        if ($canCreateCall) {
+            $pincodeOptions = Pincode::with([
+                    'cityname:id,city_name,district_id,state_id',
+                    'cityname.districtname:id,district_name,state_id',
+                    'cityname.districtname.statename:id,state_name',
+                    'cityname.statename:id,state_name',
+                ])
+                ->where('active', 'Y')
+                ->orderByDesc('id')
+                ->get()
+                ->map(function ($pincode) {
+                    $city = $pincode->cityname;
+                    $district = optional($city)->districtname;
+                    $state = optional($district)->statename ?: optional($city)->statename;
+
+                    return [
+                        'id' => $pincode->id,
+                        'pincode' => $pincode->pincode,
+                        'city' => optional($city)->city_name ?: '',
+                        'district' => optional($district)->district_name ?: '',
+                        'state' => optional($state)->state_name ?: '',
+                    ];
+                })
+                ->values();
+
+            $callers = User::permission('call_management_access')
+                ->where('active', 'Y')
+                ->orderBy('name')
+                ->get(['id', 'name']);
+        }
+
+        return view('calls.customer-calling', compact(
+            'entries',
+            'feedbackStatuses',
+            'canCreateCall',
+            'pincodeOptions',
+            'callers'
+        ));
     }
 
     public function customerCallHistory()
@@ -306,7 +348,11 @@ class CallManagementController extends Controller
 
     public function store(Request $request)
     {
-        abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        abort_unless(
+            Gate::allows('call_management_create'),
+            Response::HTTP_FORBIDDEN,
+            '403 Forbidden'
+        );
 
         $callerIds = User::permission('call_management_access')
             ->where('active', 'Y')
@@ -324,10 +370,14 @@ class CallManagementController extends Controller
             'custom_column_2' => ['nullable', 'string', 'max:255'],
             'custom_column_3' => ['nullable', 'string', 'max:255'],
             'custom_column_4' => ['nullable', 'string', 'max:255'],
+            'redirect_to' => ['nullable', Rule::in(['customer-calling'])],
         ]);
 
         $pincode = Pincode::with(['cityname.districtname.statename', 'cityname.statename'])
             ->findOrFail($validated['pincode_id']);
+
+        $redirectTo = $validated['redirect_to'] ?? null;
+        unset($validated['redirect_to']);
 
         $city = $pincode->cityname;
         $district = optional($city)->districtname;
@@ -338,11 +388,15 @@ class CallManagementController extends Controller
             'city' => optional($city)->city_name,
             'district' => optional($district)->district_name,
             'state' => optional($state)->state_name,
-            'status' => 'pending',
+            'status' => $redirectTo === 'customer-calling' ? 'assigned' : 'pending',
             'created_by' => auth()->id(),
         ]));
 
-        return redirect()->route('calls.index')->with('message_success', 'Call entry added successfully.');
+        $route = $redirectTo === 'customer-calling'
+            ? 'customer-calling.index'
+            : 'calls.index';
+
+        return redirect()->route($route)->with('message_success', 'Call entry added successfully.');
     }
 
     public function bulkAssign(Request $request)
