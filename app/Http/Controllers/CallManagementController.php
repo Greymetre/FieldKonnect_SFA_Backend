@@ -47,7 +47,7 @@ class CallManagementController extends Controller
             ->with([
                 'assignedUser:id,name',
                 'latestCallLog.feedbackStatus:id,status_name,display_name',
-                'latestNotedCallLog:id,call_management_entry_id,remark,started_at',
+                'latestNotedCallLog',
             ])
             ->where('status', $showCompleted ? 'completed' : 'assigned');
 
