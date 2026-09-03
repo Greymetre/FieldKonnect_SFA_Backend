@@ -7,6 +7,13 @@
         .customer-calling-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
         .customer-calling-title { margin: 0; color: #f7f9ff; font-size: 25px; font-weight: 800; }
         .customer-calling-count { display: inline-flex; align-items: center; min-height: 31px; padding: 0 16px; border: 1px solid rgba(34, 211, 238, .48); border-radius: 999px; background: rgba(34, 211, 238, .08); color: #28d7f4; font-size: 13px; font-weight: 800; }
+        .customer-calling-filters { display:grid;grid-template-columns:minmax(220px,1.4fr) minmax(150px,.7fr) minmax(145px,.7fr) minmax(145px,.7fr) auto auto;align-items:end;gap:12px;margin-bottom:14px;padding:16px;border:1px solid rgba(85,126,218,.27);border-radius:14px;background:rgba(7,20,49,.54); }
+        .customer-calling-filter-field label { display:block;margin-bottom:7px;color:#7f91c2;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase; }
+        .customer-calling-filter-field input,.customer-calling-filter-field select { width:100%;height:42px;padding:0 13px;border:1px solid rgba(85,126,218,.3);border-radius:10px;outline:0;background:rgba(5,17,43,.68);color:#c9d6f4;box-shadow:none; }
+        .customer-calling-filter-field input::placeholder { color:#6f81ae; }
+        .customer-calling-filter-submit,.customer-calling-filter-clear { display:inline-flex;align-items:center;justify-content:center;height:42px;padding:0 18px;border-radius:10px;font-size:13px;font-weight:800;text-decoration:none;white-space:nowrap; }
+        .customer-calling-filter-submit { border:0;background:linear-gradient(135deg,#31cfe5,#438ff0);color:#061329; }
+        .customer-calling-filter-clear { border:1px solid rgba(85,126,218,.35);background:transparent;color:#aebfe7; }
         .customer-calling-card { overflow: hidden; border: 1px solid rgba(85, 126, 218, .27); border-radius: 14px; background: rgba(7, 20, 49, .54); }
         .customer-calling-card-head { display: flex; align-items: center; gap: 12px; min-height: 67px; padding: 10px 18px; border-bottom: 1px solid rgba(85, 126, 218, .24); }
         .customer-calling-directory-icon { display: inline-flex; align-items: center; justify-content: center; width: 46px; height: 46px; border: 1px solid rgba(34, 211, 238, .5); border-radius: 12px; background: rgba(34, 211, 238, .08); color: #22d3ee; }
@@ -41,6 +48,8 @@
         .call-ended-field textarea { min-height:120px;padding:13px;resize:vertical; }
         .call-ended-save { width:100%;height:45px;border:0;border-radius:11px;background:linear-gradient(135deg,#2bd1e8,#62baf7);color:#061329;font-size:14px;font-weight:800; }
         .call-ended-error { display:none;margin-bottom:12px;color:#fca5a5;font-size:12px; }
+        @media (max-width: 1100px) { .customer-calling-filters { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+        @media (max-width: 640px) { .customer-calling-filters { grid-template-columns:1fr; } }
     </style>
 
     <div class="customer-calling-page">
@@ -50,6 +59,30 @@
             <span class="customer-calling-count">{{ $totalRecords }} {{ $totalRecords === 1 ? 'record' : 'records' }}</span>
         </div>
         <div class="customer-call-message" id="customerCallMessage" role="status"></div>
+
+        <form class="customer-calling-filters" method="GET" action="{{ route('customer-calling.index') }}">
+            <div class="customer-calling-filter-field">
+                <label for="customerCallingSearch">Search</label>
+                <input id="customerCallingSearch" type="search" name="search" value="{{ request('search') }}" placeholder="Firm, contact person or mobile">
+            </div>
+            <div class="customer-calling-filter-field">
+                <label for="customerCallingStatus">Status</label>
+                <select id="customerCallingStatus" name="status">
+                    <option value="">All</option>
+                    <option value="assigned" @selected(request('status') === 'assigned')>Assigned</option>
+                </select>
+            </div>
+            <div class="customer-calling-filter-field">
+                <label for="customerCallingFromDate">From Date</label>
+                <input id="customerCallingFromDate" type="date" name="from_date" value="{{ request('from_date') }}">
+            </div>
+            <div class="customer-calling-filter-field">
+                <label for="customerCallingToDate">To Date</label>
+                <input id="customerCallingToDate" type="date" name="to_date" value="{{ request('to_date') }}">
+            </div>
+            <button class="customer-calling-filter-submit" type="submit">Apply Filters</button>
+            <a class="customer-calling-filter-clear" href="{{ route('customer-calling.index') }}">Clear</a>
+        </form>
 
         <section class="customer-calling-card">
             <div class="customer-calling-card-head">
@@ -68,7 +101,7 @@
                                 <td><span class="customer-call-status">{{ $entry->status }}</span></td>
                             </tr>
                         @empty
-                            <tr><td class="customer-calling-empty" colspan="8">No calls are assigned to you.</td></tr>
+                            <tr><td class="customer-calling-empty" colspan="8">No matching assigned calls found.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

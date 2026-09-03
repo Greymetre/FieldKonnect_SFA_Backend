@@ -67,12 +67,38 @@ class CallManagementController extends Controller
         return view('calls.index', compact('entries', 'pincodeOptions', 'callers'));
     }
 
-    public function customerCalling()
+    public function customerCalling(Request $request)
     {
         abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $entries = CallManagementEntry::where('assigned_user_id', auth()->id())
-            ->where('status', 'assigned')
+        $query = CallManagementEntry::query()
+            ->where('assigned_user_id', auth()->id())
+            ->where('status', 'assigned');
+
+        if ($search = trim((string) $request->input('search'))) {
+            $query->where(function ($searchQuery) use ($search) {
+                $searchQuery->where('firm_name', 'like', '%'.$search.'%')
+                    ->orWhere('contact_person_name', 'like', '%'.$search.'%')
+                    ->orWhere('mobile_number', 'like', '%'.$search.'%');
+            });
+        }
+
+        if ($request->input('status') === 'assigned') {
+            $query->where('status', 'assigned');
+        }
+
+        $fromDate = $request->input('from_date');
+        $toDate = $request->input('to_date');
+
+        if ($fromDate && preg_match('/^\d{4}-\d{2}-\d{2}$/', $fromDate)) {
+            $query->whereDate('updated_at', '>=', $fromDate);
+        }
+
+        if ($toDate && preg_match('/^\d{4}-\d{2}-\d{2}$/', $toDate)) {
+            $query->whereDate('updated_at', '<=', $toDate);
+        }
+
+        $entries = $query
             ->latest('id')
             ->get();
         $feedbackStatuses = Status::query()
