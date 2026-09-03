@@ -166,7 +166,7 @@
                     <thead><tr><th>Call</th><th>Firm Name</th><th>Contact Person</th><th>Mobile</th><th>Customer Type</th><th>City</th><th>State</th><th>Status</th><th>Follow-up Date</th><th>Latest Note</th>@role('superadmin')<th>Assigned To</th>@endrole</tr></thead>
                     <tbody>
                         @forelse($entries as $entry)
-                            <tr data-entry-id="{{ $entry->id }}" data-update-url="{{ route('calls.update', $entry) }}" data-firm="{{ $entry->firm_name }}" data-contact="{{ $entry->contact_person_name }}" data-mobile="{{ $entry->mobile_number }}" data-customer-type="{{ $entry->customer_type }}" data-address="{{ $entry->address }}" data-pincode-id="{{ $entry->pincode_id }}" data-pincode="{{ $entry->pincode }}" data-city="{{ $entry->city }}" data-district="{{ $entry->district }}" data-state="{{ $entry->state }}" data-caller-id="{{ $entry->assigned_user_id }}">
+                            <tr data-entry-id="{{ $entry->id }}" data-update-url="{{ route('calls.update', $entry) }}" data-firm="{{ $entry->firm_name }}" data-contact="{{ $entry->contact_person_name }}" data-mobile="{{ $entry->mobile_number }}" data-customer-type="{{ $entry->customer_type }}" data-address="{{ $entry->address }}" data-pincode-id="{{ $entry->pincode_id }}" data-pincode="{{ $entry->pincode }}" data-city="{{ $entry->city }}" data-district="{{ $entry->district }}" data-state="{{ $entry->state }}" data-caller-id="{{ $entry->assigned_user_id }}" data-custom-column-1="{{ $entry->custom_column_1 }}" data-custom-column-2="{{ $entry->custom_column_2 }}" data-custom-column-3="{{ $entry->custom_column_3 }}" data-custom-column-4="{{ $entry->custom_column_4 }}">
                                 <td>
                                     <div class="customer-call-actions">
                                         @if((int) $entry->assigned_user_id === (int) auth()->id())
@@ -246,6 +246,10 @@
                             </select>
                             @error('assigned_user_id', 'addCall')<span class="customer-create-field-error">{{ $message }}</span>@enderror
                         </div>
+                        <div class="customer-create-field"><label for="createCustomColumn1">Custom Column 1</label><input id="createCustomColumn1" name="custom_column_1" type="text" value="{{ old('custom_column_1') }}" maxlength="255">@error('custom_column_1', 'addCall')<span class="customer-create-field-error">{{ $message }}</span>@enderror</div>
+                        <div class="customer-create-field"><label for="createCustomColumn2">Custom Column 2</label><input id="createCustomColumn2" name="custom_column_2" type="text" value="{{ old('custom_column_2') }}" maxlength="255">@error('custom_column_2', 'addCall')<span class="customer-create-field-error">{{ $message }}</span>@enderror</div>
+                        <div class="customer-create-field"><label for="createCustomColumn3">Custom Column 3</label><input id="createCustomColumn3" name="custom_column_3" type="text" value="{{ old('custom_column_3') }}" maxlength="255">@error('custom_column_3', 'addCall')<span class="customer-create-field-error">{{ $message }}</span>@enderror</div>
+                        <div class="customer-create-field"><label for="createCustomColumn4">Custom Column 4</label><input id="createCustomColumn4" name="custom_column_4" type="text" value="{{ old('custom_column_4') }}" maxlength="255">@error('custom_column_4', 'addCall')<span class="customer-create-field-error">{{ $message }}</span>@enderror</div>
                     </div>
                     <div class="customer-create-actions">
                         <button class="customer-create-cancel" id="cancelCustomerCreateCall" type="button">Cancel</button>
@@ -519,6 +523,10 @@
                             document.getElementById('createCustomerType').value = row.dataset.customerType || '';
                             document.getElementById('createAddress').value = row.dataset.address || '';
                             document.getElementById('createCaller').value = row.dataset.callerId || '';
+                            document.getElementById('createCustomColumn1').value = row.dataset.customColumn1 || '';
+                            document.getElementById('createCustomColumn2').value = row.dataset.customColumn2 || '';
+                            document.getElementById('createCustomColumn3').value = row.dataset.customColumn3 || '';
+                            document.getElementById('createCustomColumn4').value = row.dataset.customColumn4 || '';
                             const selectedPincode = new Option(row.dataset.pincode || '', row.dataset.pincodeId || '', true, true);
                             selectedPincode.dataset.city = row.dataset.city || '';
                             selectedPincode.dataset.district = row.dataset.district || '';
