@@ -22,51 +22,6 @@ use Throwable;
 
 class CallManagementController extends Controller
 {
-    public function index()
-    {
-        abort_if(
-            Gate::denies('call_management_access'),
-            Response::HTTP_FORBIDDEN,
-            '403 Forbidden'
-        );
-
-        $entries = CallManagementEntry::with('assignedUser:id,name')
-            ->where('status', 'pending')
-            ->latest('id')
-            ->get();
-
-        $pincodes = Pincode::with([
-                'cityname:id,city_name,district_id,state_id',
-                'cityname.districtname:id,district_name,state_id',
-                'cityname.districtname.statename:id,state_name',
-                'cityname.statename:id,state_name',
-            ])
-            ->where('active', 'Y')
-            ->orderByDesc('id')
-            ->get();
-
-        $pincodeOptions = $pincodes->map(function ($pincode) {
-            $city = $pincode->cityname;
-            $district = optional($city)->districtname;
-            $state = optional($district)->statename ?: optional($city)->statename;
-
-            return [
-                'id' => $pincode->id,
-                'pincode' => $pincode->pincode,
-                'city' => optional($city)->city_name ?: '',
-                'district' => optional($district)->district_name ?: '',
-                'state' => optional($state)->state_name ?: '',
-            ];
-        })->values();
-
-        $callers = User::permission('call_management_access')
-            ->where('active', 'Y')
-            ->orderBy('name')
-            ->get(['id', 'name']);
-
-        return view('calls.index', compact('entries', 'pincodeOptions', 'callers'));
-    }
-
     public function customerCalling(Request $request)
     {
         abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
@@ -176,8 +131,8 @@ class CallManagementController extends Controller
         $query = CallLog::with(['user:id,name', 'feedbackStatus:id,status_name,display_name', 'callManagementEntry:id,firm_name,contact_person_name,mobile_number'])
             ->whereNotNull('call_management_entry_id');
 
-        if (! auth()->user()->hasRole('superadmin') && ! auth()->user()->hasRole('Admin')) {
-            $query->whereIn('user_id', getUsersReportingToAuth());
+        if (! auth()->user()->hasRole('superadmin')) {
+            $query->where('user_id', auth()->id());
         }
 
         $callLogs = $query->latest('started_at')->get();
@@ -380,14 +335,10 @@ class CallManagementController extends Controller
             'custom_column_2' => ['nullable', 'string', 'max:255'],
             'custom_column_3' => ['nullable', 'string', 'max:255'],
             'custom_column_4' => ['nullable', 'string', 'max:255'],
-            'redirect_to' => ['nullable', Rule::in(['customer-calling'])],
         ]);
 
         $pincode = Pincode::with(['cityname.districtname.statename', 'cityname.statename'])
             ->findOrFail($validated['pincode_id']);
-
-        $redirectTo = $validated['redirect_to'] ?? null;
-        unset($validated['redirect_to']);
 
         $city = $pincode->cityname;
         $district = optional($city)->districtname;
@@ -398,49 +349,12 @@ class CallManagementController extends Controller
             'city' => optional($city)->city_name,
             'district' => optional($district)->district_name,
             'state' => optional($state)->state_name,
-            'status' => $redirectTo === 'customer-calling' ? 'assigned' : 'pending',
+            'status' => 'assigned',
             'created_by' => auth()->id(),
         ]));
 
-        $route = $redirectTo === 'customer-calling'
-            ? 'customer-calling.index'
-            : 'calls.index';
-
-        return redirect()->route($route)->with('message_success', 'Call entry added successfully.');
-    }
-
-    public function bulkAssign(Request $request)
-    {
-        abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
-
-        $callerIds = User::permission('call_management_access')
-            ->where('active', 'Y')
-            ->pluck('id')
-            ->all();
-
-        $validated = $request->validateWithBag('bulkAssign', [
-            'entry_ids' => ['required', 'array', 'min:1'],
-            'entry_ids.*' => ['required', 'integer', 'distinct', 'exists:call_management_entries,id'],
-            'bulk_assigned_user_id' => ['required', 'integer', Rule::in($callerIds)],
-            'overrides' => ['nullable', 'array'],
-            'overrides.*' => ['nullable', 'integer', Rule::in($callerIds)],
-        ]);
-
-        DB::transaction(function () use ($validated) {
-            foreach ($validated['entry_ids'] as $entryId) {
-                $override = $validated['overrides'][$entryId] ?? null;
-
-                CallManagementEntry::whereKey($entryId)->update([
-                    'assigned_user_id' => $override ?: $validated['bulk_assigned_user_id'],
-                    'status' => 'assigned',
-                ]);
-            }
-        });
-
-        return redirect()->route('calls.index')->with(
-            'message_success',
-            count($validated['entry_ids']).' call entries assigned successfully.'
-        );
+        return redirect()->route('customer-calling.index')
+            ->with('message_success', 'Call entry added successfully.');
     }
 
     public function update(Request $request, CallManagementEntry $callManagementEntry)
@@ -463,11 +377,7 @@ class CallManagementController extends Controller
             'custom_column_2' => ['nullable', 'string', 'max:255'],
             'custom_column_3' => ['nullable', 'string', 'max:255'],
             'custom_column_4' => ['nullable', 'string', 'max:255'],
-            'redirect_to' => ['nullable', Rule::in(['customer-calling'])],
         ]);
-
-        $redirectTo = $validated['redirect_to'] ?? null;
-        unset($validated['redirect_to']);
 
         $pincode = Pincode::with(['cityname.districtname.statename', 'cityname.statename'])
             ->findOrFail($validated['pincode_id']);
@@ -482,7 +392,7 @@ class CallManagementController extends Controller
             'state' => optional($state)->state_name,
         ]));
 
-        return redirect()->route($redirectTo === 'customer-calling' ? 'customer-calling.index' : 'calls.index')
+        return redirect()->route('customer-calling.index')
             ->with('message_success', 'Call entry updated successfully.');
     }
 
@@ -499,9 +409,7 @@ class CallManagementController extends Controller
     {
         abort_if(Gate::denies('call_management_import_export'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $redirectRoute = $request->input('redirect_to') === 'customer-calling'
-            ? 'customer-calling.index'
-            : 'calls.index';
+        $redirectRoute = 'customer-calling.index';
 
         $request->validateWithBag('importCall', [
             'import_file' => [
