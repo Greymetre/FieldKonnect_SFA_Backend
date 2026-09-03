@@ -140,14 +140,9 @@ class CallManagementController extends Controller
                 ->get(['id', 'name']);
         }
 
-        // Keep the same pincode visibility rules used by Create Customer.
-        $userIds = getUsersReportingToAuth();
+        // Manual create and in-call editing both use the complete active
+        // pincode master; pincode visibility is not tied to user assignment.
         $pincodes = Pincode::where('active', 'Y')
-            ->whereHas('assigncitiesusers', function ($query) use ($userIds) {
-                if (! auth()->user()->hasRole('superadmin') && ! auth()->user()->hasRole('Admin')) {
-                    $query->whereIn('userid', $userIds);
-                }
-            })
             ->select('id', 'pincode')
             ->orderByDesc('id')
             ->get();

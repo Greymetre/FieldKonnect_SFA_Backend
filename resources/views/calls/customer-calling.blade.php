@@ -140,6 +140,10 @@
         .call-customer-detail textarea { min-height:48px;padding:6px 2px;resize:vertical; }
         .call-customer-detail input:focus,.call-customer-detail select:focus,.call-customer-detail textarea:focus { border-bottom-color:#35d2ed; }
         .call-customer-detail input[readonly] { color:#8193c2;cursor:not-allowed; }
+        .call-pincode-read { display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:30px; }
+        .call-pincode-read strong { flex:1; }
+        .call-pincode-change { padding:3px 8px;border:1px solid rgba(34,211,238,.4);border-radius:7px;background:rgba(34,211,238,.08);color:#35d2ed;font-size:10px;font-weight:800;text-transform:uppercase; }
+        .call-pincode-editor[hidden],.call-pincode-read[hidden] { display:none; }
         #callEndedModal .select2-container { width:100% !important; }
         #callEndedModal .select2-container--default .select2-selection--single { height:30px;border:0;border-bottom:1px solid rgba(85,126,218,.35);border-radius:0;background:transparent; }
         #callEndedModal .select2-container--default .select2-selection--single .select2-selection__rendered { padding:0 20px 0 2px;color:#dce7ff;font-size:13px;font-weight:600;line-height:29px; }
@@ -423,7 +427,11 @@
                             <div class="call-customer-detail"><span>Customer Type</span><strong id="feedbackCustomerType">—</strong></div>
                             <div class="call-customer-detail"><span>Assigned To</span><strong id="feedbackAssignedTo">—</strong></div>
                             <div class="call-customer-detail is-wide"><span>Address</span><textarea id="feedbackAddress" name="address" maxlength="1000"></textarea></div>
-                            <div class="call-customer-detail"><span>Pincode</span><select id="feedbackPincode" name="pincode_id" required><option value="">Select pincode</option>@foreach($pincodes as $pincode)<option value="{{ $pincode->id }}">{{ $pincode->pincode }}</option>@endforeach</select></div>
+                            <div class="call-customer-detail">
+                                <span>Pincode</span>
+                                <div class="call-pincode-read" id="feedbackPincodeRead"><strong id="feedbackPincodeText">—</strong><button class="call-pincode-change" id="changeFeedbackPincode" type="button">Change</button></div>
+                                <div class="call-pincode-editor" id="feedbackPincodeEditor" hidden><select id="feedbackPincode" name="pincode_id" required><option value="">Select pincode</option>@foreach($pincodes as $pincode)<option value="{{ $pincode->id }}">{{ $pincode->pincode }}</option>@endforeach</select></div>
+                            </div>
                             <div class="call-customer-detail"><span>City</span><input id="feedbackCity" name="city" maxlength="150"></div>
                             <div class="call-customer-detail"><span>District</span><input id="feedbackDistrict" name="district" maxlength="150"></div>
                             <div class="call-customer-detail"><span>State</span><input id="feedbackState" name="state" maxlength="150"></div>
@@ -480,6 +488,10 @@
             const feedbackSave = document.getElementById('saveCallFeedback');
             const feedbackStatus = document.getElementById('callFeedbackStatus');
             const feedbackPincode = document.getElementById('feedbackPincode');
+            const feedbackPincodeRead = document.getElementById('feedbackPincodeRead');
+            const feedbackPincodeEditor = document.getElementById('feedbackPincodeEditor');
+            const feedbackPincodeText = document.getElementById('feedbackPincodeText');
+            const changeFeedbackPincode = document.getElementById('changeFeedbackPincode');
             const followUpDateField = document.getElementById('callFollowUpDateField');
             const followUpDate = document.getElementById('callFollowUpDate');
             const notesModal = document.getElementById('callNotesModal');
@@ -499,6 +511,16 @@
             }
 
             feedbackStatus.addEventListener('change', updateFollowUpDateVisibility);
+
+            changeFeedbackPincode.addEventListener('click', function () {
+                feedbackPincodeRead.hidden = true;
+                feedbackPincodeEditor.hidden = false;
+                if (window.jQuery && jQuery.fn.select2) {
+                    jQuery(feedbackPincode).select2('open');
+                } else {
+                    feedbackPincode.focus();
+                }
+            });
 
             feedbackPincode.addEventListener('change', async function () {
                 if (!feedbackPincode.value) {
@@ -523,6 +545,8 @@
                     document.getElementById('feedbackCity').value = location.city_name || '';
                     document.getElementById('feedbackDistrict').value = location.district_name || '';
                     document.getElementById('feedbackState').value = location.state_name || '';
+                    const selectedOption = feedbackPincode.options[feedbackPincode.selectedIndex];
+                    feedbackPincodeText.textContent = selectedOption ? selectedOption.text : '—';
                 } catch (error) {
                     feedbackError.textContent = error.message || 'Unable to load pincode location.';
                     feedbackError.style.display = 'block';
@@ -799,6 +823,9 @@
                 setFeedbackText('feedbackCustomerType', call.customer_type);
                 setFeedbackText('feedbackAssignedTo', call.assigned_to);
                 setFeedbackValue('feedbackAddress', call.address);
+                feedbackPincodeText.textContent = call.pincode || '—';
+                feedbackPincodeRead.hidden = false;
+                feedbackPincodeEditor.hidden = true;
                 let popupPincodeId = call.pincode_id || '';
                 let popupPincodeOption = Array.from(feedbackPincode.options).find(function (option) {
                     return option.value === String(popupPincodeId);
