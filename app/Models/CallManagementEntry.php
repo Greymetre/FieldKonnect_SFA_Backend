@@ -26,7 +26,12 @@ class CallManagementEntry extends Model
         'custom_column_3',
         'custom_column_4',
         'status',
+        'follow_up_date',
         'created_by',
+    ];
+
+    protected $casts = [
+        'follow_up_date' => 'date',
     ];
 
     public function assignedUser()

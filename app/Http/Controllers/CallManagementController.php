@@ -98,9 +98,16 @@ class CallManagementController extends Controller
             ->sortBy(function (CallManagementEntry $entry) {
                 $feedbackStatus = optional($entry->latestCallLog)->feedbackStatus;
 
-                return $this->isFollowUpFeedback($feedbackStatus) ? 1 : 0;
+                if (! $this->isFollowUpFeedback($feedbackStatus)) {
+                    return 1;
+                }
+
+                return $entry->follow_up_date && $entry->follow_up_date->lte(today()) ? 0 : 2;
             })
             ->values();
+        $feedbackStatuses->each(function (Status $status) {
+            $status->setAttribute('is_follow_up', $this->isFollowUpFeedback($status));
+        });
         $callers = collect();
 
         if ($canCreateCall || $canEditDelete) {
@@ -328,6 +335,7 @@ class CallManagementController extends Controller
         $validated = $request->validate([
             'feedback_status_id' => ['required', 'integer'],
             'message' => ['required', 'string', 'max:1000'],
+            'follow_up_date' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:today'],
         ]);
         $status = Status::query()
             ->whereKey($validated['feedback_status_id'])
@@ -335,18 +343,26 @@ class CallManagementController extends Controller
             ->where('active', 'Y')
             ->firstOrFail();
         $feedbackOutcome = $this->callManagementFeedbackOutcome($status);
+        $isFollowUp = $this->isFollowUpFeedback($status);
 
-        DB::transaction(function () use ($callLog, $status, $validated, $feedbackOutcome) {
+        if ($isFollowUp && empty($validated['follow_up_date'])) {
+            throw ValidationException::withMessages([
+                'follow_up_date' => 'Please select a follow-up date.',
+            ]);
+        }
+
+        DB::transaction(function () use ($callLog, $status, $validated, $feedbackOutcome, $isFollowUp) {
             $callLog->update([
                 'feedback_status_id' => $status->id,
                 'remark' => trim($validated['message']),
             ]);
 
-            if ($feedbackOutcome) {
-                CallManagementEntry::whereKey($callLog->call_management_entry_id)->update([
-                    'status' => $feedbackOutcome,
-                ]);
-            }
+            $entryUpdates = [
+                'follow_up_date' => $isFollowUp ? $validated['follow_up_date'] : null,
+            ];
+            if ($feedbackOutcome) $entryUpdates['status'] = $feedbackOutcome;
+
+            CallManagementEntry::whereKey($callLog->call_management_entry_id)->update($entryUpdates);
         });
 
         return response()->json([
@@ -355,6 +371,7 @@ class CallManagementController extends Controller
             'data' => [
                 'queue_removed' => $feedbackOutcome !== null,
                 'entry_status' => $feedbackOutcome ?: 'assigned',
+                'follow_up_date' => $isFollowUp ? $validated['follow_up_date'] : null,
             ],
         ]);
     }

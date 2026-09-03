@@ -113,6 +113,7 @@
         .call-ended-field select,.call-ended-field textarea { width:100%;border:1px solid rgba(85,126,218,.38);border-radius:11px;outline:0;background:#081a3e;color:#dce7ff;font-size:14px; }
         .call-ended-field select { height:45px;padding:0 13px; }
         .call-ended-field textarea { min-height:120px;padding:13px;resize:vertical; }
+        .call-ended-field[hidden] { display:none; }
         .call-ended-save { width:100%;height:45px;border:0;border-radius:11px;background:linear-gradient(135deg,#2bd1e8,#62baf7);color:#061329;font-size:14px;font-weight:800; }
         .call-ended-error { display:none;margin-bottom:12px;color:#fca5a5;font-size:12px; }
         @media (max-width: 640px) { .customer-calling-heading { align-items:flex-start; } .customer-calling-title { font-size:22px; } .customer-calling-filter-trigger { min-width:44px;width:44px;padding:0; } .customer-calling-filter-trigger span:not(.material-icons),.customer-calling-create span:not(.material-icons) { display:none; } .customer-calling-create { width:44px;padding:0; } .customer-calling-filter-head,.customer-calling-filter-body { padding-left:20px;padding-right:20px; } .customer-calling-filter-grid,.customer-create-grid { grid-template-columns:1fr; } .customer-calling-filter-field.is-wide { grid-column:auto; } .customer-calling-filter-actions { grid-template-columns:1fr 1.5fr;padding-left:20px;padding-right:20px; } }
@@ -147,7 +148,7 @@
             </div>
             <div class="customer-calling-scroll">
                 <table class="customer-calling-table">
-                    <thead><tr><th>Call</th><th>Firm Name</th><th>Contact Person</th><th>Mobile</th><th>Customer Type</th><th>City</th><th>State</th><th>Status</th>@role('superadmin')<th>Assigned To</th>@endrole</tr></thead>
+                    <thead><tr><th>Call</th><th>Firm Name</th><th>Contact Person</th><th>Mobile</th><th>Customer Type</th><th>City</th><th>State</th><th>Status</th><th>Follow-up Date</th>@role('superadmin')<th>Assigned To</th>@endrole</tr></thead>
                     <tbody>
                         @forelse($entries as $entry)
                             <tr data-entry-id="{{ $entry->id }}" data-update-url="{{ route('calls.update', $entry) }}" data-firm="{{ $entry->firm_name }}" data-contact="{{ $entry->contact_person_name }}" data-mobile="{{ $entry->mobile_number }}" data-customer-type="{{ $entry->customer_type }}" data-address="{{ $entry->address }}" data-pincode-id="{{ $entry->pincode_id }}" data-pincode="{{ $entry->pincode }}" data-city="{{ $entry->city }}" data-district="{{ $entry->district }}" data-state="{{ $entry->state }}" data-caller-id="{{ $entry->assigned_user_id }}">
@@ -171,10 +172,11 @@
                                 <td>{{ $entry->firm_name }}</td><td>{{ $entry->contact_person_name }}</td><td>{{ $entry->mobile_number }}</td>
                                 <td>{{ $entry->customer_type ?: '—' }}</td><td>{{ $entry->city ?: '—' }}</td><td>{{ $entry->state ?: '—' }}</td>
                                 <td><span class="customer-call-status">{{ optional(optional($entry->latestCallLog)->feedbackStatus)->display_name ?: optional(optional($entry->latestCallLog)->feedbackStatus)->status_name ?: $entry->status }}</span></td>
+                                <td>{{ $entry->follow_up_date ? $entry->follow_up_date->format('d M Y') : '—' }}</td>
                                 @role('superadmin')<td>{{ optional($entry->assignedUser)->name ?: '—' }}</td>@endrole
                             </tr>
                         @empty
-                            <tr><td class="customer-calling-empty" colspan="{{ auth()->user()->hasRole('superadmin') ? 9 : 8 }}">No matching assigned calls found.</td></tr>
+                            <tr><td class="customer-calling-empty" colspan="{{ auth()->user()->hasRole('superadmin') ? 10 : 9 }}">No matching assigned calls found.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -312,9 +314,13 @@
                     <select id="callFeedbackStatus" name="feedback_status_id" required>
                         <option value="">Select call status</option>
                         @foreach($feedbackStatuses as $feedbackStatus)
-                            <option value="{{ $feedbackStatus->id }}">{{ $feedbackStatus->display_name ?: $feedbackStatus->status_name }}</option>
+                            <option value="{{ $feedbackStatus->id }}" data-follow-up="{{ $feedbackStatus->is_follow_up ? '1' : '0' }}">{{ $feedbackStatus->display_name ?: $feedbackStatus->status_name }}</option>
                         @endforeach
                     </select>
+                </div>
+                <div class="call-ended-field" id="callFollowUpDateField" hidden>
+                    <label for="callFollowUpDate">Follow-up Date *</label>
+                    <input id="callFollowUpDate" name="follow_up_date" type="date" min="{{ now()->format('Y-m-d') }}" style="width:100%;height:45px;padding:0 13px;border:1px solid rgba(85,126,218,.38);border-radius:11px;outline:0;background:#081a3e;color:#dce7ff;font-size:14px;">
                 </div>
                 <div class="call-ended-field"><label for="callFeedbackMessage">Notes *</label><textarea id="callFeedbackMessage" name="message" maxlength="1000" placeholder="What happened on this call?" required></textarea></div>
                 <button class="call-ended-save" id="saveCallFeedback" type="submit">Save Call Record</button>
@@ -330,11 +336,28 @@
             const feedbackForm = document.getElementById('callFeedbackForm');
             const feedbackError = document.getElementById('callFeedbackError');
             const feedbackSave = document.getElementById('saveCallFeedback');
+            const feedbackStatus = document.getElementById('callFeedbackStatus');
+            const followUpDateField = document.getElementById('callFollowUpDateField');
+            const followUpDate = document.getElementById('callFollowUpDate');
             const filterOverlay = document.getElementById('customerCallingFilterOverlay');
             const openFilters = document.getElementById('openCustomerCallingFilters');
             const closeFilters = document.getElementById('closeCustomerCallingFilters');
             let feedbackUrl = '';
             let activeCallButton = null;
+
+            function updateFollowUpDateVisibility() {
+                const option = feedbackStatus.options[feedbackStatus.selectedIndex];
+                const isFollowUp = option && option.dataset.followUp === '1';
+                followUpDateField.hidden = !isFollowUp;
+                followUpDate.required = isFollowUp;
+                if (!isFollowUp) followUpDate.value = '';
+            }
+
+            feedbackStatus.addEventListener('change', updateFollowUpDateVisibility);
+
+            const nextDay = new Date();
+            nextDay.setHours(24, 0, 5, 0);
+            window.setTimeout(function () { window.location.reload(); }, nextDay.getTime() - Date.now());
 
             if (window.jQuery && jQuery.fn.select2) {
                 const statusSelect = jQuery('#customerCallingStatus');
@@ -507,6 +530,7 @@
                 document.getElementById('endedCustomerName').textContent = call.customer_name;
                 document.getElementById('endedCallDuration').textContent = formatDuration(duration);
                 feedbackForm.reset();
+                updateFollowUpDateVisibility();
                 feedbackError.style.display = 'none';
                 feedbackModal.classList.add('show');
                 feedbackModal.setAttribute('aria-hidden', 'false');
@@ -570,7 +594,11 @@
                     const response = await fetch(feedbackUrl, {
                         method: 'POST',
                         headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token },
-                        body: JSON.stringify({ feedback_status_id: document.getElementById('callFeedbackStatus').value, message: document.getElementById('callFeedbackMessage').value })
+                        body: JSON.stringify({
+                            feedback_status_id: feedbackStatus.value,
+                            follow_up_date: followUpDate.value || null,
+                            message: document.getElementById('callFeedbackMessage').value
+                        })
                     });
                     const result = await response.json();
                     if (!response.ok || !result.success) throw new Error(result.message || 'Unable to save call record.');
