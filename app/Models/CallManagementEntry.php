@@ -43,4 +43,12 @@ class CallManagementEntry extends Model
     {
         return $this->hasOne(CallLog::class, 'call_management_entry_id')->latestOfMany();
     }
+
+    public function latestNotedCallLog()
+    {
+        return $this->hasOne(CallLog::class, 'call_management_entry_id')
+            ->whereNotNull('remark')
+            ->where('remark', '!=', '')
+            ->latestOfMany();
+    }
 }

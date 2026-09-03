@@ -54,7 +54,7 @@
         .customer-calling-card-head strong { display: block; color: #f5f8ff; font-size: 16px; }
         .customer-calling-card-head small { display: block; margin-top: 3px; color: #7284b5; font-size: 13px; }
         .customer-calling-scroll { overflow-x: auto; }
-        .customer-calling-table { width: 100%; min-width: 900px; border-collapse: collapse; }
+        .customer-calling-table { width: 100%; min-width: 1120px; border-collapse: collapse; }
         .customer-calling-table th { padding: 13px 14px; border-bottom: 1px solid rgba(85, 126, 218, .24); color: #8395c4; font-size: 11px; font-weight: 800; letter-spacing: .09em; text-align: left; text-transform: uppercase; white-space: nowrap; }
         .customer-calling-table td { height: 61px; padding: 12px 14px; border-bottom: 1px solid rgba(85, 126, 218, .18); color: #adbee6; font-size: 13px; vertical-align: middle; }
         .customer-calling-table tbody tr:last-child td { border-bottom: 0; }
@@ -73,6 +73,9 @@
         .customer-call-message.show { display: block; }
         .customer-call-message.error { border-color: rgba(248, 113, 113, .4); background: rgba(248, 113, 113, .08); color: #fca5a5; }
         .customer-call-status { display: inline-flex; align-items: center; justify-content: center; min-width: 90px; min-height: 30px; padding: 0 12px; border: 1px solid rgba(34, 211, 238, .34); border-radius: 999px; background: rgba(34, 211, 238, .06); color: #45d6ef; font-size: 11px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+        .customer-note-cell { min-width:190px;max-width:260px; }
+        .customer-note-preview { display:block;overflow:hidden;color:#adbee6;line-height:1.45;text-overflow:ellipsis;white-space:nowrap; }
+        .customer-note-view { margin-top:4px;padding:0;border:0;background:transparent;color:#35d2ed;font-size:11px;font-weight:800; }
         .customer-calling-empty { padding: 38px 20px !important; color: #7d8fbd !important; text-align: center; }
         .customer-calling-footer { display:flex;align-items:center;justify-content:space-between;min-height:58px;padding:12px 18px;border-top:1px solid rgba(85,126,218,.22);color:#8193c2;font-size:13px; }
         .customer-create-modal { position:fixed;inset:0;z-index:4600;display:none;align-items:center;justify-content:center;padding:24px 16px;background:rgba(1,8,24,.76);backdrop-filter:blur(4px); }
@@ -102,7 +105,7 @@
         .customer-import-file input { width:100%;color:#b8c7e9;font-size:13px; }
         .call-ended-modal { position:fixed;inset:0;z-index:4000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(1,8,24,.78);backdrop-filter:blur(4px); }
         .call-ended-modal.show { display:flex; }
-        .call-ended-dialog { width:min(520px,100%);overflow:hidden;border:1px solid rgba(77,122,221,.42);border-radius:18px;background:#0b1e47;box-shadow:0 28px 80px rgba(0,0,0,.45); }
+        .call-ended-dialog { width:min(620px,100%);max-height:calc(100vh - 32px);overflow-y:auto;border:1px solid rgba(77,122,221,.42);border-radius:18px;background:#0b1e47;box-shadow:0 28px 80px rgba(0,0,0,.45); }
         .call-ended-head { display:flex;align-items:flex-start;justify-content:space-between;padding:22px 24px 18px;border-bottom:1px solid rgba(85,126,218,.24); }
         .call-ended-head h2 { margin:0;color:#f5f8ff;font-size:24px;font-weight:800; }
         .call-ended-head p { margin:5px 0 0;color:#91a3ce;font-size:14px; }
@@ -116,6 +119,18 @@
         .call-ended-field[hidden] { display:none; }
         .call-ended-save { width:100%;height:45px;border:0;border-radius:11px;background:linear-gradient(135deg,#2bd1e8,#62baf7);color:#061329;font-size:14px;font-weight:800; }
         .call-ended-error { display:none;margin-bottom:12px;color:#fca5a5;font-size:12px; }
+        .call-customer-details { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:18px;padding:14px;border:1px solid rgba(85,126,218,.25);border-radius:12px;background:rgba(7,25,56,.62); }
+        .call-customer-detail { min-width:0; }
+        .call-customer-detail span { display:block;margin-bottom:3px;color:#7184b4;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase; }
+        .call-customer-detail strong { display:block;overflow:hidden;color:#dce7ff;font-size:13px;font-weight:600;text-overflow:ellipsis;white-space:nowrap; }
+        .call-notes-dialog { width:min(600px,100%); }
+        .call-notes-body { max-height:60vh;overflow-y:auto;padding:20px 24px 24px; }
+        .call-note-item { margin-bottom:12px;padding:14px;border:1px solid rgba(85,126,218,.25);border-radius:11px;background:#081a3e; }
+        .call-note-item:last-child { margin-bottom:0; }
+        .call-note-meta { display:flex;justify-content:space-between;gap:12px;margin-bottom:7px;color:#7184b4;font-size:11px; }
+        .call-note-meta strong { color:#35d2ed;text-transform:uppercase; }
+        .call-note-text { margin:0;color:#d5e0fa;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word; }
+        .call-notes-empty { color:#8193c2;text-align:center; }
         @media (max-width: 640px) { .customer-calling-heading { align-items:flex-start; } .customer-calling-title { font-size:22px; } .customer-calling-filter-trigger { min-width:44px;width:44px;padding:0; } .customer-calling-filter-trigger span:not(.material-icons),.customer-calling-create span:not(.material-icons) { display:none; } .customer-calling-create { width:44px;padding:0; } .customer-calling-filter-head,.customer-calling-filter-body { padding-left:20px;padding-right:20px; } .customer-calling-filter-grid,.customer-create-grid { grid-template-columns:1fr; } .customer-calling-filter-field.is-wide { grid-column:auto; } .customer-calling-filter-actions { grid-template-columns:1fr 1.5fr;padding-left:20px;padding-right:20px; } }
     </style>
 
@@ -148,7 +163,7 @@
             </div>
             <div class="customer-calling-scroll">
                 <table class="customer-calling-table">
-                    <thead><tr><th>Call</th><th>Firm Name</th><th>Contact Person</th><th>Mobile</th><th>Customer Type</th><th>City</th><th>State</th><th>Status</th><th>Follow-up Date</th>@role('superadmin')<th>Assigned To</th>@endrole</tr></thead>
+                    <thead><tr><th>Call</th><th>Firm Name</th><th>Contact Person</th><th>Mobile</th><th>Customer Type</th><th>City</th><th>State</th><th>Status</th><th>Follow-up Date</th><th>Latest Note</th>@role('superadmin')<th>Assigned To</th>@endrole</tr></thead>
                     <tbody>
                         @forelse($entries as $entry)
                             <tr data-entry-id="{{ $entry->id }}" data-update-url="{{ route('calls.update', $entry) }}" data-firm="{{ $entry->firm_name }}" data-contact="{{ $entry->contact_person_name }}" data-mobile="{{ $entry->mobile_number }}" data-customer-type="{{ $entry->customer_type }}" data-address="{{ $entry->address }}" data-pincode-id="{{ $entry->pincode_id }}" data-pincode="{{ $entry->pincode }}" data-city="{{ $entry->city }}" data-district="{{ $entry->district }}" data-state="{{ $entry->state }}" data-caller-id="{{ $entry->assigned_user_id }}">
@@ -173,10 +188,18 @@
                                 <td>{{ $entry->customer_type ?: '—' }}</td><td>{{ $entry->city ?: '—' }}</td><td>{{ $entry->state ?: '—' }}</td>
                                 <td><span class="customer-call-status">{{ optional(optional($entry->latestCallLog)->feedbackStatus)->display_name ?: optional(optional($entry->latestCallLog)->feedbackStatus)->status_name ?: $entry->status }}</span></td>
                                 <td>{{ $entry->follow_up_date ? $entry->follow_up_date->format('d M Y') : '—' }}</td>
+                                <td class="customer-note-cell">
+                                    @if(optional($entry->latestNotedCallLog)->remark)
+                                        <span class="customer-note-preview">{{ $entry->latestNotedCallLog->remark }}</span>
+                                        <button class="customer-note-view view-call-notes" type="button" data-notes-url="{{ route('customer-calling.notes', $entry) }}" data-customer-name="{{ $entry->contact_person_name ?: $entry->firm_name }}">View all notes</button>
+                                    @else
+                                        <span class="customer-note-preview">—</span>
+                                    @endif
+                                </td>
                                 @role('superadmin')<td>{{ optional($entry->assignedUser)->name ?: '—' }}</td>@endrole
                             </tr>
                         @empty
-                            <tr><td class="customer-calling-empty" colspan="{{ auth()->user()->hasRole('superadmin') ? 10 : 9 }}">No matching assigned calls found.</td></tr>
+                            <tr><td class="customer-calling-empty" colspan="{{ auth()->user()->hasRole('superadmin') ? 11 : 10 }}">No matching assigned calls found.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -304,11 +327,18 @@
     <div class="call-ended-modal" id="callEndedModal" role="dialog" aria-modal="true" aria-labelledby="callEndedTitle" aria-hidden="true">
         <div class="call-ended-dialog">
             <div class="call-ended-head">
-                <div><h2 id="callEndedTitle">Call Ended</h2><p><span id="endedCustomerName"></span> · <span id="endedCallDuration">0:00</span></p></div>
+                <div><h2 id="callEndedTitle">Call in Progress</h2><p><span id="endedCustomerName"></span> · <span id="endedCallDuration">0:00</span></p></div>
                 <button class="call-ended-close" id="closeCallEnded" type="button" aria-label="Close"><i class="material-icons">close</i></button>
             </div>
             <form class="call-ended-form" id="callFeedbackForm">
                 <div class="call-ended-error" id="callFeedbackError"></div>
+                <div class="call-customer-details">
+                    <div class="call-customer-detail"><span>Firm</span><strong id="feedbackFirmName">—</strong></div>
+                    <div class="call-customer-detail"><span>Contact Person</span><strong id="feedbackContactPerson">—</strong></div>
+                    <div class="call-customer-detail"><span>Mobile</span><strong id="feedbackMobile">—</strong></div>
+                    <div class="call-customer-detail"><span>Customer Type</span><strong id="feedbackCustomerType">—</strong></div>
+                    <div class="call-customer-detail" style="grid-column:1/-1"><span>Location</span><strong id="feedbackLocation">—</strong></div>
+                </div>
                 <div class="call-ended-field">
                     <label for="callFeedbackStatus">Call Status *</label>
                     <select id="callFeedbackStatus" name="feedback_status_id" required>
@@ -328,6 +358,16 @@
         </div>
     </div>
 
+    <div class="call-ended-modal" id="callNotesModal" role="dialog" aria-modal="true" aria-labelledby="callNotesTitle" aria-hidden="true">
+        <div class="call-ended-dialog call-notes-dialog">
+            <div class="call-ended-head">
+                <div><h2 id="callNotesTitle">Call Notes</h2><p id="callNotesCustomer"></p></div>
+                <button class="call-ended-close" id="closeCallNotes" type="button" aria-label="Close"><i class="material-icons">close</i></button>
+            </div>
+            <div class="call-notes-body" id="callNotesBody"><p class="call-notes-empty">Loading notes...</p></div>
+        </div>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const message = document.getElementById('customerCallMessage');
@@ -339,6 +379,8 @@
             const feedbackStatus = document.getElementById('callFeedbackStatus');
             const followUpDateField = document.getElementById('callFollowUpDateField');
             const followUpDate = document.getElementById('callFollowUpDate');
+            const notesModal = document.getElementById('callNotesModal');
+            const notesBody = document.getElementById('callNotesBody');
             const filterOverlay = document.getElementById('customerCallingFilterOverlay');
             const openFilters = document.getElementById('openCustomerCallingFilters');
             const closeFilters = document.getElementById('closeCustomerCallingFilters');
@@ -385,6 +427,8 @@
             document.addEventListener('keydown', function (event) {
                 if (event.key !== 'Escape') return;
                 if (filterOverlay.classList.contains('show')) setFiltersOpen(false);
+                else if (notesModal.classList.contains('show')) setNotesModalOpen(false);
+                else if (feedbackModal.classList.contains('show')) setFeedbackModalOpen(false);
                 @if($canCreateCall || $canEditDelete)
                     else if (createModal.classList.contains('show')) setCreateModalOpen(false);
                 @endif
@@ -525,15 +569,27 @@
                 return minutes + ':' + String(seconds % 60).padStart(2, '0');
             }
 
-            function showFeedback(call, duration) {
+            function setFeedbackModalOpen(isOpen) {
+                feedbackModal.classList.toggle('show', isOpen);
+                feedbackModal.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+            }
+
+            function showFeedback(call, duration, resetForm) {
                 feedbackUrl = call.feedback_url;
                 document.getElementById('endedCustomerName').textContent = call.customer_name;
                 document.getElementById('endedCallDuration').textContent = formatDuration(duration);
-                feedbackForm.reset();
-                updateFollowUpDateVisibility();
+                document.getElementById('feedbackFirmName').textContent = call.firm_name || '—';
+                document.getElementById('feedbackContactPerson').textContent = call.contact_person || '—';
+                document.getElementById('feedbackMobile').textContent = call.mobile || '—';
+                document.getElementById('feedbackCustomerType').textContent = call.customer_type || '—';
+                document.getElementById('feedbackLocation').textContent = [call.city, call.state].filter(Boolean).join(', ') || '—';
+                document.getElementById('callEndedTitle').textContent = 'Call in Progress';
+                if (resetForm !== false) {
+                    feedbackForm.reset();
+                    updateFollowUpDateVisibility();
+                }
                 feedbackError.style.display = 'none';
-                feedbackModal.classList.add('show');
-                feedbackModal.setAttribute('aria-hidden', 'false');
+                setFeedbackModalOpen(true);
             }
 
             async function pollCall(call) {
@@ -544,7 +600,9 @@
                     if (result.data.completed) {
                         if (activeCallButton) activeCallButton.querySelector('.material-icons').textContent = 'call';
                         showMessage(result.data.duration > 0 ? 'Call completed.' : 'Call ended.', false);
-                        if (result.data.requires_feedback) showFeedback(call, result.data.duration);
+                        document.getElementById('endedCallDuration').textContent = formatDuration(result.data.duration);
+                        document.getElementById('callEndedTitle').textContent = 'Call Ended';
+                        if (result.data.requires_feedback && !feedbackModal.classList.contains('show')) showFeedback(call, result.data.duration, false);
                         else if (activeCallButton) activeCallButton.disabled = false;
                         return;
                     }
@@ -571,6 +629,7 @@
                         const result = await response.json();
                         if (!response.ok || !result.success) throw new Error(result.message || 'Unable to initiate call.');
                         showMessage(result.message, false);
+                        showFeedback(result.data, 0, true);
                         pollCall(result.data);
                     } catch (error) {
                         showMessage(error.message || 'Unable to initiate call.', true);
@@ -581,10 +640,66 @@
             });
 
             document.getElementById('closeCallEnded').addEventListener('click', function () {
-                feedbackModal.classList.remove('show');
-                feedbackModal.setAttribute('aria-hidden', 'true');
+                setFeedbackModalOpen(false);
                 if (activeCallButton) activeCallButton.disabled = false;
             });
+            feedbackModal.addEventListener('click', function (event) {
+                if (event.target === feedbackModal) setFeedbackModalOpen(false);
+            });
+
+            function setNotesModalOpen(isOpen) {
+                notesModal.classList.toggle('show', isOpen);
+                notesModal.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+            }
+
+            function renderCallNotes(notes) {
+                notesBody.replaceChildren();
+                if (!notes.length) {
+                    const empty = document.createElement('p');
+                    empty.className = 'call-notes-empty';
+                    empty.textContent = 'No notes have been saved yet.';
+                    notesBody.appendChild(empty);
+                    return;
+                }
+                notes.forEach(function (note) {
+                    const item = document.createElement('article');
+                    item.className = 'call-note-item';
+                    const meta = document.createElement('div');
+                    meta.className = 'call-note-meta';
+                    const status = document.createElement('strong');
+                    status.textContent = note.status || '—';
+                    const date = document.createElement('span');
+                    date.textContent = note.date || '—';
+                    const text = document.createElement('p');
+                    text.className = 'call-note-text';
+                    text.textContent = note.note || '—';
+                    meta.append(status, date);
+                    item.append(meta, text);
+                    notesBody.appendChild(item);
+                });
+            }
+
+            document.querySelectorAll('.view-call-notes').forEach(function (button) {
+                button.addEventListener('click', async function () {
+                    document.getElementById('callNotesCustomer').textContent = button.dataset.customerName || '';
+                    notesBody.innerHTML = '<p class="call-notes-empty">Loading notes...</p>';
+                    setNotesModalOpen(true);
+                    try {
+                        const response = await fetch(button.dataset.notesUrl, { headers: { 'Accept': 'application/json' } });
+                        const result = await response.json();
+                        if (!response.ok || !result.success) throw new Error(result.message || 'Unable to load notes.');
+                        renderCallNotes(result.data || []);
+                    } catch (error) {
+                        notesBody.replaceChildren();
+                        const errorMessage = document.createElement('p');
+                        errorMessage.className = 'call-notes-empty';
+                        errorMessage.textContent = error.message || 'Unable to load notes.';
+                        notesBody.appendChild(errorMessage);
+                    }
+                });
+            });
+            document.getElementById('closeCallNotes').addEventListener('click', function () { setNotesModalOpen(false); });
+            notesModal.addEventListener('click', function (event) { if (event.target === notesModal) setNotesModalOpen(false); });
             feedbackForm.addEventListener('submit', async function (event) {
                 event.preventDefault();
                 feedbackSave.disabled = true;
@@ -602,13 +717,10 @@
                     });
                     const result = await response.json();
                     if (!response.ok || !result.success) throw new Error(result.message || 'Unable to save call record.');
-                    feedbackModal.classList.remove('show');
+                    setFeedbackModalOpen(false);
                     showMessage(result.message, false);
-                    if (result.data && result.data.queue_removed) {
-                        window.location.reload();
-                        return;
-                    }
-                    if (activeCallButton) activeCallButton.disabled = false;
+                    window.location.reload();
+                    return;
                 } catch (error) {
                     feedbackError.textContent = error.message || 'Unable to save call record.';
                     feedbackError.style.display = 'block';

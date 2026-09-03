@@ -47,6 +47,7 @@ class CallManagementController extends Controller
             ->with([
                 'assignedUser:id,name',
                 'latestCallLog.feedbackStatus:id,status_name,display_name',
+                'latestNotedCallLog:id,call_management_entry_id,remark,started_at',
             ])
             ->where('status', $showCompleted ? 'completed' : 'assigned');
 
@@ -302,6 +303,12 @@ class CallManagementController extends Controller
                     'status_url' => route('customer-calling.call-status', $callLog),
                     'feedback_url' => route('customer-calling.call-feedback', $callLog),
                     'customer_name' => $callManagementEntry->contact_person_name ?: $callManagementEntry->firm_name,
+                    'firm_name' => $callManagementEntry->firm_name,
+                    'contact_person' => $callManagementEntry->contact_person_name,
+                    'mobile' => $callManagementEntry->mobile_number,
+                    'customer_type' => $callManagementEntry->customer_type,
+                    'city' => $callManagementEntry->city,
+                    'state' => $callManagementEntry->state,
                 ],
             ]);
         } catch (Throwable $exception) {
@@ -309,6 +316,34 @@ class CallManagementController extends Controller
             $callLog->update(['plivo_status' => 'failed']);
             return response()->json(['success' => false, 'message' => 'Unable to connect to Plivo.'], 502);
         }
+    }
+
+    public function customerCallNotes(CallManagementEntry $callManagementEntry)
+    {
+        abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        abort_unless(
+            auth()->user()->hasRole('superadmin') || (int) $callManagementEntry->assigned_user_id === (int) auth()->id(),
+            Response::HTTP_FORBIDDEN,
+            'You cannot view these notes.'
+        );
+
+        $notes = CallLog::with('feedbackStatus:id,status_name,display_name')
+            ->where('call_management_entry_id', $callManagementEntry->id)
+            ->whereNotNull('remark')
+            ->where('remark', '!=', '')
+            ->latest('started_at')
+            ->get()
+            ->map(function (CallLog $callLog) {
+                return [
+                    'note' => $callLog->remark,
+                    'status' => optional($callLog->feedbackStatus)->display_name
+                        ?: optional($callLog->feedbackStatus)->status_name
+                        ?: '—',
+                    'date' => optional($callLog->started_at)->format('d M Y, h:i A') ?: '—',
+                ];
+            });
+
+        return response()->json(['success' => true, 'data' => $notes]);
     }
 
     public function customerCallStatus(CallLog $callLog)

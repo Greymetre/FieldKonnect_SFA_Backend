@@ -1401,6 +1401,7 @@ Route::post('ajax/user-cities-by-district', [TourController::class, 'ajaxUserCit
     Route::delete('calls/{callManagementEntry}', [CallManagementController::class, 'destroy'])->name('calls.destroy');
     Route::get('customer-calling', [CallManagementController::class, 'customerCalling'])->name('customer-calling.index');
     Route::get('customer-calling/pincodes/search', [CallManagementController::class, 'searchPincodes'])->name('customer-calling.pincodes.search');
+    Route::get('customer-calling/{callManagementEntry}/notes', [CallManagementController::class, 'customerCallNotes'])->name('customer-calling.notes');
     Route::post('customer-calling/{callManagementEntry}/call', [CallManagementController::class, 'initiateCustomerCall'])->name('customer-calling.call');
     Route::get('customer-calling/call-status/{callLog}', [CallManagementController::class, 'customerCallStatus'])->name('customer-calling.call-status');
     Route::post('customer-calling/call-feedback/{callLog}', [CallManagementController::class, 'saveCustomerCallFeedback'])->name('customer-calling.call-feedback');
