@@ -295,6 +295,22 @@ class CallManagementController extends Controller
 
         $agentNumber = $this->e164($user->mobile);
         $customerNumber = $this->e164($callManagementEntry->mobile_number);
+        $resolvedPincode = null;
+        if ($callManagementEntry->pincode_id || $callManagementEntry->pincode) {
+            $resolvedPincode = Pincode::query()
+                ->where('active', 'Y')
+                ->where(function ($query) use ($callManagementEntry) {
+                    if ($callManagementEntry->pincode_id) {
+                        $query->whereKey($callManagementEntry->pincode_id);
+                    }
+
+                    if ($callManagementEntry->pincode) {
+                        $method = $callManagementEntry->pincode_id ? 'orWhere' : 'where';
+                        $query->{$method}('pincode', trim((string) $callManagementEntry->pincode));
+                    }
+                })
+                ->first(['id', 'pincode']);
+        }
         if (! $agentNumber || ! $customerNumber) {
             return response()->json(['success' => false, 'message' => 'Agent or customer mobile number is invalid.'], 422);
         }
@@ -373,8 +389,8 @@ class CallManagementController extends Controller
                     'mobile' => $callManagementEntry->mobile_number,
                     'customer_type' => $callManagementEntry->customer_type,
                     'address' => $callManagementEntry->address,
-                    'pincode_id' => $callManagementEntry->pincode_id,
-                    'pincode' => $callManagementEntry->pincode,
+                    'pincode_id' => optional($resolvedPincode)->id ?: $callManagementEntry->pincode_id,
+                    'pincode' => optional($resolvedPincode)->pincode ?: $callManagementEntry->pincode,
                     'city' => $callManagementEntry->city,
                     'district' => $callManagementEntry->district,
                     'state' => $callManagementEntry->state,

@@ -817,7 +817,9 @@
                     feedbackPincode.add(popupPincodeOption);
                 }
                 setFeedbackValue('feedbackPincode', popupPincodeId);
-                if (window.jQuery && jQuery.fn.select2) jQuery(feedbackPincode).trigger('change.select2');
+                if (window.jQuery && jQuery.fn.select2) {
+                    jQuery(feedbackPincode).val(String(popupPincodeId)).trigger('change.select2');
+                }
                 setFeedbackValue('feedbackCity', call.city);
                 setFeedbackValue('feedbackDistrict', call.district);
                 setFeedbackValue('feedbackState', call.state);
