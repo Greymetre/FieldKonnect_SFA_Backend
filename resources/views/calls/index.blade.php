@@ -192,7 +192,7 @@
                             </tr>
                         @endforeach
                         @if($entries->isEmpty())
-                            <tr id="callsEmptyState"><td class="calls-empty" colspan="10">No call entries available. Use Add Manually to create one.</td></tr>
+                            <tr id="callsEmptyState"><td class="calls-empty" colspan="10">No calls are waiting for assignment.</td></tr>
                         @endif
                         <tr id="callsNoResults" hidden><td class="calls-empty" colspan="10">No matching records found.</td></tr>
                     </tbody>

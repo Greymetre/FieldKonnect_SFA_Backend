@@ -31,6 +31,7 @@ class CallManagementController extends Controller
         );
 
         $entries = CallManagementEntry::with('assignedUser:id,name')
+            ->where('status', 'pending')
             ->latest('id')
             ->get();
 
@@ -281,6 +282,7 @@ class CallManagementController extends Controller
 
                 CallManagementEntry::whereKey($entryId)->update([
                     'assigned_user_id' => $override ?: $validated['bulk_assigned_user_id'],
+                    'status' => 'assigned',
                 ]);
             }
         });
