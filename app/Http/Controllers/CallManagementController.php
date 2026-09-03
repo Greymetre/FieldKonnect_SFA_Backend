@@ -72,6 +72,7 @@ class CallManagementController extends Controller
         abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $entries = CallManagementEntry::where('assigned_user_id', auth()->id())
+            ->where('status', 'assigned')
             ->latest('id')
             ->get();
         $feedbackStatuses = Status::query()
@@ -195,9 +196,48 @@ class CallManagementController extends Controller
             ->where('module', Status::MODULE_CALL_MANAGEMENT_FEEDBACK)
             ->where('active', 'Y')
             ->firstOrFail();
-        $callLog->update(['feedback_status_id' => $status->id, 'remark' => trim($validated['message'])]);
+        $feedbackOutcome = $this->callManagementFeedbackOutcome($status);
 
-        return response()->json(['success' => true, 'message' => 'Call record saved successfully.']);
+        DB::transaction(function () use ($callLog, $status, $validated, $feedbackOutcome) {
+            $callLog->update([
+                'feedback_status_id' => $status->id,
+                'remark' => trim($validated['message']),
+            ]);
+
+            if ($feedbackOutcome) {
+                CallManagementEntry::whereKey($callLog->call_management_entry_id)->update([
+                    'status' => $feedbackOutcome,
+                ]);
+            }
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Call record saved successfully.',
+            'data' => [
+                'queue_removed' => $feedbackOutcome !== null,
+                'entry_status' => $feedbackOutcome ?: 'assigned',
+            ],
+        ]);
+    }
+
+    private function callManagementFeedbackOutcome(Status $status): ?string
+    {
+        $labels = [$status->status_name, $status->display_name];
+
+        foreach ($labels as $label) {
+            $normalized = preg_replace('/[^a-z0-9]+/', '', strtolower((string) $label));
+
+            if (str_contains($normalized, 'followup')) {
+                return 'pending';
+            }
+
+            if (in_array($normalized, ['complete', 'completed', 'callcomplete', 'callcompleted', 'done'], true)) {
+                return 'completed';
+            }
+        }
+
+        return null;
     }
 
     private function e164(?string $number): ?string

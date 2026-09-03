@@ -195,6 +195,10 @@
                     if (!response.ok || !result.success) throw new Error(result.message || 'Unable to save call record.');
                     feedbackModal.classList.remove('show');
                     showMessage(result.message, false);
+                    if (result.data && result.data.queue_removed) {
+                        window.location.reload();
+                        return;
+                    }
                     if (activeCallButton) activeCallButton.disabled = false;
                 } catch (error) {
                     feedbackError.textContent = error.message || 'Unable to save call record.';
