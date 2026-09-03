@@ -53,7 +53,12 @@
         .customer-calling-directory-icon { display: inline-flex; align-items: center; justify-content: center; width: 46px; height: 46px; border: 1px solid rgba(34, 211, 238, .5); border-radius: 12px; background: rgba(34, 211, 238, .08); color: #22d3ee; }
         .customer-calling-card-head strong { display: block; color: #f5f8ff; font-size: 16px; }
         .customer-calling-card-head small { display: block; margin-top: 3px; color: #7284b5; font-size: 13px; }
-        .customer-calling-scroll { overflow-x: auto; }
+        .customer-calling-scroll { overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:#17386f #04112d;overscroll-behavior-x:contain; }
+        .customer-calling-scroll::-webkit-scrollbar { height:7px; }
+        .customer-calling-scroll::-webkit-scrollbar-track { background:#04112d;border-radius:20px; }
+        .customer-calling-scroll::-webkit-scrollbar-thumb { border:1px solid #04112d;border-radius:20px;background:#17386f; }
+        .customer-calling-scroll::-webkit-scrollbar-thumb:hover { background:#24519a; }
+        .customer-calling-scroll::-webkit-scrollbar-corner { background:#04112d; }
         .customer-calling-table { width: 100%; min-width: 1120px; border-collapse: collapse; }
         .customer-calling-table th { padding: 13px 14px; border-bottom: 1px solid rgba(85, 126, 218, .24); color: #8395c4; font-size: 11px; font-weight: 800; letter-spacing: .09em; text-align: left; text-transform: uppercase; white-space: nowrap; }
         .customer-calling-table td { height: 61px; padding: 12px 14px; border-bottom: 1px solid rgba(85, 126, 218, .18); color: #adbee6; font-size: 13px; vertical-align: middle; }
