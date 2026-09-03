@@ -77,7 +77,7 @@
         .customer-call-message { display: none; margin-bottom: 14px; padding: 11px 14px; border: 1px solid rgba(34, 211, 238, .35); border-radius: 10px; background: rgba(34, 211, 238, .08); color: #73def0; font-size: 13px; }
         .customer-call-message.show { display: block; }
         .customer-call-message.error { border-color: rgba(248, 113, 113, .4); background: rgba(248, 113, 113, .08); color: #fca5a5; }
-        .customer-call-status { display: inline-flex; align-items: center; justify-content: center; min-width: 90px; min-height: 30px; padding: 0 12px; border: 1px solid rgba(34, 211, 238, .34); border-radius: 999px; background: rgba(34, 211, 238, .06); color: #45d6ef; font-size: 11px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+        .customer-call-status { display:inline-flex;align-items:center;justify-content:center;min-width:90px;min-height:30px;padding:0 12px;border:1px solid rgba(34,211,238,.34);border-radius:999px;background:rgba(34,211,238,.06);color:#45d6ef;font-size:11px;font-weight:800;letter-spacing:.07em;line-height:1;text-transform:uppercase;white-space:nowrap;word-break:keep-all; }
         .customer-note-cell { min-width:190px;max-width:260px; }
         .customer-note-preview { display:block;overflow:hidden;color:#adbee6;line-height:1.45;text-overflow:ellipsis;white-space:nowrap; }
         .customer-note-view { margin-top:4px;padding:0;border:0;background:transparent;color:#35d2ed;font-size:11px;font-weight:800; }
