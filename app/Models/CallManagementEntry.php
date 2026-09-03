@@ -33,4 +33,9 @@ class CallManagementEntry extends Model
     {
         return $this->belongsTo(User::class, 'assigned_user_id');
     }
+
+    public function latestCallLog()
+    {
+        return $this->hasOne(CallLog::class, 'call_management_entry_id')->latestOfMany();
+    }
 }

@@ -72,6 +72,7 @@ class CallManagementController extends Controller
         abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $query = CallManagementEntry::query()
+            ->with('latestCallLog.feedbackStatus:id,status_name,display_name')
             ->where('assigned_user_id', auth()->id())
             ->where('status', 'assigned');
 

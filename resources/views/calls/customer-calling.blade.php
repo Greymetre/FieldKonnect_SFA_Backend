@@ -98,7 +98,7 @@
                                 <td><button class="customer-call-btn" type="button" data-call-url="{{ route('customer-calling.call', $entry) }}" title="Call {{ $entry->mobile_number }}" aria-label="Call {{ $entry->mobile_number }}"><i class="material-icons">call</i></button></td>
                                 <td>{{ $entry->firm_name }}</td><td>{{ $entry->contact_person_name }}</td><td>{{ $entry->mobile_number }}</td>
                                 <td>{{ $entry->customer_type ?: '—' }}</td><td>{{ $entry->city ?: '—' }}</td><td>{{ $entry->state ?: '—' }}</td>
-                                <td><span class="customer-call-status">{{ $entry->status }}</span></td>
+                                <td><span class="customer-call-status">{{ optional(optional($entry->latestCallLog)->feedbackStatus)->display_name ?: optional(optional($entry->latestCallLog)->feedbackStatus)->status_name ?: $entry->status }}</span></td>
                             </tr>
                         @empty
                             <tr><td class="customer-calling-empty" colspan="8">No matching assigned calls found.</td></tr>
