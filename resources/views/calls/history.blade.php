@@ -37,7 +37,12 @@
         .customer-history-apply { border:0;background:linear-gradient(135deg,#2bd1e8,#438ff0);color:#061329; }
         .customer-history-reset { border:1px solid rgba(85,126,218,.38);background:transparent;color:#aebfe7; }
         .customer-history-card { overflow:hidden;border:1px solid rgba(85,126,218,.27);border-radius:14px;background:rgba(7,20,49,.54); }
-        .customer-history-scroll { overflow-x:auto; }
+        .customer-history-scroll { overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:#17386f #04112d; }
+        .customer-history-scroll::-webkit-scrollbar { height:7px; }
+        .customer-history-scroll::-webkit-scrollbar-track { background:#04112d;border-radius:20px; }
+        .customer-history-scroll::-webkit-scrollbar-thumb { border:1px solid #04112d;border-radius:20px;background:#17386f; }
+        .customer-history-scroll::-webkit-scrollbar-thumb:hover { background:#24519a; }
+        .customer-history-scroll::-webkit-scrollbar-corner { background:#04112d; }
         .customer-history-table { width:100%;min-width:1050px;border-collapse:collapse; }
         .customer-history-table th { padding:14px;border-bottom:1px solid rgba(85,126,218,.24);color:#8395c4;font-size:11px;font-weight:800;letter-spacing:.09em;text-align:left;text-transform:uppercase;white-space:nowrap; }
         .customer-history-table td { height:62px;padding:12px 14px;border-bottom:1px solid rgba(85,126,218,.18);color:#adbee6;font-size:13px;vertical-align:middle; }
