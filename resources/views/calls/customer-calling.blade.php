@@ -231,12 +231,10 @@
                             <a class="customer-calling-page-link" href="{{ $entries->previousPageUrl() }}" rel="prev"><i class="material-icons">chevron_left</i></a>
                         @endif
 
-                        @php
-                            $pageStart = max(1, $entries->currentPage() - 2);
-                            $pageEnd = min($entries->lastPage(), $entries->currentPage() + 2);
-                        @endphp
+                        @php($pageStart = max(1, $entries->currentPage() - 2))
+                        @php($pageEnd = min($entries->lastPage(), $entries->currentPage() + 2))
                         @for($page = $pageStart; $page <= $pageEnd; $page++)
-                            <a class="customer-calling-page-link {{ $page === $entries->currentPage() ? 'is-current' : '' }}" href="{{ $entries->url($page) }}" @if($page === $entries->currentPage()) aria-current="page" @endif>{{ $page }}</a>
+                            <a class="customer-calling-page-link {{ $page === $entries->currentPage() ? 'is-current' : '' }}" href="{{ $entries->url($page) }}" aria-current="{{ $page === $entries->currentPage() ? 'page' : 'false' }}">{{ $page }}</a>
                         @endfor
 
                         @if($entries->hasMorePages())
