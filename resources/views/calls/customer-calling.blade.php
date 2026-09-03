@@ -134,6 +134,11 @@
         .call-customer-detail { min-width:0; }
         .call-customer-detail span { display:block;margin-bottom:3px;color:#7184b4;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase; }
         .call-customer-detail strong { display:block;overflow:hidden;color:#dce7ff;font-size:13px;font-weight:600;text-overflow:ellipsis;white-space:nowrap; }
+        .call-customer-detail.is-wide { grid-column:1/-1; }
+        .call-customer-detail.is-wide strong { overflow:visible;line-height:1.45;text-overflow:clip;white-space:normal;word-break:break-word; }
+        .feedback-previous-notes { margin-bottom:18px; }
+        .feedback-previous-notes-title { margin:0 0 9px;color:#91a3ce;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase; }
+        .feedback-previous-notes-list { max-height:190px;overflow-y:auto;padding-right:3px;scrollbar-width:thin;scrollbar-color:#17386f #04112d; }
         .call-notes-dialog { width:min(600px,100%); }
         .call-notes-body { max-height:60vh;overflow-y:auto;padding:20px 24px 24px; }
         .call-note-item { margin-bottom:12px;padding:14px;border:1px solid rgba(85,126,218,.25);border-radius:11px;background:#081a3e; }
@@ -375,12 +380,25 @@
             <form class="call-ended-form" id="callFeedbackForm">
                 <div class="call-ended-error" id="callFeedbackError"></div>
                 <div class="call-customer-details">
+                    <div class="call-customer-detail"><span>Project Name</span><strong id="feedbackProjectName">—</strong></div>
+                    <div class="call-customer-detail"><span>Project ID</span><strong id="feedbackProjectId">—</strong></div>
+                    <div class="call-customer-detail"><span>Parent Name</span><strong id="feedbackParentName">—</strong></div>
                     <div class="call-customer-detail"><span>Firm</span><strong id="feedbackFirmName">—</strong></div>
                     <div class="call-customer-detail"><span>Contact Person</span><strong id="feedbackContactPerson">—</strong></div>
                     <div class="call-customer-detail"><span>Mobile</span><strong id="feedbackMobile">—</strong></div>
                     <div class="call-customer-detail"><span>Customer Type</span><strong id="feedbackCustomerType">—</strong></div>
-                    <div class="call-customer-detail" style="grid-column:1/-1"><span>Location</span><strong id="feedbackLocation">—</strong></div>
+                    <div class="call-customer-detail"><span>Assigned To</span><strong id="feedbackAssignedTo">—</strong></div>
+                    <div class="call-customer-detail is-wide"><span>Address</span><strong id="feedbackAddress">—</strong></div>
+                    <div class="call-customer-detail is-wide"><span>Location</span><strong id="feedbackLocation">—</strong></div>
+                    <div class="call-customer-detail"><span>Custom Column 1</span><strong id="feedbackCustomColumn1">—</strong></div>
+                    <div class="call-customer-detail"><span>Custom Column 2</span><strong id="feedbackCustomColumn2">—</strong></div>
+                    <div class="call-customer-detail"><span>Custom Column 3</span><strong id="feedbackCustomColumn3">—</strong></div>
+                    <div class="call-customer-detail"><span>Custom Column 4</span><strong id="feedbackCustomColumn4">—</strong></div>
                 </div>
+                <section class="feedback-previous-notes">
+                    <h3 class="feedback-previous-notes-title">Previous Call Notes</h3>
+                    <div class="feedback-previous-notes-list" id="feedbackPreviousNotes"><p class="call-notes-empty">No previous notes.</p></div>
+                </section>
                 <div class="call-ended-field">
                     <label for="callFeedbackStatus">Call Status *</label>
                     <select id="callFeedbackStatus" name="feedback_status_id" required>
@@ -620,15 +638,53 @@
                 feedbackModal.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
             }
 
+            function renderPreviousNotes(notes) {
+                const container = document.getElementById('feedbackPreviousNotes');
+                container.replaceChildren();
+                if (!notes || !notes.length) {
+                    const empty = document.createElement('p');
+                    empty.className = 'call-notes-empty';
+                    empty.textContent = 'No previous notes.';
+                    container.appendChild(empty);
+                    return;
+                }
+                notes.forEach(function (note) {
+                    const item = document.createElement('article');
+                    item.className = 'call-note-item';
+                    const meta = document.createElement('div');
+                    meta.className = 'call-note-meta';
+                    const status = document.createElement('strong');
+                    status.textContent = note.status || '—';
+                    const date = document.createElement('span');
+                    date.textContent = note.date || '—';
+                    const text = document.createElement('p');
+                    text.className = 'call-note-text';
+                    text.textContent = note.note || '—';
+                    meta.append(status, date);
+                    item.append(meta, text);
+                    container.appendChild(item);
+                });
+            }
+
             function showFeedback(call, duration, resetForm) {
                 feedbackUrl = call.feedback_url;
                 document.getElementById('endedCustomerName').textContent = call.customer_name;
                 document.getElementById('endedCallDuration').textContent = formatDuration(duration);
+                document.getElementById('feedbackProjectName').textContent = call.project_name || '—';
+                document.getElementById('feedbackProjectId').textContent = call.project_id || '—';
+                document.getElementById('feedbackParentName').textContent = call.parent_name || '—';
                 document.getElementById('feedbackFirmName').textContent = call.firm_name || '—';
                 document.getElementById('feedbackContactPerson').textContent = call.contact_person || '—';
                 document.getElementById('feedbackMobile').textContent = call.mobile || '—';
                 document.getElementById('feedbackCustomerType').textContent = call.customer_type || '—';
-                document.getElementById('feedbackLocation').textContent = [call.city, call.state].filter(Boolean).join(', ') || '—';
+                document.getElementById('feedbackAssignedTo').textContent = call.assigned_to || '—';
+                document.getElementById('feedbackAddress').textContent = call.address || '—';
+                document.getElementById('feedbackLocation').textContent = [call.pincode, call.city, call.district, call.state].filter(Boolean).join(', ') || '—';
+                document.getElementById('feedbackCustomColumn1').textContent = call.custom_column_1 || '—';
+                document.getElementById('feedbackCustomColumn2').textContent = call.custom_column_2 || '—';
+                document.getElementById('feedbackCustomColumn3').textContent = call.custom_column_3 || '—';
+                document.getElementById('feedbackCustomColumn4').textContent = call.custom_column_4 || '—';
+                renderPreviousNotes(call.previous_notes || []);
                 document.getElementById('callEndedTitle').textContent = 'Call in Progress';
                 if (resetForm !== false) {
                     feedbackForm.reset();

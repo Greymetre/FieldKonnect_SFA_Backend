@@ -311,6 +311,23 @@ class CallManagementController extends Controller
 
             $callUuid = $response->json('request_uuid.0') ?: $response->json('request_uuid');
             $callLog->update(['plivo_call_uuid' => $callUuid, 'plivo_status' => 'queued']);
+            $previousNotes = CallLog::with('feedbackStatus:id,status_name,display_name')
+                ->where('call_management_entry_id', $callManagementEntry->id)
+                ->whereKeyNot($callLog->id)
+                ->whereNotNull('remark')
+                ->where('remark', '!=', '')
+                ->latest('started_at')
+                ->get()
+                ->map(function (CallLog $previousCall) {
+                    return [
+                        'note' => $previousCall->remark,
+                        'status' => optional($previousCall->feedbackStatus)->display_name
+                            ?: optional($previousCall->feedbackStatus)->status_name
+                            ?: '—',
+                        'date' => optional($previousCall->started_at)->format('d M Y, h:i A') ?: '—',
+                    ];
+                })
+                ->values();
 
             return response()->json([
                 'success' => true,
@@ -320,12 +337,24 @@ class CallManagementController extends Controller
                     'status_url' => route('customer-calling.call-status', $callLog),
                     'feedback_url' => route('customer-calling.call-feedback', $callLog),
                     'customer_name' => $callManagementEntry->contact_person_name ?: $callManagementEntry->firm_name,
+                    'project_name' => $callManagementEntry->project_name,
+                    'project_id' => $callManagementEntry->project_id,
+                    'parent_name' => $callManagementEntry->parent_name,
                     'firm_name' => $callManagementEntry->firm_name,
                     'contact_person' => $callManagementEntry->contact_person_name,
                     'mobile' => $callManagementEntry->mobile_number,
                     'customer_type' => $callManagementEntry->customer_type,
+                    'address' => $callManagementEntry->address,
+                    'pincode' => $callManagementEntry->pincode,
                     'city' => $callManagementEntry->city,
+                    'district' => $callManagementEntry->district,
                     'state' => $callManagementEntry->state,
+                    'assigned_to' => $user->name,
+                    'custom_column_1' => $callManagementEntry->custom_column_1,
+                    'custom_column_2' => $callManagementEntry->custom_column_2,
+                    'custom_column_3' => $callManagementEntry->custom_column_3,
+                    'custom_column_4' => $callManagementEntry->custom_column_4,
+                    'previous_notes' => $previousNotes,
                 ],
             ]);
         } catch (Throwable $exception) {
