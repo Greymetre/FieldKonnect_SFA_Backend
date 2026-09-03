@@ -809,11 +809,12 @@
                     });
                     if (popupPincodeOption) popupPincodeId = popupPincodeOption.value;
                 }
+                if (!popupPincodeId && call.pincode) popupPincodeId = String(call.pincode).trim();
                 // Imported calls already contain a resolved system pincode. Keep
                 // it visible even when the current user's Create Customer list
                 // no longer includes that assignment.
                 if (!popupPincodeOption && popupPincodeId) {
-                    popupPincodeOption = new Option(call.pincode || '', popupPincodeId, true, true);
+                    popupPincodeOption = new Option(call.pincode || popupPincodeId, popupPincodeId, true, true);
                     feedbackPincode.add(popupPincodeOption);
                 }
                 setFeedbackValue('feedbackPincode', popupPincodeId);

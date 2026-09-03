@@ -298,10 +298,10 @@ class CallManagementController extends Controller
         $resolvedPincode = null;
         if ($callManagementEntry->pincode_id || $callManagementEntry->pincode) {
             $resolvedPincode = Pincode::query()
-                ->where('active', 'Y')
                 ->where(function ($query) use ($callManagementEntry) {
                     if ($callManagementEntry->pincode_id) {
                         $query->whereKey($callManagementEntry->pincode_id);
+                        $query->orWhere('pincode', (string) $callManagementEntry->pincode_id);
                     }
 
                     if ($callManagementEntry->pincode) {
@@ -468,7 +468,7 @@ class CallManagementController extends Controller
             'follow_up_date' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:today'],
             'parent_name' => ['nullable', 'string', 'max:255'],
             'address' => ['nullable', 'string', 'max:1000'],
-            'pincode_id' => ['required', 'integer', Rule::exists('pincodes', 'id')->where('active', 'Y')],
+            'pincode_id' => ['required', 'string', 'max:20'],
             'city' => ['nullable', 'string', 'max:150'],
             'district' => ['nullable', 'string', 'max:150'],
             'state' => ['nullable', 'string', 'max:150'],
@@ -487,19 +487,31 @@ class CallManagementController extends Controller
             ]);
         }
 
-        DB::transaction(function () use ($callLog, $status, $validated, $feedbackOutcome, $isFollowUp) {
+        $selectedPincode = Pincode::query()
+            ->where('active', 'Y')
+            ->where('pincode', trim((string) $validated['pincode_id']))
+            ->first();
+        if (! $selectedPincode && ctype_digit((string) $validated['pincode_id'])) {
+            $selectedPincode = Pincode::where('active', 'Y')->find((int) $validated['pincode_id']);
+        }
+        if (! $selectedPincode) {
+            throw ValidationException::withMessages([
+                'pincode_id' => 'Please select a valid pincode.',
+            ]);
+        }
+
+        DB::transaction(function () use ($callLog, $status, $validated, $feedbackOutcome, $isFollowUp, $selectedPincode) {
             $callLog->update([
                 'feedback_status_id' => $status->id,
                 'remark' => trim($validated['message']),
             ]);
 
-            $pincode = Pincode::whereKey($validated['pincode_id'])->value('pincode');
             $entryUpdates = [
                 'follow_up_date' => $isFollowUp ? $validated['follow_up_date'] : null,
                 'parent_name' => $validated['parent_name'] ?? null,
                 'address' => $validated['address'] ?? null,
-                'pincode_id' => $validated['pincode_id'],
-                'pincode' => $pincode,
+                'pincode_id' => $selectedPincode->id,
+                'pincode' => $selectedPincode->pincode,
                 'city' => $validated['city'] ?? null,
                 'district' => $validated['district'] ?? null,
                 'state' => $validated['state'] ?? null,
