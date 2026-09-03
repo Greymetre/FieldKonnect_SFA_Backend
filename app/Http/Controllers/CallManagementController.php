@@ -80,34 +80,9 @@ class CallManagementController extends Controller
             ->orderBy('id')
             ->get(['id', 'status_name', 'display_name']);
 
-        $pincodeOptions = collect();
         $callers = collect();
 
         if ($canCreateCall || $canEditDelete) {
-            $pincodeOptions = Pincode::with([
-                    'cityname:id,city_name,district_id,state_id',
-                    'cityname.districtname:id,district_name,state_id',
-                    'cityname.districtname.statename:id,state_name',
-                    'cityname.statename:id,state_name',
-                ])
-                ->where('active', 'Y')
-                ->orderByDesc('id')
-                ->get()
-                ->map(function ($pincode) {
-                    $city = $pincode->cityname;
-                    $district = optional($city)->districtname;
-                    $state = optional($district)->statename ?: optional($city)->statename;
-
-                    return [
-                        'id' => $pincode->id,
-                        'pincode' => $pincode->pincode,
-                        'city' => optional($city)->city_name ?: '',
-                        'district' => optional($district)->district_name ?: '',
-                        'state' => optional($state)->state_name ?: '',
-                    ];
-                })
-                ->values();
-
             $callers = User::permission('call_management_access')
                 ->where('active', 'Y')
                 ->orderBy('name')
@@ -120,9 +95,43 @@ class CallManagementController extends Controller
             'canCreateCall',
             'canImportExport',
             'canEditDelete',
-            'pincodeOptions',
             'callers'
         ));
+    }
+
+    public function searchPincodes(Request $request)
+    {
+        abort_if(Gate::denies('call_management_create') && Gate::denies('call_management_edit_delete'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $pincodes = Pincode::with([
+                'cityname:id,city_name,district_id,state_id',
+                'cityname.districtname:id,district_name,state_id',
+                'cityname.districtname.statename:id,state_name',
+                'cityname.statename:id,state_name',
+            ])
+            ->where('active', 'Y')
+            ->when(trim((string) $request->input('q')), function ($query, $search) {
+                $query->where('pincode', 'like', '%'.$search.'%');
+            })
+            ->orderBy('pincode')
+            ->paginate(20);
+
+        return response()->json([
+            'results' => $pincodes->map(function ($pincode) {
+                $city = $pincode->cityname;
+                $district = optional($city)->districtname;
+                $state = optional($district)->statename ?: optional($city)->statename;
+
+                return [
+                    'id' => $pincode->id,
+                    'text' => $pincode->pincode,
+                    'city' => optional($city)->city_name ?: '',
+                    'district' => optional($district)->district_name ?: '',
+                    'state' => optional($state)->state_name ?: '',
+                ];
+            })->values(),
+            'pagination' => ['more' => $pincodes->hasMorePages()],
+        ]);
     }
 
     public function customerCallHistory(Request $request)

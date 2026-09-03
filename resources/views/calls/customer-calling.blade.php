@@ -141,7 +141,7 @@
                     <thead><tr><th>Call</th><th>Firm Name</th><th>Contact Person</th><th>Mobile</th><th>Customer Type</th><th>City</th><th>State</th><th>Status</th>@role('superadmin')<th>Assigned To</th>@endrole</tr></thead>
                     <tbody>
                         @forelse($entries as $entry)
-                            <tr data-entry-id="{{ $entry->id }}" data-update-url="{{ route('calls.update', $entry) }}" data-firm="{{ $entry->firm_name }}" data-contact="{{ $entry->contact_person_name }}" data-mobile="{{ $entry->mobile_number }}" data-customer-type="{{ $entry->customer_type }}" data-address="{{ $entry->address }}" data-pincode-id="{{ $entry->pincode_id }}" data-caller-id="{{ $entry->assigned_user_id }}">
+                            <tr data-entry-id="{{ $entry->id }}" data-update-url="{{ route('calls.update', $entry) }}" data-firm="{{ $entry->firm_name }}" data-contact="{{ $entry->contact_person_name }}" data-mobile="{{ $entry->mobile_number }}" data-customer-type="{{ $entry->customer_type }}" data-address="{{ $entry->address }}" data-pincode-id="{{ $entry->pincode_id }}" data-pincode="{{ $entry->pincode }}" data-city="{{ $entry->city }}" data-district="{{ $entry->district }}" data-state="{{ $entry->state }}" data-caller-id="{{ $entry->assigned_user_id }}">
                                 <td>
                                     <div class="customer-call-actions">
                                         @if((int) $entry->assigned_user_id === (int) auth()->id())
@@ -198,9 +198,6 @@
                             <label for="createPincode">Pincode *</label>
                             <select class="select2" id="createPincode" name="pincode_id" required style="width:100%;">
                                 <option value="">Select pincode</option>
-                                @foreach($pincodeOptions as $pin)
-                                    <option value="{{ $pin['id'] }}" data-city="{{ $pin['city'] }}" data-district="{{ $pin['district'] }}" data-state="{{ $pin['state'] }}" @selected((string) old('pincode_id') === (string) $pin['id'])>{{ $pin['pincode'] }}</option>
-                                @endforeach
                             </select>
                             @error('pincode_id', 'addCall')<span class="customer-create-field-error">{{ $message }}</span>@enderror
                         </div>
@@ -379,7 +376,8 @@
                         document.getElementById('customerCallEntryId').value = '';
                         customerCallFormTitle.textContent = 'Create New Call';
                         customerCallFormSubmit.textContent = 'Create Call';
-                        if (window.jQuery && jQuery.fn.select2) jQuery(createPincode).val('').trigger('change');
+                        createPincode.replaceChildren(new Option('Select pincode', '', true, true));
+                        if (window.jQuery && jQuery.fn.select2) jQuery(createPincode).trigger('change.select2');
                         fillCreateLocation();
                         setCreateModalOpen(true);
                     });
@@ -393,8 +391,22 @@
                         dropdownParent: jQuery('#customerCreateCallModal'),
                         placeholder: 'Search pincode',
                         allowClear: true,
-                        width: '100%'
-                    }).on('change', fillCreateLocation);
+                        width: '100%',
+                        minimumInputLength: 2,
+                        ajax: {
+                            url: @json(route('customer-calling.pincodes.search')),
+                            dataType: 'json',
+                            delay: 250,
+                            data: function (params) { return { q: params.term || '', page: params.page || 1 }; },
+                            processResults: function (data) { return data; },
+                            cache: true
+                        }
+                    }).on('select2:select', function (event) {
+                        const location = event.params.data || {};
+                        document.getElementById('createCity').value = location.city || '';
+                        document.getElementById('createDistrict').value = location.district || '';
+                        document.getElementById('createState').value = location.state || '';
+                    }).on('select2:clear', fillCreateLocation);
                 }
                 document.getElementById('createMobile').addEventListener('input', function () {
                     this.value = this.value.replace(/\D/g, '').slice(0, 10);
@@ -405,6 +417,9 @@
                     document.querySelectorAll('.edit-customer-call').forEach(function (button) {
                         button.addEventListener('click', function () {
                             const row = button.closest('tr');
+                            customerCallFormTitle.textContent = 'Edit Call';
+                            customerCallFormSubmit.textContent = 'Update Call';
+                            setCreateModalOpen(true);
                             customerCallForm.action = row.dataset.updateUrl;
                             customerCallFormMethod.disabled = false;
                             document.getElementById('customerCallEntryId').value = row.dataset.entryId || '';
@@ -413,13 +428,14 @@
                             document.getElementById('createMobile').value = row.dataset.mobile || '';
                             document.getElementById('createCustomerType').value = row.dataset.customerType || '';
                             document.getElementById('createAddress').value = row.dataset.address || '';
-                            createPincode.value = row.dataset.pincodeId || '';
                             document.getElementById('createCaller').value = row.dataset.callerId || '';
-                            if (window.jQuery && jQuery.fn.select2) jQuery(createPincode).trigger('change');
+                            const selectedPincode = new Option(row.dataset.pincode || '', row.dataset.pincodeId || '', true, true);
+                            selectedPincode.dataset.city = row.dataset.city || '';
+                            selectedPincode.dataset.district = row.dataset.district || '';
+                            selectedPincode.dataset.state = row.dataset.state || '';
+                            createPincode.replaceChildren(selectedPincode);
+                            if (window.jQuery && jQuery.fn.select2) jQuery(createPincode).trigger('change.select2');
                             fillCreateLocation();
-                            customerCallFormTitle.textContent = 'Edit Call';
-                            customerCallFormSubmit.textContent = 'Update Call';
-                            setCreateModalOpen(true);
                         });
                     });
                 @endif
