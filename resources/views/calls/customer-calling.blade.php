@@ -4,16 +4,35 @@
         .customer-calling-page { color: #c5d2f3; }
         .customer-calling-breadcrumb { margin-bottom: 8px; color: #7185bd; font-size: 11px; font-weight: 800; letter-spacing: .22em; text-transform: uppercase; }
         .customer-calling-breadcrumb span { margin-left: 8px; color: #35ccef; }
-        .customer-calling-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
-        .customer-calling-title { margin: 0; color: #f7f9ff; font-size: 25px; font-weight: 800; }
+        .customer-calling-heading { display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:18px; }
+        .customer-calling-heading-main { display:flex;align-items:center;gap:12px; }
+        .customer-calling-title { margin: 0; color: #f7f9ff; font-size: 26px; font-weight: 800;line-height:1.15; }
         .customer-calling-count { display: inline-flex; align-items: center; min-height: 31px; padding: 0 16px; border: 1px solid rgba(34, 211, 238, .48); border-radius: 999px; background: rgba(34, 211, 238, .08); color: #28d7f4; font-size: 13px; font-weight: 800; }
-        .customer-calling-filters { display:grid;grid-template-columns:minmax(220px,1.4fr) minmax(150px,.7fr) minmax(145px,.7fr) minmax(145px,.7fr) auto auto;align-items:end;gap:12px;margin-bottom:14px;padding:16px;border:1px solid rgba(85,126,218,.27);border-radius:14px;background:rgba(7,20,49,.54); }
-        .customer-calling-filter-field label { display:block;margin-bottom:7px;color:#7f91c2;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase; }
-        .customer-calling-filter-field input,.customer-calling-filter-field select { width:100%;height:42px;padding:0 13px;border:1px solid rgba(85,126,218,.3);border-radius:10px;outline:0;background:rgba(5,17,43,.68);color:#c9d6f4;box-shadow:none; }
+        .customer-calling-filter-trigger { display:inline-flex;align-items:center;justify-content:center;gap:9px;min-width:148px;height:44px;padding:0 20px;border:1px solid rgba(85,126,218,.38);border-radius:12px;background:rgba(7,20,49,.62);color:#c7d5f5;font-size:14px;font-weight:700; }
+        .customer-calling-filter-trigger .material-icons { font-size:20px; }
+        .customer-calling-filter-trigger.is-active::after { content:'';width:7px;height:7px;border-radius:50%;background:#2dd4ee;box-shadow:0 0 10px rgba(45,212,238,.8); }
+        .customer-calling-filter-overlay { position:fixed;inset:0;z-index:4500;visibility:hidden;background:rgba(1,8,24,.68);opacity:0;transition:opacity .22s ease,visibility .22s ease;backdrop-filter:blur(3px); }
+        .customer-calling-filter-overlay.show { visibility:visible;opacity:1; }
+        .customer-calling-filter-drawer { position:absolute;top:0;right:0;display:flex;flex-direction:column;width:min(560px,100%);height:100%;border-left:1px solid rgba(85,126,218,.36);background:#081b42;box-shadow:-24px 0 70px rgba(0,0,0,.36);transform:translateX(100%);transition:transform .25s ease; }
+        .customer-calling-filter-overlay.show .customer-calling-filter-drawer { transform:translateX(0); }
+        .customer-calling-filter-head { display:flex;align-items:center;justify-content:space-between;gap:20px;min-height:104px;padding:22px 28px;border-bottom:1px solid rgba(85,126,218,.28); }
+        .customer-calling-filter-heading { display:flex;align-items:center;gap:15px; }
+        .customer-calling-filter-icon { display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border:1px solid rgba(34,211,238,.45);border-radius:13px;background:rgba(34,211,238,.08);color:#2dd4ee; }
+        .customer-calling-filter-heading strong { display:block;color:#f5f8ff;font-size:20px;font-weight:800; }
+        .customer-calling-filter-heading small { display:block;margin-top:3px;color:#8395c4;font-size:13px; }
+        .customer-calling-filter-close { display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border:1px solid rgba(85,126,218,.36);border-radius:11px;background:transparent;color:#aebfe7; }
+        .customer-calling-filters { display:flex;flex:1;flex-direction:column;min-height:0; }
+        .customer-calling-filter-body { flex:1;overflow-y:auto;padding:28px; }
+        .customer-calling-filter-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 18px; }
+        .customer-calling-filter-field.is-wide { grid-column:1/-1; }
+        .customer-calling-filter-field label { display:block;margin-bottom:8px;color:#91a3ce;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase; }
+        .customer-calling-filter-field input,.customer-calling-filter-field select { width:100%;height:46px;padding:0 14px;border:1px solid rgba(85,126,218,.38);border-radius:11px;outline:0;background:#071938;color:#d5e0fa;font-size:14px;box-shadow:none; }
+        .customer-calling-filter-field input:focus,.customer-calling-filter-field select:focus { border-color:rgba(34,211,238,.62);box-shadow:0 0 0 3px rgba(34,211,238,.08); }
         .customer-calling-filter-field input::placeholder { color:#6f81ae; }
-        .customer-calling-filter-submit,.customer-calling-filter-clear { display:inline-flex;align-items:center;justify-content:center;height:42px;padding:0 18px;border-radius:10px;font-size:13px;font-weight:800;text-decoration:none;white-space:nowrap; }
-        .customer-calling-filter-submit { border:0;background:linear-gradient(135deg,#31cfe5,#438ff0);color:#061329; }
-        .customer-calling-filter-clear { border:1px solid rgba(85,126,218,.35);background:transparent;color:#aebfe7; }
+        .customer-calling-filter-actions { display:grid;grid-template-columns:132px 1fr;gap:12px;padding:18px 28px 24px;border-top:1px solid rgba(85,126,218,.28);background:#071837; }
+        .customer-calling-filter-submit,.customer-calling-filter-clear { display:inline-flex;align-items:center;justify-content:center;height:46px;padding:0 18px;border-radius:11px;font-size:14px;font-weight:800;text-decoration:none;white-space:nowrap; }
+        .customer-calling-filter-submit { border:0;background:linear-gradient(135deg,#2bd1e8,#438ff0);color:#061329; }
+        .customer-calling-filter-clear { border:1px solid rgba(85,126,218,.4);background:transparent;color:#b8c7e9; }
         .customer-calling-card { overflow: hidden; border: 1px solid rgba(85, 126, 218, .27); border-radius: 14px; background: rgba(7, 20, 49, .54); }
         .customer-calling-card-head { display: flex; align-items: center; gap: 12px; min-height: 67px; padding: 10px 18px; border-bottom: 1px solid rgba(85, 126, 218, .24); }
         .customer-calling-directory-icon { display: inline-flex; align-items: center; justify-content: center; width: 46px; height: 46px; border: 1px solid rgba(34, 211, 238, .5); border-radius: 12px; background: rgba(34, 211, 238, .08); color: #22d3ee; }
@@ -33,6 +52,7 @@
         .customer-call-message.error { border-color: rgba(248, 113, 113, .4); background: rgba(248, 113, 113, .08); color: #fca5a5; }
         .customer-call-status { display: inline-flex; align-items: center; justify-content: center; min-width: 90px; min-height: 30px; padding: 0 12px; border: 1px solid rgba(34, 211, 238, .34); border-radius: 999px; background: rgba(34, 211, 238, .06); color: #45d6ef; font-size: 11px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
         .customer-calling-empty { padding: 38px 20px !important; color: #7d8fbd !important; text-align: center; }
+        .customer-calling-footer { display:flex;align-items:center;justify-content:space-between;min-height:58px;padding:12px 18px;border-top:1px solid rgba(85,126,218,.22);color:#8193c2;font-size:13px; }
         .call-ended-modal { position:fixed;inset:0;z-index:4000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(1,8,24,.78);backdrop-filter:blur(4px); }
         .call-ended-modal.show { display:flex; }
         .call-ended-dialog { width:min(520px,100%);overflow:hidden;border:1px solid rgba(77,122,221,.42);border-radius:18px;background:#0b1e47;box-shadow:0 28px 80px rgba(0,0,0,.45); }
@@ -48,41 +68,21 @@
         .call-ended-field textarea { min-height:120px;padding:13px;resize:vertical; }
         .call-ended-save { width:100%;height:45px;border:0;border-radius:11px;background:linear-gradient(135deg,#2bd1e8,#62baf7);color:#061329;font-size:14px;font-weight:800; }
         .call-ended-error { display:none;margin-bottom:12px;color:#fca5a5;font-size:12px; }
-        @media (max-width: 1100px) { .customer-calling-filters { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-        @media (max-width: 640px) { .customer-calling-filters { grid-template-columns:1fr; } }
+        @media (max-width: 640px) { .customer-calling-heading { align-items:flex-start; } .customer-calling-title { font-size:22px; } .customer-calling-filter-trigger { min-width:44px;width:44px;padding:0; } .customer-calling-filter-trigger span:not(.material-icons) { display:none; } .customer-calling-filter-head,.customer-calling-filter-body { padding-left:20px;padding-right:20px; } .customer-calling-filter-grid { grid-template-columns:1fr; } .customer-calling-filter-field.is-wide { grid-column:auto; } .customer-calling-filter-actions { grid-template-columns:1fr 1.5fr;padding-left:20px;padding-right:20px; } }
     </style>
 
     <div class="customer-calling-page">
         <div class="customer-calling-breadcrumb">Call Management <span>› &nbsp; Customer Calling</span></div>
         <div class="customer-calling-heading">
-            <h1 class="customer-calling-title">Customer Calling</h1>
-            <span class="customer-calling-count">{{ $totalRecords }} {{ $totalRecords === 1 ? 'record' : 'records' }}</span>
+            <div class="customer-calling-heading-main">
+                <h1 class="customer-calling-title">Customer Calling</h1>
+                <span class="customer-calling-count">{{ $totalRecords }} {{ $totalRecords === 1 ? 'record' : 'records' }}</span>
+            </div>
+            <button class="customer-calling-filter-trigger {{ request()->hasAny(['search', 'status', 'from_date', 'to_date']) ? 'is-active' : '' }}" id="openCustomerCallingFilters" type="button">
+                <span class="material-icons">tune</span><span>Filters</span>
+            </button>
         </div>
         <div class="customer-call-message" id="customerCallMessage" role="status"></div>
-
-        <form class="customer-calling-filters" method="GET" action="{{ route('customer-calling.index') }}">
-            <div class="customer-calling-filter-field">
-                <label for="customerCallingSearch">Search</label>
-                <input id="customerCallingSearch" type="search" name="search" value="{{ request('search') }}" placeholder="Firm, contact person or mobile">
-            </div>
-            <div class="customer-calling-filter-field">
-                <label for="customerCallingStatus">Status</label>
-                <select id="customerCallingStatus" name="status">
-                    <option value="">All</option>
-                    <option value="assigned" @selected(request('status') === 'assigned')>Assigned</option>
-                </select>
-            </div>
-            <div class="customer-calling-filter-field">
-                <label for="customerCallingFromDate">From Date</label>
-                <input id="customerCallingFromDate" type="date" name="from_date" value="{{ request('from_date') }}">
-            </div>
-            <div class="customer-calling-filter-field">
-                <label for="customerCallingToDate">To Date</label>
-                <input id="customerCallingToDate" type="date" name="to_date" value="{{ request('to_date') }}">
-            </div>
-            <button class="customer-calling-filter-submit" type="submit">Apply Filters</button>
-            <a class="customer-calling-filter-clear" href="{{ route('customer-calling.index') }}">Clear</a>
-        </form>
 
         <section class="customer-calling-card">
             <div class="customer-calling-card-head">
@@ -106,7 +106,51 @@
                     </tbody>
                 </table>
             </div>
+            <footer class="customer-calling-footer">
+                <span>Showing {{ $totalRecords }} {{ $totalRecords === 1 ? 'call' : 'calls' }}</span>
+            </footer>
         </section>
+    </div>
+
+    <div class="customer-calling-filter-overlay" id="customerCallingFilterOverlay" aria-hidden="true">
+        <aside class="customer-calling-filter-drawer" role="dialog" aria-modal="true" aria-labelledby="customerCallingFilterTitle">
+            <div class="customer-calling-filter-head">
+                <div class="customer-calling-filter-heading">
+                    <span class="customer-calling-filter-icon"><i class="material-icons">tune</i></span>
+                    <div><strong id="customerCallingFilterTitle">Advanced Filters</strong><small>Filter your calling queue</small></div>
+                </div>
+                <button class="customer-calling-filter-close" id="closeCustomerCallingFilters" type="button" aria-label="Close filters"><i class="material-icons">close</i></button>
+            </div>
+            <form class="customer-calling-filters" method="GET" action="{{ route('customer-calling.index') }}">
+                <div class="customer-calling-filter-body">
+                    <div class="customer-calling-filter-grid">
+                        <div class="customer-calling-filter-field is-wide">
+                            <label for="customerCallingSearch">Search Calls</label>
+                            <input id="customerCallingSearch" type="search" name="search" value="{{ request('search') }}" placeholder="Search firm, contact person or mobile">
+                        </div>
+                        <div class="customer-calling-filter-field is-wide">
+                            <label for="customerCallingStatus">Status</label>
+                            <select id="customerCallingStatus" name="status">
+                                <option value="">All statuses</option>
+                                <option value="assigned" @selected(request('status') === 'assigned')>Assigned</option>
+                            </select>
+                        </div>
+                        <div class="customer-calling-filter-field">
+                            <label for="customerCallingFromDate">From Date</label>
+                            <input id="customerCallingFromDate" type="date" name="from_date" value="{{ request('from_date') }}">
+                        </div>
+                        <div class="customer-calling-filter-field">
+                            <label for="customerCallingToDate">To Date</label>
+                            <input id="customerCallingToDate" type="date" name="to_date" value="{{ request('to_date') }}">
+                        </div>
+                    </div>
+                </div>
+                <div class="customer-calling-filter-actions">
+                    <a class="customer-calling-filter-clear" href="{{ route('customer-calling.index') }}">Reset</a>
+                    <button class="customer-calling-filter-submit" type="submit">Apply Filters</button>
+                </div>
+            </form>
+        </aside>
     </div>
 
     <div class="call-ended-modal" id="callEndedModal" role="dialog" aria-modal="true" aria-labelledby="callEndedTitle" aria-hidden="true">
@@ -140,8 +184,27 @@
             const feedbackForm = document.getElementById('callFeedbackForm');
             const feedbackError = document.getElementById('callFeedbackError');
             const feedbackSave = document.getElementById('saveCallFeedback');
+            const filterOverlay = document.getElementById('customerCallingFilterOverlay');
+            const openFilters = document.getElementById('openCustomerCallingFilters');
+            const closeFilters = document.getElementById('closeCustomerCallingFilters');
             let feedbackUrl = '';
             let activeCallButton = null;
+
+            function setFiltersOpen(isOpen) {
+                filterOverlay.classList.toggle('show', isOpen);
+                filterOverlay.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+                document.body.style.overflow = isOpen ? 'hidden' : '';
+                if (isOpen) window.setTimeout(function () { document.getElementById('customerCallingSearch').focus(); }, 250);
+            }
+
+            openFilters.addEventListener('click', function () { setFiltersOpen(true); });
+            closeFilters.addEventListener('click', function () { setFiltersOpen(false); });
+            filterOverlay.addEventListener('click', function (event) {
+                if (event.target === filterOverlay) setFiltersOpen(false);
+            });
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape' && filterOverlay.classList.contains('show')) setFiltersOpen(false);
+            });
 
             function showMessage(text, isError) {
                 message.textContent = text;
