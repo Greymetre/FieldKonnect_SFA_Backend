@@ -30,13 +30,25 @@ class CallManagementController extends Controller
         $canCreateCall = auth()->user()->can('call_management_create');
         $canImportExport = auth()->user()->can('call_management_import_export');
         $canEditDelete = auth()->user()->can('call_management_edit_delete');
+        $feedbackStatuses = Status::query()
+            ->where('module', Status::MODULE_CALL_MANAGEMENT_FEEDBACK)
+            ->where('active', 'Y')
+            ->orderBy('id')
+            ->get(['id', 'status_name', 'display_name']);
+
+        $selectedStatus = (string) $request->input('status');
+        $selectedFeedbackStatus = str_starts_with($selectedStatus, 'feedback:')
+            ? $feedbackStatuses->firstWhere('id', (int) substr($selectedStatus, 9))
+            : null;
+        $showCompleted = $selectedFeedbackStatus
+            && $this->callManagementFeedbackOutcome($selectedFeedbackStatus) === 'completed';
 
         $query = CallManagementEntry::query()
             ->with([
                 'assignedUser:id,name',
                 'latestCallLog.feedbackStatus:id,status_name,display_name',
             ])
-            ->where('status', 'assigned');
+            ->where('status', $showCompleted ? 'completed' : 'assigned');
 
         if (! auth()->user()->hasRole('superadmin')) {
             $query->where('assigned_user_id', auth()->id());
@@ -89,12 +101,6 @@ class CallManagementController extends Controller
                 return $this->isFollowUpFeedback($feedbackStatus) ? 1 : 0;
             })
             ->values();
-        $feedbackStatuses = Status::query()
-            ->where('module', Status::MODULE_CALL_MANAGEMENT_FEEDBACK)
-            ->where('active', 'Y')
-            ->orderBy('id')
-            ->get(['id', 'status_name', 'display_name']);
-
         $callers = collect();
 
         if ($canCreateCall || $canEditDelete) {
