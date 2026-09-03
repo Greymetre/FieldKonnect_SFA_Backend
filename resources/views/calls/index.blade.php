@@ -131,8 +131,8 @@
                 </div>
             </div>
             <div class="calls-toolbar">
-                <button class="calls-icon-btn calls-upload-btn" id="openCallsImport" type="button"><i class="material-icons">cloud_upload</i>Import Excel</button>
-                <a class="calls-icon-btn" href="{{ route('calls.export') }}" title="Export Excel" aria-label="Export Excel">
+                <button class="calls-icon-btn calls-upload-btn" id="openCallsImport" type="button" @cannot('call_management_import_export') hidden @endcannot><i class="material-icons">cloud_upload</i>Import Excel</button>
+                <a class="calls-icon-btn" href="{{ route('calls.export') }}" title="Export Excel" aria-label="Export Excel" @cannot('call_management_import_export') hidden @endcannot>
                     <i class="material-icons">cloud_download</i>
                 </a>
                 <button class="calls-add-btn" id="openAddCallModal" type="button" hidden><i class="material-icons">add_circle_outline</i>Add Manually</button>

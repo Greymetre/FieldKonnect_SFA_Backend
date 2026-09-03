@@ -14,6 +14,9 @@
         .customer-calling-create { display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border:0;border-radius:12px;background:linear-gradient(135deg,#2bd1e8,#438ff0);color:#061329;font-size:14px;font-weight:800; }
         .customer-calling-create .material-icons { font-size:20px; }
         .customer-calling-heading-actions { display:flex;align-items:center;gap:10px; }
+        .customer-calling-tool { display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:1px solid rgba(85,126,218,.38);border-radius:12px;background:rgba(7,20,49,.62);color:#c7d5f5;text-decoration:none; }
+        .customer-calling-tool:hover { border-color:rgba(34,211,238,.52);color:#2dd4ee; }
+        .customer-calling-tool .material-icons { font-size:20px; }
         .customer-calling-filter-overlay { position:fixed;inset:0;z-index:4500;visibility:hidden;background:rgba(1,8,24,.68);opacity:0;transition:opacity .22s ease,visibility .22s ease;backdrop-filter:blur(3px); }
         .customer-calling-filter-overlay.show { visibility:visible;opacity:1; }
         .customer-calling-filter-drawer { position:absolute;top:0;right:0;display:flex;flex-direction:column;width:min(560px,100%);height:100%;border-left:1px solid rgba(85,126,218,.36);background:#081b42;box-shadow:-24px 0 70px rgba(0,0,0,.36);transform:translateX(100%);transition:transform .25s ease; }
@@ -50,6 +53,7 @@
         .customer-call-btn { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: 1px solid rgba(34, 211, 238, .45); border-radius: 10px; background: rgba(34, 211, 238, .08); color: #2dd4ee; }
         .customer-call-btn .material-icons { font-size: 19px; }
         .customer-call-btn:disabled { cursor: wait; opacity: .55; }
+        .customer-call-btn.is-view-only:disabled { cursor:not-allowed;opacity:.5; }
         .customer-call-message { display: none; margin-bottom: 14px; padding: 11px 14px; border: 1px solid rgba(34, 211, 238, .35); border-radius: 10px; background: rgba(34, 211, 238, .08); color: #73def0; font-size: 13px; }
         .customer-call-message.show { display: block; }
         .customer-call-message.error { border-color: rgba(248, 113, 113, .4); background: rgba(248, 113, 113, .08); color: #fca5a5; }
@@ -67,11 +71,20 @@
         .customer-create-field label { display:block;margin-bottom:7px;color:#91a3ce;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase; }
         .customer-create-field input,.customer-create-field select { width:100%;height:44px;padding:0 13px;border:1px solid rgba(85,126,218,.38);border-radius:10px;outline:0;background:#071938;color:#d5e0fa;font-size:14px; }
         .customer-create-field input[readonly] { color:#8193c2;background:#0a2048; }
+        .customer-create-modal .select2-container { width:100% !important; }
+        .customer-create-modal .select2-container--default .select2-selection--single { height:44px;border:1px solid rgba(85,126,218,.38);border-radius:10px;background:#071938; }
+        .customer-create-modal .select2-container--default .select2-selection--single .select2-selection__rendered { padding-left:13px;color:#d5e0fa;line-height:42px;font-size:14px; }
+        .customer-create-modal .select2-container--default .select2-selection--single .select2-selection__arrow { height:42px;right:8px; }
+        .customer-create-modal .select2-container--open .select2-selection--single { border-color:rgba(34,211,238,.62);box-shadow:0 0 0 3px rgba(34,211,238,.08); }
         .customer-create-field-error { display:block;margin-top:5px;color:#fca5a5;font-size:11px; }
         .customer-create-actions { display:flex;justify-content:flex-end;gap:10px;margin-top:22px; }
         .customer-create-cancel,.customer-create-submit { height:44px;padding:0 20px;border-radius:10px;font-size:14px;font-weight:800; }
         .customer-create-cancel { border:1px solid rgba(85,126,218,.4);background:transparent;color:#b8c7e9; }
         .customer-create-submit { min-width:130px;border:0;background:linear-gradient(135deg,#2bd1e8,#438ff0);color:#061329; }
+        .customer-import-body { padding:24px; }
+        .customer-import-file { display:flex;align-items:center;gap:13px;padding:18px;border:1px dashed rgba(85,126,218,.5);border-radius:12px;background:#071938; }
+        .customer-import-file .material-icons { color:#2dd4ee;font-size:28px; }
+        .customer-import-file input { width:100%;color:#b8c7e9;font-size:13px; }
         .call-ended-modal { position:fixed;inset:0;z-index:4000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(1,8,24,.78);backdrop-filter:blur(4px); }
         .call-ended-modal.show { display:flex; }
         .call-ended-dialog { width:min(520px,100%);overflow:hidden;border:1px solid rgba(77,122,221,.42);border-radius:18px;background:#0b1e47;box-shadow:0 28px 80px rgba(0,0,0,.45); }
@@ -101,6 +114,10 @@
                 <button class="customer-calling-filter-trigger {{ request()->hasAny(['search', 'status', 'from_date', 'to_date']) ? 'is-active' : '' }}" id="openCustomerCallingFilters" type="button">
                     <span class="material-icons">tune</span><span>Filters</span>
                 </button>
+                @if($canImportExport)
+                    <button class="customer-calling-tool" id="openCustomerCallImport" type="button" title="Import Excel" aria-label="Import Excel"><span class="material-icons">cloud_upload</span></button>
+                    <a class="customer-calling-tool" href="{{ route('calls.export') }}" title="Export Excel" aria-label="Export Excel"><span class="material-icons">cloud_download</span></a>
+                @endif
                 @if($canCreateCall)
                     <button class="customer-calling-create" id="openCustomerCreateCall" type="button"><span class="material-icons">add_circle_outline</span><span>Create Call</span></button>
                 @endif
@@ -115,17 +132,24 @@
             </div>
             <div class="customer-calling-scroll">
                 <table class="customer-calling-table">
-                    <thead><tr><th>Call</th><th>Firm Name</th><th>Contact Person</th><th>Mobile</th><th>Customer Type</th><th>City</th><th>State</th><th>Status</th></tr></thead>
+                    <thead><tr><th>Call</th><th>Firm Name</th><th>Contact Person</th><th>Mobile</th><th>Customer Type</th><th>City</th><th>State</th><th>Status</th>@role('superadmin')<th>Assigned To</th>@endrole</tr></thead>
                     <tbody>
                         @forelse($entries as $entry)
                             <tr>
-                                <td><button class="customer-call-btn" type="button" data-call-url="{{ route('customer-calling.call', $entry) }}" title="Call {{ $entry->mobile_number }}" aria-label="Call {{ $entry->mobile_number }}"><i class="material-icons">call</i></button></td>
+                                <td>
+                                    @if((int) $entry->assigned_user_id === (int) auth()->id())
+                                        <button class="customer-call-btn" type="button" data-call-url="{{ route('customer-calling.call', $entry) }}" title="Call {{ $entry->mobile_number }}" aria-label="Call {{ $entry->mobile_number }}"><i class="material-icons">call</i></button>
+                                    @else
+                                        <button class="customer-call-btn is-view-only" type="button" disabled title="Assigned to {{ optional($entry->assignedUser)->name }}"><i class="material-icons">visibility</i></button>
+                                    @endif
+                                </td>
                                 <td>{{ $entry->firm_name }}</td><td>{{ $entry->contact_person_name }}</td><td>{{ $entry->mobile_number }}</td>
                                 <td>{{ $entry->customer_type ?: '—' }}</td><td>{{ $entry->city ?: '—' }}</td><td>{{ $entry->state ?: '—' }}</td>
                                 <td><span class="customer-call-status">{{ optional(optional($entry->latestCallLog)->feedbackStatus)->display_name ?: optional(optional($entry->latestCallLog)->feedbackStatus)->status_name ?: $entry->status }}</span></td>
+                                @role('superadmin')<td>{{ optional($entry->assignedUser)->name ?: '—' }}</td>@endrole
                             </tr>
                         @empty
-                            <tr><td class="customer-calling-empty" colspan="8">No matching assigned calls found.</td></tr>
+                            <tr><td class="customer-calling-empty" colspan="{{ auth()->user()->hasRole('superadmin') ? 9 : 8 }}">No matching assigned calls found.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -154,7 +178,7 @@
                         <div class="customer-create-field"><label for="createAddress">Address</label><input id="createAddress" name="address" type="text" value="{{ old('address') }}" maxlength="500"></div>
                         <div class="customer-create-field">
                             <label for="createPincode">Pincode *</label>
-                            <select id="createPincode" name="pincode_id" required>
+                            <select class="select2" id="createPincode" name="pincode_id" required style="width:100%;">
                                 <option value="">Select pincode</option>
                                 @foreach($pincodeOptions as $pin)
                                     <option value="{{ $pin['id'] }}" data-city="{{ $pin['city'] }}" data-district="{{ $pin['district'] }}" data-state="{{ $pin['state'] }}" @selected((string) old('pincode_id') === (string) $pin['id'])>{{ $pin['pincode'] }}</option>
@@ -177,6 +201,30 @@
                     <div class="customer-create-actions">
                         <button class="customer-create-cancel" id="cancelCustomerCreateCall" type="button">Cancel</button>
                         <button class="customer-create-submit" type="submit">Create Call</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endif
+
+    @if($canImportExport)
+        <div class="customer-create-modal" id="customerCallImportModal" role="dialog" aria-modal="true" aria-labelledby="customerCallImportTitle" aria-hidden="true">
+            <div class="customer-create-dialog" style="width:min(560px,100%);">
+                <div class="customer-create-head">
+                    <h2 id="customerCallImportTitle">Import Calls from Excel</h2>
+                    <button class="customer-create-close" id="closeCustomerCallImport" type="button" aria-label="Close"><i class="material-icons">close</i></button>
+                </div>
+                <form class="customer-import-body" method="POST" action="{{ route('calls.import') }}" enctype="multipart/form-data">
+                    @csrf
+                    <input type="hidden" name="redirect_to" value="customer-calling">
+                    <div class="customer-import-file">
+                        <i class="material-icons">description</i>
+                        <input name="import_file" type="file" accept=".xlsx,.xls,.csv" required>
+                    </div>
+                    @error('import_file', 'importCall')<span class="customer-create-field-error">{{ $message }}</span>@enderror
+                    <div class="customer-create-actions">
+                        <button class="customer-create-cancel" id="cancelCustomerCallImport" type="button">Cancel</button>
+                        <button class="customer-create-submit" type="submit">Import Calls</button>
                     </div>
                 </form>
             </div>
@@ -279,6 +327,9 @@
                 @if($canCreateCall)
                     else if (createModal.classList.contains('show')) setCreateModalOpen(false);
                 @endif
+                @if($canImportExport)
+                    else if (importModal.classList.contains('show')) setImportModalOpen(false);
+                @endif
             });
 
             @if($canCreateCall)
@@ -303,6 +354,14 @@
                 document.getElementById('cancelCustomerCreateCall').addEventListener('click', function () { setCreateModalOpen(false); });
                 createModal.addEventListener('click', function (event) { if (event.target === createModal) setCreateModalOpen(false); });
                 createPincode.addEventListener('change', fillCreateLocation);
+                if (window.jQuery && jQuery.fn.select2) {
+                    jQuery(createPincode).select2({
+                        dropdownParent: jQuery('#customerCreateCallModal'),
+                        placeholder: 'Search pincode',
+                        allowClear: true,
+                        width: '100%'
+                    }).on('change', fillCreateLocation);
+                }
                 document.getElementById('createMobile').addEventListener('input', function () {
                     this.value = this.value.replace(/\D/g, '').slice(0, 10);
                 });
@@ -310,6 +369,25 @@
 
                 @if($errors->addCall->any())
                     setCreateModalOpen(true);
+                @endif
+            @endif
+
+            @if($canImportExport)
+                const importModal = document.getElementById('customerCallImportModal');
+
+                function setImportModalOpen(isOpen) {
+                    importModal.classList.toggle('show', isOpen);
+                    importModal.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+                    document.body.style.overflow = isOpen ? 'hidden' : '';
+                }
+
+                document.getElementById('openCustomerCallImport').addEventListener('click', function () { setImportModalOpen(true); });
+                document.getElementById('closeCustomerCallImport').addEventListener('click', function () { setImportModalOpen(false); });
+                document.getElementById('cancelCustomerCallImport').addEventListener('click', function () { setImportModalOpen(false); });
+                importModal.addEventListener('click', function (event) { if (event.target === importModal) setImportModalOpen(false); });
+
+                @if($errors->importCall->any())
+                    setImportModalOpen(true);
                 @endif
             @endif
 

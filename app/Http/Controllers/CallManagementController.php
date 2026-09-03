@@ -72,11 +72,18 @@ class CallManagementController extends Controller
         abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $canCreateCall = auth()->user()->can('call_management_create');
+        $canImportExport = auth()->user()->can('call_management_import_export');
 
         $query = CallManagementEntry::query()
-            ->with('latestCallLog.feedbackStatus:id,status_name,display_name')
-            ->where('assigned_user_id', auth()->id())
+            ->with([
+                'assignedUser:id,name',
+                'latestCallLog.feedbackStatus:id,status_name,display_name',
+            ])
             ->where('status', 'assigned');
+
+        if (! auth()->user()->hasRole('superadmin')) {
+            $query->where('assigned_user_id', auth()->id());
+        }
 
         if ($search = trim((string) $request->input('search'))) {
             $query->where(function ($searchQuery) use ($search) {
@@ -154,6 +161,7 @@ class CallManagementController extends Controller
             'entries',
             'feedbackStatuses',
             'canCreateCall',
+            'canImportExport',
             'pincodeOptions',
             'callers'
         ));
@@ -482,7 +490,11 @@ class CallManagementController extends Controller
 
     public function import(Request $request)
     {
-        abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        abort_if(Gate::denies('call_management_import_export'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $redirectRoute = $request->input('redirect_to') === 'customer-calling'
+            ? 'customer-calling.index'
+            : 'calls.index';
 
         $request->validateWithBag('importCall', [
             'import_file' => [
@@ -513,7 +525,7 @@ class CallManagementController extends Controller
                 ]);
             }
 
-            $redirect = redirect()->route('calls.index')->with(
+            $redirect = redirect()->route($redirectRoute)->with(
                 'message_success',
                 $import->createdCount().' call entries created and '
                 .$import->updatedCount().' call entries updated successfully.'
@@ -528,14 +540,14 @@ class CallManagementController extends Controller
 
             return $redirect;
         } catch (ValidationException $exception) {
-            return redirect()->route('calls.index')->withErrors(
+            return redirect()->route($redirectRoute)->withErrors(
                 $exception->errors(),
                 'importCall'
             );
         } catch (Throwable $exception) {
             report($exception);
 
-            return redirect()->route('calls.index')->withErrors([
+            return redirect()->route($redirectRoute)->withErrors([
                 'import_file' => $exception->getMessage(),
             ], 'importCall');
         }
@@ -543,7 +555,7 @@ class CallManagementController extends Controller
 
     public function export()
     {
-        abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        abort_if(Gate::denies('call_management_import_export'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         return Excel::download(new CallManagementEntryExport, 'call-management-entries.xlsx');
     }
