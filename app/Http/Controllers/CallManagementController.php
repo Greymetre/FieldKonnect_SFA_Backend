@@ -124,7 +124,11 @@ class CallManagementController extends Controller
         $canEditDelete = auth()->user()->can('call_management_edit_delete');
         $canViewAllAgents = auth()->user()->hasRole('superadmin') || auth()->user()->hasRole('Admin');
         $filterAgents = $canViewAllAgents
-            ? User::permission('call_management_access')->where('active', 'Y')->orderBy('name')->get(['id', 'name'])
+            ? User::permission('call_management_access')
+                ->where('active', 'Y')
+                ->where('call_management', 1)
+                ->orderBy('name')
+                ->get(['id', 'name'])
             : collect();
         $feedbackStatuses = Status::query()
             ->where('module', Status::MODULE_CALL_MANAGEMENT_FEEDBACK)
