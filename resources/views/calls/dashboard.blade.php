@@ -13,6 +13,7 @@
             <article class="call-dashboard-kpi"><small>Call Connected</small><strong>{{ number_format($connected) }}</strong><em>↗ {{ $connectRate }}% connect rate</em><i class="material-icons">phone_in_talk</i></article>
             <article class="call-dashboard-kpi"><small>Not Connected</small><strong>{{ number_format($notConnected) }}</strong><i class="material-icons">phone_missed</i></article>
             <article class="call-dashboard-kpi"><small>Live Agents</small><strong>{{ number_format($liveAgents) }}</strong><i class="material-icons">support_agent</i></article>
+            <article class="call-dashboard-kpi"><small>Agents On Call</small><strong id="agentsOnCallCount">{{ number_format($agentsOnCall) }}</strong><em>Currently connected · live</em><i class="material-icons">phone_in_talk</i></article>
             <article class="call-dashboard-kpi"><small>Total Talk Time</small><strong>{{ $totalTalkTime }}</strong><i class="material-icons">schedule</i></article>
             <article class="call-dashboard-kpi"><small>Pending Calls</small><strong>{{ number_format($pendingCalls) }}</strong><i class="material-icons">pending_actions</i></article>
         </section>
@@ -61,6 +62,13 @@
                 ctx.fillStyle='#dfe8ff';values.forEach((value,i)=>ctx.fillText(value,left+i*step,Math.max(12,points[i][1]-10)));
             };
             draw(); window.addEventListener('resize', draw);
+
+            const refreshOnCallCount = () => fetch(@json(route('call-management.dashboard.on-call-count')), {
+                headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'}
+            }).then(response => response.ok ? response.json() : Promise.reject())
+              .then(data => { document.getElementById('agentsOnCallCount').textContent = Number(data.count || 0).toLocaleString(); })
+              .catch(() => {});
+            window.setInterval(refreshOnCallCount, 15000);
         });
     </script>
 </x-app-layout>

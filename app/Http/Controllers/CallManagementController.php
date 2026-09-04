@@ -55,6 +55,12 @@ class CallManagementController extends Controller
         }
 
         $agents = $agentQuery->orderBy('name')->get(['id', 'name']);
+        $agentsOnCall = (clone $calls)
+            ->whereNotNull('answered_at')
+            ->whereNull('completed_at')
+            ->where('updated_at', '>=', now()->subHours(2))
+            ->distinct()
+            ->count('user_id');
         $agentCounts = (clone $calls)
             ->selectRaw('user_id, COUNT(*) as total')
             ->groupBy('user_id')
@@ -83,12 +89,30 @@ class CallManagementController extends Controller
             'notConnected' => max(0, $totalDial - $connected),
             'connectRate' => $totalDial ? round(($connected / $totalDial) * 100, 1) : 0,
             'liveAgents' => $agents->count(),
+            'agentsOnCall' => $agentsOnCall,
             'totalTalkTime' => $this->formatDashboardDuration($totalTalkTime),
             'pendingCalls' => $pendingCalls->count(),
             'agentCallCounts' => $agentCallCounts,
             'trend' => $trend,
             'canViewAllAgents' => $canViewAllAgents,
         ]);
+    }
+
+    public function onCallCount()
+    {
+        abort_if(Gate::denies('call_management_dashboard_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $calls = CallLog::query()
+            ->whereNotNull('call_management_entry_id')
+            ->whereNotNull('answered_at')
+            ->whereNull('completed_at')
+            ->where('updated_at', '>=', now()->subHours(2));
+
+        if (! auth()->user()->hasRole('superadmin') && ! auth()->user()->hasRole('Admin')) {
+            $calls->where('user_id', auth()->id());
+        }
+
+        return response()->json(['count' => $calls->distinct()->count('user_id')]);
     }
 
     public function customerCalling(Request $request)
