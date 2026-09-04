@@ -9,7 +9,8 @@ return [
         'answer_url' => env('PLIVO_ANSWER_URL'),
         'status_url' => env('PLIVO_STATUS_URL'),
         'recording_url' => env('PLIVO_RECORDING_URL'),
-        'usd_to_inr_rate' => env('PLIVO_USD_TO_INR_RATE', 94.50),
+        // Plivo's INR console uses its own billing-credit conversion, not the live forex rate.
+        'usd_to_inr_rate' => env('PLIVO_USD_TO_INR_RATE', 80.00),
     ],
 
     /*

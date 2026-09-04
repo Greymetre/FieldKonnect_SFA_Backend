@@ -87,7 +87,7 @@
             </div>
             <div class="call-dashboard-hero-meta">
                 @role('superadmin')
-                    <div class="call-dashboard-plivo" title="Approximate INR value based on the configured USD to INR rate">
+                    <div class="call-dashboard-plivo" title="INR value based on the configured Plivo billing-credit rate">
                         <i class="material-icons">account_balance_wallet</i>
                         <span><small>Plivo Balance</small><strong id="plivoBalanceValue">Loading...</strong></span>
                     </div>

@@ -125,7 +125,7 @@ class CallManagementController extends Controller
 
         $authId = config('services.plivo.auth_id');
         $authToken = config('services.plivo.auth_token');
-        $usdToInrRate = (float) config('services.plivo.usd_to_inr_rate', 94.50);
+        $usdToInrRate = (float) config('services.plivo.usd_to_inr_rate', 80.00);
 
         if (empty($authId) || empty($authToken) || $usdToInrRate <= 0) {
             return response()->json(['message' => 'Plivo balance configuration is incomplete.'], Response::HTTP_SERVICE_UNAVAILABLE);
