@@ -62,7 +62,9 @@ class TranscribeCallRecording implements ShouldQueue
             'job_id' => $jobId,
             'files' => [$fileName],
         ])->throw()->json();
-        $uploadUrl = data_get($upload, 'upload_urls.'.$fileName.'.file_url');
+        // Filenames contain a dot (for example, call-123.mp3), so direct array
+        // access is required; data_get() would treat the dot as path notation.
+        $uploadUrl = $upload['upload_urls'][$fileName]['file_url'] ?? null;
         if (! $uploadUrl) throw new RuntimeException('Sarvam did not return an upload URL.');
 
         Http::withHeaders(['x-ms-blob-type' => 'BlockBlob', 'Content-Type' => $contentType])
@@ -85,7 +87,7 @@ class TranscribeCallRecording implements ShouldQueue
             'job_id' => $jobId,
             'files' => [$outputFile],
         ])->throw()->json();
-        $downloadUrl = data_get($download, 'download_urls.'.$outputFile.'.file_url');
+        $downloadUrl = $download['download_urls'][$outputFile]['file_url'] ?? null;
         if (! $downloadUrl) throw new RuntimeException('Sarvam did not return a transcript download URL.');
         $result = Http::timeout(60)->get($downloadUrl)->throw()->json();
 
