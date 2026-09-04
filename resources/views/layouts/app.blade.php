@@ -1931,32 +1931,38 @@
                         </li>
                         @endif
                         @if(auth()->user()->can('call_management_access') || auth()->user()->can('call_management_dashboard_access'))
-                        <li class="fk-menu-section"><span>Call Management</span></li>
-                        @if(auth()->user()->can('call_management_dashboard_access'))
-                        <li class="nav-link hide_icon {{ request()->routeIs('call-management.dashboard') ? 'active' : '' }}">
-                            <a class="collapsed hoveradd" href="{{ route('call-management.dashboard') }}">
-                                <i class="material-icons icon">dashboard</i>
-                                <span>Dashboard</span>
-                                <div class="d-none mobile_hide">Dashboard</div>
+                        @php($callManagementMenuActive = request()->routeIs('call-management.dashboard', 'customer-calling.*', 'customer-call-history.*'))
+                        <li class="fk-menu-section"><span>Operations</span></li>
+                        <li class="nav-link {{ $callManagementMenuActive ? 'active' : '' }}">
+                            <a class="hoveradd {{ $callManagementMenuActive ? '' : 'collapsed' }}" data-toggle="collapse" href="#callManagementMenu" aria-expanded="{{ $callManagementMenuActive ? 'true' : 'false' }}" aria-controls="callManagementMenu">
+                                <i class="material-icons icon">headset_mic</i>
+                                <span>Call Management</span>
+                                <div class="d-none mobile_hide">Call Management</div>
                             </a>
+                            <div class="collapse {{ $callManagementMenuActive ? 'show' : '' }}" id="callManagementMenu">
+                                <ul class="navd">
+                                    @if(auth()->user()->can('call_management_dashboard_access'))
+                                    <li class="nav-link-btn {{ request()->routeIs('call-management.dashboard') ? 'active' : '' }}">
+                                        <a class="hoveradd2" href="{{ route('call-management.dashboard') }}">
+                                            <i class="material-icons icon">dashboard</i><span>Dashboard</span><div class="d-none mobile_hide">Dashboard</div>
+                                        </a>
+                                    </li>
+                                    @endif
+                                    @if(auth()->user()->can('call_management_access'))
+                                    <li class="nav-link-btn {{ request()->routeIs('customer-calling.*') ? 'active' : '' }}">
+                                        <a class="hoveradd2" href="{{ route('customer-calling.index') }}">
+                                            <i class="material-icons icon">support_agent</i><span>Customer Calling</span><div class="d-none mobile_hide">Customer Calling</div>
+                                        </a>
+                                    </li>
+                                    <li class="nav-link-btn {{ request()->routeIs('customer-call-history.*') ? 'active' : '' }}">
+                                        <a class="hoveradd2" href="{{ route('customer-call-history.index') }}">
+                                            <i class="material-icons icon">history</i><span>Call History</span><div class="d-none mobile_hide">Call History</div>
+                                        </a>
+                                    </li>
+                                    @endif
+                                </ul>
+                            </div>
                         </li>
-                        @endif
-                        @if(auth()->user()->can('call_management_access'))
-                        <li class="nav-link hide_icon {{ request()->routeIs('customer-calling.index') ? 'active' : '' }}">
-                            <a class="collapsed hoveradd" href="{{ route('customer-calling.index') }}">
-                                <i class="material-icons icon">support_agent</i>
-                                <span>Customer Calling</span>
-                                <div class="d-none mobile_hide">Customer Calling</div>
-                            </a>
-                        </li>
-                        <li class="nav-link hide_icon {{ request()->routeIs('customer-call-history.index') ? 'active' : '' }}">
-                            <a class="collapsed hoveradd" href="{{ route('customer-call-history.index') }}">
-                                <i class="material-icons icon">history</i>
-                                <span>Call History</span>
-                                <div class="d-none mobile_hide">Call History</div>
-                            </a>
-                        </li>
-                        @endif
                         @endif
                         @if(auth()->user()->can(['expenses_type']))
                         <!-- <li class="nav-item {{ request()->is('expenses_type') ? 'active' : '' }}">
