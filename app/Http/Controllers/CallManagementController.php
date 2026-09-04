@@ -122,6 +122,10 @@ class CallManagementController extends Controller
         $canCreateCall = auth()->user()->can('call_management_create');
         $canImportExport = auth()->user()->can('call_management_import_export');
         $canEditDelete = auth()->user()->can('call_management_edit_delete');
+        $canViewAllAgents = auth()->user()->hasRole('superadmin') || auth()->user()->hasRole('Admin');
+        $filterAgents = $canViewAllAgents
+            ? User::permission('call_management_access')->where('active', 'Y')->orderBy('name')->get(['id', 'name'])
+            : collect();
         $feedbackStatuses = Status::query()
             ->where('module', Status::MODULE_CALL_MANAGEMENT_FEEDBACK)
             ->where('active', 'Y')
@@ -143,8 +147,10 @@ class CallManagementController extends Controller
             ])
             ->where('status', $showCompleted ? 'completed' : 'assigned');
 
-        if (! auth()->user()->hasRole('superadmin')) {
+        if (! $canViewAllAgents) {
             $query->where('assigned_user_id', auth()->id());
+        } elseif ($request->filled('agent_id') && $filterAgents->contains('id', $request->integer('agent_id'))) {
+            $query->where('assigned_user_id', $request->integer('agent_id'));
         }
 
         if ($search = trim((string) $request->input('search'))) {
@@ -248,6 +254,8 @@ class CallManagementController extends Controller
             'canCreateCall',
             'canImportExport',
             'canEditDelete',
+            'canViewAllAgents',
+            'filterAgents',
             'callers',
             'pincodes'
         ));

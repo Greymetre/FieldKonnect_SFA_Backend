@@ -190,7 +190,7 @@
                 <span class="customer-calling-count">{{ $totalRecords }} {{ $totalRecords === 1 ? 'record' : 'records' }}</span>
             </div>
             <div class="customer-calling-heading-actions">
-                <button class="customer-calling-filter-trigger {{ request()->hasAny(['search', 'status', 'from_date', 'to_date']) ? 'is-active' : '' }}" id="openCustomerCallingFilters" type="button">
+                <button class="customer-calling-filter-trigger {{ request()->hasAny(['search', 'status', 'agent_id', 'from_date', 'to_date']) ? 'is-active' : '' }}" id="openCustomerCallingFilters" type="button">
                     <span class="material-icons">tune</span><span>Filters</span>
                 </button>
                 @if($canImportExport)
@@ -207,11 +207,11 @@
         <section class="customer-calling-card">
             <div class="customer-calling-card-head">
                 <span class="customer-calling-directory-icon"><i class="material-icons">support_agent</i></span>
-                <div><strong>My Calling Queue</strong><small>Calls assigned to you · Page {{ $entries->currentPage() }} of {{ $entries->lastPage() }}</small></div>
+                <div><strong>{{ $canViewAllAgents ? 'Calling Queue' : 'My Calling Queue' }}</strong><small>{{ $canViewAllAgents ? 'Calls assigned to all agents' : 'Calls assigned to you' }} · Page {{ $entries->currentPage() }} of {{ $entries->lastPage() }}</small></div>
             </div>
             <div class="customer-calling-scroll">
                 <table class="customer-calling-table">
-                    <thead><tr><th>Call</th><th>Firm Name</th><th>Contact Person</th><th>Mobile</th><th>Customer Type</th><th>City</th><th>State</th><th>Status</th><th>Follow-up Date</th><th>Latest Note</th>@role('superadmin')<th>Assigned To</th>@endrole</tr></thead>
+                    <thead><tr><th>Call</th><th>Firm Name</th><th>Contact Person</th><th>Mobile</th><th>Customer Type</th><th>City</th><th>State</th><th>Status</th><th>Follow-up Date</th><th>Latest Note</th>@if($canViewAllAgents)<th>Assigned To</th>@endif</tr></thead>
                     <tbody>
                         @forelse($entries as $entry)
                             <tr data-entry-id="{{ $entry->id }}" data-update-url="{{ route('calls.update', $entry) }}" data-firm="{{ $entry->firm_name }}" data-contact="{{ $entry->contact_person_name }}" data-mobile="{{ $entry->mobile_number }}" data-customer-type="{{ $entry->customer_type }}" data-address="{{ $entry->address }}" data-pincode-id="{{ $entry->pincode_id }}" data-pincode="{{ $entry->pincode }}" data-city="{{ $entry->city }}" data-district="{{ $entry->district }}" data-state="{{ $entry->state }}" data-caller-id="{{ $entry->assigned_user_id }}" data-custom-column-1="{{ $entry->custom_column_1 }}" data-custom-column-2="{{ $entry->custom_column_2 }}" data-custom-column-3="{{ $entry->custom_column_3 }}" data-custom-column-4="{{ $entry->custom_column_4 }}">
@@ -244,10 +244,10 @@
                                         <span class="customer-note-preview">—</span>
                                     @endif
                                 </td>
-                                @role('superadmin')<td>{{ optional($entry->assignedUser)->name ?: '—' }}</td>@endrole
+                                @if($canViewAllAgents)<td>{{ optional($entry->assignedUser)->name ?: '—' }}</td>@endif
                             </tr>
                         @empty
-                            <tr><td class="customer-calling-empty" colspan="{{ auth()->user()->hasRole('superadmin') ? 11 : 10 }}">No matching assigned calls found.</td></tr>
+                            <tr><td class="customer-calling-empty" colspan="{{ $canViewAllAgents ? 11 : 10 }}">No matching assigned calls found.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -388,6 +388,17 @@
                                 @endforeach
                             </select>
                         </div>
+                        @if($canViewAllAgents)
+                            <div class="customer-calling-filter-field is-wide">
+                                <label for="customerCallingAgent">Agent</label>
+                                <select class="select2" id="customerCallingAgent" name="agent_id" style="width:100%;">
+                                    <option value="">All agents</option>
+                                    @foreach($filterAgents as $agent)
+                                        <option value="{{ $agent->id }}" @selected((string) request('agent_id') === (string) $agent->id)>{{ $agent->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        @endif
                         <div class="customer-calling-filter-field">
                             <label for="customerCallingFromDate">From Date</label>
                             <input id="customerCallingFromDate" type="date" name="from_date" value="{{ request('from_date') }}">
@@ -576,6 +587,16 @@
                     minimumResultsForSearch: Infinity,
                     width: '100%'
                 });
+                const agentSelect = jQuery('#customerCallingAgent');
+                if (agentSelect.length) {
+                    if (agentSelect.hasClass('select2-hidden-accessible')) agentSelect.select2('destroy');
+                    agentSelect.select2({
+                        dropdownParent: jQuery('#customerCallingFilterOverlay'),
+                        placeholder: 'All agents',
+                        allowClear: true,
+                        width: '100%'
+                    });
+                }
             }
 
             function setFiltersOpen(isOpen) {
