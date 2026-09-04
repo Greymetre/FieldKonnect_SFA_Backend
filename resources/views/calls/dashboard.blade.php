@@ -18,7 +18,7 @@
         .call-dashboard-kpi::before { content:'';position:absolute;z-index:-1;right:-35px;bottom:-50px;width:125px;height:125px;border-radius:50%;background:radial-gradient(circle,rgba(var(--accent-rgb),.13),transparent 68%); }
         .call-dashboard-kpi::after { right:14px;left:14px;background:rgb(var(--accent-rgb));opacity:.9; }
         .call-dashboard-kpi:nth-child(1){--accent-rgb:45,212,238}.call-dashboard-kpi:nth-child(2){--accent-rgb:38,212,174}.call-dashboard-kpi:nth-child(3){--accent-rgb:239,77,123}.call-dashboard-kpi:nth-child(4){--accent-rgb:247,185,85}.call-dashboard-kpi:nth-child(5){--accent-rgb:84,148,244}.call-dashboard-kpi:nth-child(6){--accent-rgb:38,212,174}.call-dashboard-kpi:nth-child(7){--accent-rgb:168,125,244}
-        .call-dashboard-kpis.is-operations .call-dashboard-kpi:nth-child(1){--accent-rgb:84,148,244}.call-dashboard-kpis.is-operations .call-dashboard-kpi:nth-child(2){--accent-rgb:38,212,174}.call-dashboard-kpis.is-operations .call-dashboard-kpi:nth-child(3){--accent-rgb:168,125,244}
+        .call-dashboard-kpis.is-operations .call-dashboard-kpi:nth-child(1){--accent-rgb:45,212,238}.call-dashboard-kpis.is-operations .call-dashboard-kpi:nth-child(2){--accent-rgb:84,148,244}.call-dashboard-kpis.is-operations .call-dashboard-kpi:nth-child(3){--accent-rgb:38,212,174}.call-dashboard-kpis.is-operations .call-dashboard-kpi:nth-child(4){--accent-rgb:168,125,244}
         .call-dashboard-kpi i { color:rgb(var(--accent-rgb))!important;border-color:rgba(var(--accent-rgb),.22)!important;background:rgba(var(--accent-rgb),.09)!important; }
         .call-dashboard-kpi strong { font-size:25px; }
         .call-dashboard-kpi-meta { display:flex;align-items:center;gap:6px;margin-top:8px;color:#7287ba;font-size:10px;font-weight:700; }
@@ -50,7 +50,7 @@
         .call-dashboard-kpis { grid-template-columns:repeat(12,minmax(0,1fr));gap:10px;margin-bottom:14px; }
         .call-dashboard-kpi { grid-column:span 3;min-height:92px;padding:14px 15px;border-color:rgba(85,126,218,.28);border-radius:12px;background:linear-gradient(145deg,rgba(10,32,76,.9),rgba(6,22,54,.82));box-shadow:0 8px 22px rgba(0,0,0,.08);transition:border-color .18s ease,transform .18s ease,box-shadow .18s ease; }
         .call-dashboard-kpi:nth-child(n+5) { grid-column:span 4; }
-        .call-dashboard-kpis.is-operations .call-dashboard-kpi { grid-column:span 4; }
+        .call-dashboard-kpis.is-operations .call-dashboard-kpi { grid-column:span 3; }
         .call-dashboard-kpi:hover { border-color:rgba(45,212,238,.42);box-shadow:0 12px 30px rgba(0,0,0,.14);transform:translateY(-2px); }
         .call-dashboard-kpi::after { content:'';position:absolute;right:0;bottom:0;left:0;height:2px;border-radius:0 0 12px 12px;background:linear-gradient(90deg,transparent,rgba(45,212,238,.65),transparent);opacity:.55; }
         .call-dashboard-kpi i { top:13px;right:14px;display:flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px solid rgba(45,212,238,.18);border-radius:9px;background:rgba(45,212,238,.07);font-size:17px; }
@@ -94,6 +94,7 @@
         </section>
         <div class="call-dashboard-section-title">Live operations</div>
         <section class="call-dashboard-kpis is-operations">
+            <article class="call-dashboard-kpi"><small>Today's Calls</small><strong>{{ number_format($todayCalls) }}</strong><div class="call-dashboard-kpi-meta">Dialed today</div><i class="material-icons">today</i></article>
             <article class="call-dashboard-kpi"><small>Live Agents</small><strong>{{ number_format($liveAgents) }}</strong><div class="call-dashboard-kpi-meta">Calling enabled</div><i class="material-icons">support_agent</i></article>
             <article class="call-dashboard-kpi"><small>Agents On Call</small><strong id="agentsOnCallCount">{{ number_format($agentsOnCall) }}</strong><div class="call-dashboard-kpi-meta is-live">Currently connected</div><i class="material-icons">phone_in_talk</i></article>
             <article class="call-dashboard-kpi"><small>Total Talk Time</small><strong>{{ $totalTalkTime }}</strong><div class="call-dashboard-kpi-meta">Connected duration</div><i class="material-icons">schedule</i></article>

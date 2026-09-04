@@ -46,6 +46,7 @@ class CallManagementController extends Controller
         });
         $connected = $connectedQuery->count();
         $totalTalkTime = (int) (clone $connectedQuery)->sum('duration');
+        $todayCalls = (clone $calls)->whereDate('started_at', today())->count();
 
         $agentQuery = User::permission('call_management_access')
             ->where('active', 'Y')
@@ -91,6 +92,7 @@ class CallManagementController extends Controller
             'liveAgents' => $agents->count(),
             'agentsOnCall' => $agentsOnCall,
             'totalTalkTime' => $this->formatDashboardDuration($totalTalkTime),
+            'todayCalls' => $todayCalls,
             'pendingCalls' => $pendingCalls->count(),
             'agentCallCounts' => $agentCallCounts,
             'trend' => $trend,
