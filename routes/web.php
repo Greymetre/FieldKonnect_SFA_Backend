@@ -1394,6 +1394,7 @@ Route::post('ajax/user-cities-by-district', [TourController::class, 'ajaxUserCit
     Route::get('call-management/{callLog}', [LeadCallLogController::class, 'show'])->name('call-management.show');
 
     // Call Management
+    Route::get('call-management-dashboard', [CallManagementController::class, 'dashboard'])->name('call-management.dashboard');
     Route::post('calls', [CallManagementController::class, 'store'])->name('calls.store');
     Route::post('calls/import', [CallManagementController::class, 'import'])->name('calls.import');
     Route::get('calls/export', [CallManagementController::class, 'export'])->name('calls.export');

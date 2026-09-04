@@ -24,6 +24,73 @@ use Throwable;
 
 class CallManagementController extends Controller
 {
+    public function dashboard()
+    {
+        abort_if(Gate::denies('call_management_dashboard_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $user = auth()->user();
+        $canViewAllAgents = $user->hasRole('superadmin') || $user->hasRole('Admin');
+        $calls = CallLog::query()->whereNotNull('call_management_entry_id');
+        $pendingCalls = CallManagementEntry::query()->where('status', 'assigned');
+
+        if (! $canViewAllAgents) {
+            $calls->where('user_id', $user->id);
+            $pendingCalls->where('assigned_user_id', $user->id);
+        }
+
+        $totalDial = (clone $calls)->count();
+        $connectedQuery = (clone $calls)->where(function ($query) {
+            $query->where('duration', '>', 0)
+                ->orWhere('status', 1)
+                ->orWhereNotNull('recording_url');
+        });
+        $connected = $connectedQuery->count();
+        $totalTalkTime = (int) (clone $connectedQuery)->sum('duration');
+
+        $agentQuery = User::permission('call_management_access')
+            ->where('active', 'Y')
+            ->where('call_management', 1);
+        if (! $canViewAllAgents) {
+            $agentQuery->whereKey($user->id);
+        }
+
+        $agents = $agentQuery->orderBy('name')->get(['id', 'name']);
+        $agentCounts = (clone $calls)
+            ->selectRaw('user_id, COUNT(*) as total')
+            ->groupBy('user_id')
+            ->pluck('total', 'user_id');
+        $agentCallCounts = $agents->map(function (User $agent) use ($agentCounts) {
+            $agent->setAttribute('dashboard_calls_count', (int) ($agentCounts[$agent->id] ?? 0));
+
+            return $agent;
+        })->sortByDesc('dashboard_calls_count')->values();
+
+        $trendStart = today()->subDays(6);
+        $trendCounts = (clone $calls)
+            ->whereDate('started_at', '>=', $trendStart)
+            ->selectRaw('DATE(started_at) as call_date, COUNT(*) as total')
+            ->groupBy(DB::raw('DATE(started_at)'))
+            ->pluck('total', 'call_date');
+        $trend = collect(range(0, 6))->map(function ($offset) use ($trendStart, $trendCounts) {
+            $date = $trendStart->copy()->addDays($offset);
+
+            return ['label' => $date->format('d M'), 'total' => (int) ($trendCounts[$date->toDateString()] ?? 0)];
+        });
+
+        return view('calls.dashboard', [
+            'totalDial' => $totalDial,
+            'connected' => $connected,
+            'notConnected' => max(0, $totalDial - $connected),
+            'connectRate' => $totalDial ? round(($connected / $totalDial) * 100, 1) : 0,
+            'liveAgents' => $agents->count(),
+            'totalTalkTime' => $this->formatDashboardDuration($totalTalkTime),
+            'pendingCalls' => $pendingCalls->count(),
+            'agentCallCounts' => $agentCallCounts,
+            'trend' => $trend,
+            'canViewAllAgents' => $canViewAllAgents,
+        ]);
+    }
+
     public function customerCalling(Request $request)
     {
         abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
@@ -282,6 +349,17 @@ class CallManagementController extends Controller
         }
 
         return $query;
+    }
+
+    private function formatDashboardDuration(int $seconds): string
+    {
+        $hours = intdiv($seconds, 3600);
+        $minutes = intdiv($seconds % 3600, 60);
+        $remainingSeconds = $seconds % 60;
+
+        return $hours > 0
+            ? sprintf('%dh %02dm %02ds', $hours, $minutes, $remainingSeconds)
+            : sprintf('%dm %02ds', $minutes, $remainingSeconds);
     }
 
     public function initiateCustomerCall(CallManagementEntry $callManagementEntry)

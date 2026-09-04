@@ -1930,8 +1930,18 @@
                             </div>
                         </li>
                         @endif
-                        @if(auth()->user()->can('call_management_access'))
+                        @if(auth()->user()->can('call_management_access') || auth()->user()->can('call_management_dashboard_access'))
                         <li class="fk-menu-section"><span>Call Management</span></li>
+                        @if(auth()->user()->can('call_management_dashboard_access'))
+                        <li class="nav-link hide_icon {{ request()->routeIs('call-management.dashboard') ? 'active' : '' }}">
+                            <a class="collapsed hoveradd" href="{{ route('call-management.dashboard') }}">
+                                <i class="material-icons icon">dashboard</i>
+                                <span>Dashboard</span>
+                                <div class="d-none mobile_hide">Dashboard</div>
+                            </a>
+                        </li>
+                        @endif
+                        @if(auth()->user()->can('call_management_access'))
                         <li class="nav-link hide_icon {{ request()->routeIs('customer-calling.index') ? 'active' : '' }}">
                             <a class="collapsed hoveradd" href="{{ route('customer-calling.index') }}">
                                 <i class="material-icons icon">support_agent</i>
@@ -1946,6 +1956,7 @@
                                 <div class="d-none mobile_hide">Call History</div>
                             </a>
                         </li>
+                        @endif
                         @endif
                         @if(auth()->user()->can(['expenses_type']))
                         <!-- <li class="nav-item {{ request()->is('expenses_type') ? 'active' : '' }}">
