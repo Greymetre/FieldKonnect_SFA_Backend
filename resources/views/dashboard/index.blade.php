@@ -87,6 +87,11 @@
     .fk-dash-live i { width: 6px; height: 6px; border-radius: 50%; background: var(--dash-cyan); box-shadow: 0 0 8px var(--dash-cyan); animation: fkDashPulse 1.4s ease-in-out infinite; }
     .fk-dash-pill { border: 1px solid var(--dash-border); background: var(--dash-input); color: var(--dash-muted); }
     .fk-dash-actions { margin-left: auto; display: flex; gap: 8px; }
+    .fk-plivo-balance { min-width: 144px; height: 40px; padding: 0 13px; border-radius: 11px; border: 1px solid rgba(18,209,142,.35); background: rgba(18,209,142,.08); display: flex; align-items: center; gap: 9px; color: var(--dash-green); }
+    .fk-plivo-balance .material-icons { font-size: 20px; }
+    .fk-plivo-balance-copy { display: grid; line-height: 1.05; }
+    .fk-plivo-balance-copy small { color: var(--dash-muted); font-size: 8px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; }
+    .fk-plivo-balance-copy b { margin-top: 3px; color: #fff; font-family: Sora, Inter, sans-serif; font-size: 13px; white-space: nowrap; }
     .fk-dash-icon-btn { width: 40px; height: 40px; border-radius: 11px; border: 1px solid var(--dash-border-strong); background: var(--dash-input); color: #a9bce6; display: grid; place-items: center; transition: .2s ease; }
     .fk-dash-icon-btn:hover { border-color: rgba(34,211,238,.45); color: var(--dash-cyan); box-shadow: 0 0 16px rgba(34,211,238,.25); }
 
@@ -214,6 +219,15 @@
                 <div class="fk-dash-subtitle">Every number that runs your field business — one view.</div>
             </div>
             <div class="fk-dash-actions">
+                @role('superadmin')
+                    <div class="fk-plivo-balance" id="fkPlivoBalance" title="Plivo prepaid account balance">
+                        <span class="material-icons">account_balance_wallet</span>
+                        <span class="fk-plivo-balance-copy">
+                            <small>Plivo Balance</small>
+                            <b id="fkPlivoBalanceValue">Loading...</b>
+                        </span>
+                    </div>
+                @endrole
                 <a class="fk-dash-icon-btn" href="{{ url('dashboard') }}" title="Refresh data"><span class="material-icons">refresh</span></a>
                 <a class="fk-dash-icon-btn" href="{{ url('sales_summary_dashboard') }}" title="Open sales summary"><span class="material-icons">cloud_download</span></a>
             </div>
@@ -484,6 +498,24 @@
 </div>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        const plivoBalanceValue = document.getElementById('fkPlivoBalanceValue');
+        if (plivoBalanceValue) {
+            fetch(@json(route('dashboard.plivo-balance')), {
+                headers: { 'Accept': 'application/json' },
+                credentials: 'same-origin'
+            })
+                .then(function (response) {
+                    if (!response.ok) throw new Error('Balance request failed');
+                    return response.json();
+                })
+                .then(function (data) {
+                    plivoBalanceValue.textContent = data.currency + ' ' + data.balance;
+                })
+                .catch(function () {
+                    plivoBalanceValue.textContent = 'Unavailable';
+                });
+        }
+
         const form = document.getElementById('fkDashboardFilters');
         const periodInput = document.getElementById('fkDashboardPeriod');
         const customDates = document.getElementById('fkDashboardCustomDates');

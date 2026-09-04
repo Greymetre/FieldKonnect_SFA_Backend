@@ -278,6 +278,8 @@ Route::group(['middleware' => ['auth', 'resource.permission']], function () {
 
     //Dashboard
     Route::get('dashboard', [DashboardController::class, 'index']);
+    Route::get('dashboard/plivo-balance', [DashboardController::class, 'plivoBalance'])
+        ->name('dashboard.plivo-balance');
     Route::get('/dealer_dashboard', [DashboardController::class, 'dealer_dashboard']);
     Route::post('dashboardData', [DashboardController::class, 'dashboardData']);
     Route::post('travelSummaryData', [DashboardController::class, 'travelSummaryData']);
