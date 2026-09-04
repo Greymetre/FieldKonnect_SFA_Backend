@@ -2,6 +2,37 @@
     <style>
         .call-dashboard{color:#c5d2f3}.call-dashboard-breadcrumb{margin-bottom:8px;color:#7185bd;font-size:11px;font-weight:800;letter-spacing:.22em;text-transform:uppercase}.call-dashboard-breadcrumb span{margin-left:8px;color:#35ccef}.call-dashboard-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}.call-dashboard-heading h1{margin:0;color:#f7f9ff;font-size:25px;font-weight:800}.call-dashboard-scope{padding:7px 13px;border:1px solid rgba(34,211,238,.38);border-radius:999px;background:rgba(34,211,238,.08);color:#2dd4ee;font-size:12px;font-weight:800}.call-dashboard-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:18px}.call-dashboard-kpi,.call-dashboard-panel{border:1px solid rgba(85,126,218,.3);border-radius:14px;background:rgba(7,25,61,.76);box-shadow:0 10px 28px rgba(0,0,0,.08)}.call-dashboard-kpi{position:relative;min-height:116px;padding:19px 17px}.call-dashboard-kpi i{position:absolute;top:17px;right:16px;color:#2dd4ee;font-size:20px}.call-dashboard-kpi small{display:block;color:#8295c5;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.call-dashboard-kpi strong{display:block;margin-top:9px;color:#f7f9ff;font-size:27px;line-height:1}.call-dashboard-kpi em{display:block;margin-top:9px;color:#21cda9;font-size:11px;font-style:normal;font-weight:800}.call-dashboard-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;margin-bottom:14px}.call-dashboard-panel{overflow:hidden;border-top:2px solid #28cae9}.call-dashboard-panel h2{margin:0;padding:15px 17px;border-bottom:1px solid rgba(85,126,218,.2);color:#e8efff;font-size:16px}.call-dashboard-panel-body{min-height:185px;padding:20px}.call-dashboard-breakdown{display:flex;align-items:center;gap:28px}.call-dashboard-donut{display:flex;align-items:center;justify-content:center;width:128px;height:128px;flex:0 0 128px;border-radius:50%;background:conic-gradient(#2dd4ee 0 var(--connected),#ef4d7b var(--connected) 100%)}.call-dashboard-donut::after{content:'';width:82px;height:82px;border-radius:50%;background:#081b42}.call-dashboard-donut-label{position:absolute;text-align:center}.call-dashboard-donut-label strong{display:block;color:#f7f9ff;font-size:23px}.call-dashboard-donut-label small{color:#7f92c1;font-size:9px}.call-dashboard-legend{display:grid;gap:12px}.call-dashboard-legend span{display:flex;align-items:center;gap:9px;color:#aebee4;font-size:13px}.call-dashboard-dot{width:9px;height:9px;border-radius:50%;background:#2dd4ee}.call-dashboard-dot.red{background:#ef4d7b}.call-dashboard-agents{display:grid;gap:12px;max-height:170px;overflow:auto}.call-dashboard-agent-row{display:grid;grid-template-columns:110px 1fr 35px;align-items:center;gap:10px;color:#aebee4;font-size:12px}.call-dashboard-agent-track{height:8px;overflow:hidden;border-radius:8px;background:#102959}.call-dashboard-agent-bar{height:100%;min-width:2px;border-radius:8px;background:linear-gradient(90deg,#438ff0,#2dd4ee)}.call-dashboard-agent-row b{text-align:right;color:#edf3ff}.call-dashboard-trend .call-dashboard-panel-body{height:280px;padding:12px 16px 16px}.call-dashboard-chart{width:100%;height:100%}.call-dashboard-empty{display:flex;align-items:center;justify-content:center;height:100%;color:#7184b4;font-size:13px}@media(max-width:1000px){.call-dashboard-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:720px){.call-dashboard-kpis,.call-dashboard-grid{grid-template-columns:1fr}.call-dashboard-heading{align-items:flex-start;flex-direction:column}.call-dashboard-breakdown{justify-content:center}.call-dashboard-agent-row{grid-template-columns:85px 1fr 30px}}
     </style>
+    <style>
+        .call-dashboard { max-width:1600px;margin:0 auto;padding-bottom:24px; }
+        .call-dashboard-heading { margin-bottom:14px;padding:2px 2px 0; }
+        .call-dashboard-heading h1 { font-size:24px;letter-spacing:-.02em; }
+        .call-dashboard-scope { display:inline-flex;align-items:center;gap:7px;padding:6px 12px;box-shadow:inset 0 0 16px rgba(45,212,238,.04); }
+        .call-dashboard-scope::before { content:'';width:6px;height:6px;border-radius:50%;background:#2dd4ee;box-shadow:0 0 10px #2dd4ee; }
+        .call-dashboard-kpis { grid-template-columns:repeat(12,minmax(0,1fr));gap:10px;margin-bottom:14px; }
+        .call-dashboard-kpi { grid-column:span 3;min-height:92px;padding:14px 15px;border-color:rgba(85,126,218,.28);border-radius:12px;background:linear-gradient(145deg,rgba(10,32,76,.9),rgba(6,22,54,.82));box-shadow:0 8px 22px rgba(0,0,0,.08);transition:border-color .18s ease,transform .18s ease,box-shadow .18s ease; }
+        .call-dashboard-kpi:nth-child(n+5) { grid-column:span 4; }
+        .call-dashboard-kpi:hover { border-color:rgba(45,212,238,.42);box-shadow:0 12px 30px rgba(0,0,0,.14);transform:translateY(-2px); }
+        .call-dashboard-kpi::after { content:'';position:absolute;right:0;bottom:0;left:0;height:2px;border-radius:0 0 12px 12px;background:linear-gradient(90deg,transparent,rgba(45,212,238,.65),transparent);opacity:.55; }
+        .call-dashboard-kpi i { top:13px;right:14px;display:flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px solid rgba(45,212,238,.18);border-radius:9px;background:rgba(45,212,238,.07);font-size:17px; }
+        .call-dashboard-kpi small { padding-right:34px;font-size:10px;letter-spacing:.1em; }
+        .call-dashboard-kpi strong { margin-top:7px;font-size:23px;letter-spacing:-.025em; }
+        .call-dashboard-kpi em { margin-top:6px;font-size:10px; }
+        .call-dashboard-kpi:nth-child(2) i,.call-dashboard-kpi:nth-child(5) i { color:#26d4ae; }
+        .call-dashboard-kpi:nth-child(3) i { color:#ef6a91;border-color:rgba(239,106,145,.2);background:rgba(239,106,145,.07); }
+        .call-dashboard-kpi:nth-child(4) i { color:#f7b955;border-color:rgba(247,185,85,.2);background:rgba(247,185,85,.07); }
+        .call-dashboard-grid { gap:12px;margin-bottom:12px; }
+        .call-dashboard-panel { border-radius:12px;background:linear-gradient(145deg,rgba(9,29,69,.88),rgba(6,21,51,.78));box-shadow:0 10px 30px rgba(0,0,0,.1); }
+        .call-dashboard-panel h2 { display:flex;align-items:center;min-height:48px;padding:12px 16px;font-size:14px; }
+        .call-dashboard-panel-body { min-height:164px;padding:16px 20px; }
+        .call-dashboard-donut { width:112px;height:112px;flex-basis:112px;box-shadow:0 0 28px rgba(45,212,238,.08); }
+        .call-dashboard-donut::after { width:74px;height:74px; }
+        .call-dashboard-donut-label strong { font-size:20px; }
+        .call-dashboard-agents { gap:10px;max-height:148px; }
+        .call-dashboard-agent-row { padding:2px 0; }
+        .call-dashboard-trend .call-dashboard-panel-body { height:245px; }
+        @media(max-width:1100px){.call-dashboard-kpis{grid-template-columns:repeat(12,minmax(0,1fr))}.call-dashboard-kpi,.call-dashboard-kpi:nth-child(n+5){grid-column:span 6}}
+        @media(max-width:720px){.call-dashboard-kpis{grid-template-columns:1fr}.call-dashboard-kpi,.call-dashboard-kpi:nth-child(n+5){grid-column:auto}.call-dashboard-kpi{min-height:88px}}
+    </style>
     <div class="call-dashboard">
         <div class="call-dashboard-breadcrumb">Call Management <span>› &nbsp; Dashboard</span></div>
         <div class="call-dashboard-heading">
@@ -12,10 +43,10 @@
             <article class="call-dashboard-kpi"><small>Total Dial</small><strong>{{ number_format($totalDial) }}</strong><i class="material-icons">dialpad</i></article>
             <article class="call-dashboard-kpi"><small>Call Connected</small><strong>{{ number_format($connected) }}</strong><em>↗ {{ $connectRate }}% connect rate</em><i class="material-icons">phone_in_talk</i></article>
             <article class="call-dashboard-kpi"><small>Not Connected</small><strong>{{ number_format($notConnected) }}</strong><i class="material-icons">phone_missed</i></article>
+            <article class="call-dashboard-kpi"><small>Pending Calls</small><strong>{{ number_format($pendingCalls) }}</strong><i class="material-icons">pending_actions</i></article>
             <article class="call-dashboard-kpi"><small>Live Agents</small><strong>{{ number_format($liveAgents) }}</strong><i class="material-icons">support_agent</i></article>
             <article class="call-dashboard-kpi"><small>Agents On Call</small><strong id="agentsOnCallCount">{{ number_format($agentsOnCall) }}</strong><em>Currently connected · live</em><i class="material-icons">phone_in_talk</i></article>
             <article class="call-dashboard-kpi"><small>Total Talk Time</small><strong>{{ $totalTalkTime }}</strong><i class="material-icons">schedule</i></article>
-            <article class="call-dashboard-kpi"><small>Pending Calls</small><strong>{{ number_format($pendingCalls) }}</strong><i class="material-icons">pending_actions</i></article>
         </section>
         <section class="call-dashboard-grid">
             <article class="call-dashboard-panel">
