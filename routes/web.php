@@ -1410,6 +1410,8 @@ Route::post('ajax/user-cities-by-district', [TourController::class, 'ajaxUserCit
     Route::post('customer-calling/call-feedback/{callLog}', [CallManagementController::class, 'saveCustomerCallFeedback'])->name('customer-calling.call-feedback');
     Route::get('customer-call-history', [CallManagementController::class, 'customerCallHistory'])->name('customer-call-history.index');
     Route::get('customer-call-history/export', [CallManagementController::class, 'exportCustomerCallHistory'])->name('customer-call-history.export');
+    Route::get('customer-call-history/{callLog}', [CallManagementController::class, 'customerCallHistoryDetail'])->name('customer-call-history.show');
+    Route::post('customer-call-history/{callLog}/transcribe', [CallManagementController::class, 'transcribeCustomerCall'])->name('customer-call-history.transcribe');
 
     //Process Management Routes
     Route::resource('customer_process', CustomerProcessController::class);

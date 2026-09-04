@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\CallManagementEntryExport;
 use App\Exports\CustomerCallHistoryExport;
 use App\Imports\CallManagementEntryImport;
+use App\Jobs\TranscribeCallRecording;
 use App\Models\CallManagementEntry;
 use App\Models\CallLog;
 use App\Models\Pincode;
@@ -379,6 +380,41 @@ class CallManagementController extends Controller
         return Excel::download(new CustomerCallHistoryExport($callLogs), 'customer-call-history.xlsx');
     }
 
+    public function customerCallHistoryDetail(CallLog $callLog)
+    {
+        abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        abort_unless($callLog->call_management_entry_id, Response::HTTP_NOT_FOUND);
+        $this->authorizeCustomerCallLog($callLog);
+
+        $callLog->load(['user:id,name,email,mobile', 'feedbackStatus:id,status_name,display_name', 'callManagementEntry']);
+
+        return view('calls.history-detail', compact('callLog'));
+    }
+
+    public function transcribeCustomerCall(CallLog $callLog)
+    {
+        abort_if(Gate::denies('call_management_transcribe'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        abort_unless($callLog->call_management_entry_id, Response::HTTP_NOT_FOUND);
+        abort_if(empty($callLog->recording_url), Response::HTTP_UNPROCESSABLE_ENTITY, 'Recording is not available.');
+
+        if (config('queue.default') === 'sync') {
+            return back()->with('error', 'Queue is not configured. Set QUEUE_CONNECTION=database and start the transcription worker.');
+        }
+
+        if ($callLog->transcription_status === 'completed') {
+            return back()->with('success', 'Transcript is already available.');
+        }
+
+        if (in_array($callLog->transcription_status, ['queued', 'processing'], true)) {
+            return back()->with('success', 'Transcription is already in progress.');
+        }
+
+        $callLog->update(['transcription_status' => 'queued', 'transcription_error' => null]);
+        TranscribeCallRecording::dispatch($callLog->id)->onQueue('transcriptions');
+
+        return back()->with('success', 'Recording queued for transcription. Refresh this page after a few minutes.');
+    }
+
     private function customerCallHistoryQuery(Request $request)
     {
         $query = CallLog::with([
@@ -432,6 +468,15 @@ class CallManagementController extends Controller
         }
 
         return $query;
+    }
+
+    private function authorizeCustomerCallLog(CallLog $callLog): void
+    {
+        if (auth()->user()->hasRole('superadmin') || auth()->user()->hasRole('Admin')) {
+            return;
+        }
+
+        abort_unless((int) $callLog->user_id === (int) auth()->id(), Response::HTTP_FORBIDDEN, '403 Forbidden');
     }
 
     private function formatDashboardDuration(int $seconds): string

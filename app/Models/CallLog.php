@@ -25,6 +25,11 @@ class CallLog extends Model
         'plivo_b_leg_uuid',
         'recording_url',
         'recording_id',
+        'transcription_status',
+        'transcript',
+        'diarized_transcript',
+        'sarvam_job_id',
+        'transcription_error',
         'cost',
         'answered_at',
         'completed_at',
@@ -39,6 +44,7 @@ class CallLog extends Model
         'recording_duration' => 'integer',
         'answered_at' => 'datetime',
         'completed_at' => 'datetime',
+        'diarized_transcript' => 'array',
     ];
 
     /**

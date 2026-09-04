@@ -13,6 +13,13 @@ return [
         'usd_to_inr_rate' => env('PLIVO_USD_TO_INR_RATE', 80.00),
     ],
 
+    'sarvam' => [
+        'api_key' => env('SARVAM_API_KEY'),
+        'model' => env('SARVAM_STT_MODEL', 'saaras:v3'),
+        'mode' => env('SARVAM_STT_MODE', 'codemix'),
+        'language_code' => env('SARVAM_STT_LANGUAGE', 'unknown'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services

@@ -55,6 +55,8 @@
         .customer-history-play:hover { border-color:#35d2ed;background:rgba(34,211,238,.17);box-shadow:0 0 18px rgba(34,211,238,.14);transform:translateY(-1px); }
         .customer-history-play .material-icons { font-size:22px; }
         .customer-history-recording-unavailable { color:#7184b4;font-size:12px;white-space:nowrap; }
+        .customer-history-table tbody tr[data-detail-url] { cursor:pointer;transition:background .18s ease; }
+        .customer-history-table tbody tr[data-detail-url]:hover { background:rgba(34,211,238,.055); }
         .recording-modal { position:fixed;inset:0;z-index:4800;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(1,8,24,.82);backdrop-filter:blur(5px); }
         .recording-modal.show { display:flex; }
         .recording-dialog { width:min(600px,100%);overflow:hidden;border:1px solid rgba(77,122,221,.42);border-radius:18px;background:linear-gradient(145deg,#0b214e,#081a3e);box-shadow:0 30px 90px rgba(0,0,0,.5); }
@@ -94,7 +96,7 @@
                     <tbody>
                         @forelse($callLogs as $callLog)
                             @php($duration = (int) $callLog->duration)
-                            <tr>
+                            <tr data-detail-url="{{ route('customer-call-history.show', $callLog) }}">
                                 <td>{{ optional($callLog->user)->name ?: '—' }}</td>
                                 <td>{{ optional($callLog->callManagementEntry)->firm_name ?: '—' }}</td>
                                 <td>{{ optional($callLog->callManagementEntry)->contact_person_name ?: '—' }}</td>
@@ -256,6 +258,13 @@
                     setRecordingOpen(true);
                     const playRequest = recordingPlayer.play();
                     if (playRequest) playRequest.catch(function () {});
+                });
+            });
+
+            document.querySelectorAll('tr[data-detail-url]').forEach(function (row) {
+                row.addEventListener('click', function (event) {
+                    if (event.target.closest('button, a, audio')) return;
+                    window.location.href = row.dataset.detailUrl;
                 });
             });
 
