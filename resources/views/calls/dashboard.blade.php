@@ -10,6 +10,11 @@
         .call-dashboard-heading h1 { margin-top:6px;font-size:27px; }
         .call-dashboard-subtitle { margin:7px 0 0;color:#8498c6;font-size:12px; }
         .call-dashboard-hero-meta { position:relative;z-index:1;display:flex;align-items:center;gap:12px; }
+        .call-dashboard-plivo { display:flex;align-items:center;gap:9px;padding:8px 12px;border:1px solid rgba(38,212,174,.3);border-radius:11px;background:rgba(38,212,174,.08); }
+        .call-dashboard-plivo > i { color:#26d4ae;font-size:20px; }
+        .call-dashboard-plivo span { display:grid;line-height:1.05; }
+        .call-dashboard-plivo small { color:#7185b6;font-size:8px;font-weight:800;letter-spacing:.1em;text-transform:uppercase; }
+        .call-dashboard-plivo strong { margin-top:4px;color:#f7f9ff;font-size:13px;white-space:nowrap; }
         .call-dashboard-updated { color:#7185b6;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase; }
         .call-dashboard-section-title { display:flex;align-items:center;gap:9px;margin:0 0 9px 2px;color:#7187bd;font-size:10px;font-weight:800;letter-spacing:.17em;text-transform:uppercase; }
         .call-dashboard-section-title::before { content:'';width:18px;height:2px;border-radius:2px;background:#2dd4ee;box-shadow:0 0 8px rgba(45,212,238,.45); }
@@ -81,6 +86,12 @@
                 <p class="call-dashboard-subtitle">A clear view of calling activity, agent availability and overall performance.</p>
             </div>
             <div class="call-dashboard-hero-meta">
+                @role('superadmin')
+                    <div class="call-dashboard-plivo" title="Approximate INR value based on the configured USD to INR rate">
+                        <i class="material-icons">account_balance_wallet</i>
+                        <span><small>Plivo Balance</small><strong id="plivoBalanceValue">Loading...</strong></span>
+                    </div>
+                @endrole
                 <span class="call-dashboard-updated">Live data · refreshes automatically</span>
                 <span class="call-dashboard-scope">{{ $canViewAllAgents ? 'All agents' : 'My performance' }}</span>
             </div>
@@ -127,6 +138,15 @@
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            const plivoBalanceValue = document.getElementById('plivoBalanceValue');
+            if (plivoBalanceValue) {
+                fetch(@json(route('call-management.dashboard.plivo-balance')), {
+                    headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'}
+                }).then(response => response.ok ? response.json() : Promise.reject())
+                  .then(data => { plivoBalanceValue.textContent = data.symbol + Number(data.balance).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}); })
+                  .catch(() => { plivoBalanceValue.textContent = 'Unavailable'; });
+            }
+
             const canvas = document.getElementById('callTrendChart');
             const values = @json($trend->pluck('total'));
             const labels = @json($trend->pluck('label'));

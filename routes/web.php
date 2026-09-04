@@ -278,8 +278,6 @@ Route::group(['middleware' => ['auth', 'resource.permission']], function () {
 
     //Dashboard
     Route::get('dashboard', [DashboardController::class, 'index']);
-    Route::get('dashboard/plivo-balance', [DashboardController::class, 'plivoBalance'])
-        ->name('dashboard.plivo-balance');
     Route::get('/dealer_dashboard', [DashboardController::class, 'dealer_dashboard']);
     Route::post('dashboardData', [DashboardController::class, 'dashboardData']);
     Route::post('travelSummaryData', [DashboardController::class, 'travelSummaryData']);
@@ -1398,6 +1396,7 @@ Route::post('ajax/user-cities-by-district', [TourController::class, 'ajaxUserCit
     // Call Management
     Route::get('call-management-dashboard', [CallManagementController::class, 'dashboard'])->name('call-management.dashboard');
     Route::get('call-management-dashboard/on-call-count', [CallManagementController::class, 'onCallCount'])->name('call-management.dashboard.on-call-count');
+    Route::get('call-management-dashboard/plivo-balance', [CallManagementController::class, 'plivoBalance'])->name('call-management.dashboard.plivo-balance');
     Route::post('calls', [CallManagementController::class, 'store'])->name('calls.store');
     Route::post('calls/import', [CallManagementController::class, 'import'])->name('calls.import');
     Route::get('calls/export', [CallManagementController::class, 'export'])->name('calls.export');

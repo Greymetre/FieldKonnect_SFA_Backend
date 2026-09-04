@@ -9,10 +9,7 @@ use App\Models\{User, Customers, Order, Branch, Division, State, CheckIn, BeatSc
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 use App\Imports\PrimarySalesImport;
 use DataTables;
 use Validator;
@@ -525,50 +522,6 @@ class DashboardController extends Controller
         $dealer_poster_setting = DealerPortalSettings::first();
 
         return view('dashboard.index', compact('users', 'branches', 'divisions', 'years', 'sales_persons', 'retailers', 'dealers_and_distibutors', 'products', 'uniqueProductsNewGroup', 'ps_branches', 'ps_divisions', 'ps_months', 'ps_dealers', 'ps_product_models', 'ps_new_group_names', 'ps_sales_persons', 'labels', 'data', 'labels2', 'data2', 'labels3', 'data3', 'total_qty', 'total_sale', 'dealer_poster_setting'));
-    }
-
-    public function plivoBalance(Request $request)
-    {
-        abort_unless($request->user()->hasRole('superadmin'), Response::HTTP_FORBIDDEN);
-
-        $authId = config('services.plivo.auth_id');
-        $authToken = config('services.plivo.auth_token');
-
-        if (empty($authId) || empty($authToken)) {
-            return response()->json([
-                'message' => 'Plivo credentials are not configured.',
-            ], Response::HTTP_SERVICE_UNAVAILABLE);
-        }
-
-        try {
-            $balance = Cache::remember('plivo.account.balance', now()->addMinute(), function () use ($authId, $authToken) {
-                $response = Http::withBasicAuth($authId, $authToken)
-                    ->acceptJson()
-                    ->connectTimeout(5)
-                    ->timeout(10)
-                    ->get("https://api.plivo.com/v1/Account/{$authId}/");
-
-                $response->throw();
-
-                return (float) $response->json('cash_credits');
-            });
-
-            return response()->json([
-                'balance' => number_format($balance, 2, '.', ''),
-                'currency' => 'USD',
-            ]);
-        } catch (\Throwable $exception) {
-            Log::warning('Unable to fetch the Plivo account balance.', [
-                'status' => method_exists($exception, 'getResponse') && $exception->getResponse()
-                    ? $exception->getResponse()->status()
-                    : null,
-                'message' => $exception->getMessage(),
-            ]);
-
-            return response()->json([
-                'message' => 'Plivo balance is temporarily unavailable.',
-            ], Response::HTTP_BAD_GATEWAY);
-        }
     }
 
     private function shortNumber($value): string

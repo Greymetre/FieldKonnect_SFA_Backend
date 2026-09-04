@@ -13,9 +13,11 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -115,6 +117,49 @@ class CallManagementController extends Controller
         }
 
         return response()->json(['count' => $calls->distinct()->count('user_id')]);
+    }
+
+    public function plivoBalance(Request $request)
+    {
+        abort_unless($request->user()->hasRole('superadmin'), Response::HTTP_FORBIDDEN);
+
+        $authId = config('services.plivo.auth_id');
+        $authToken = config('services.plivo.auth_token');
+        $usdToInrRate = (float) config('services.plivo.usd_to_inr_rate', 94.50);
+
+        if (empty($authId) || empty($authToken) || $usdToInrRate <= 0) {
+            return response()->json(['message' => 'Plivo balance configuration is incomplete.'], Response::HTTP_SERVICE_UNAVAILABLE);
+        }
+
+        try {
+            $usdBalance = Cache::remember('plivo.account.balance', now()->addMinute(), function () use ($authId, $authToken) {
+                $response = Http::withBasicAuth($authId, $authToken)
+                    ->acceptJson()
+                    ->connectTimeout(5)
+                    ->timeout(10)
+                    ->get("https://api.plivo.com/v1/Account/{$authId}/");
+
+                $response->throw();
+
+                $cashCredits = $response->json('cash_credits');
+                if (! is_numeric($cashCredits)) {
+                    throw new \RuntimeException('Plivo returned an invalid cash_credits value.');
+                }
+
+                return (float) $cashCredits;
+            });
+
+            return response()->json([
+                'balance' => number_format($usdBalance * $usdToInrRate, 2, '.', ''),
+                'currency' => 'INR',
+                'symbol' => '₹',
+                'exchange_rate' => $usdToInrRate,
+            ]);
+        } catch (Throwable $exception) {
+            Log::warning('Unable to fetch the Plivo account balance.', ['message' => $exception->getMessage()]);
+
+            return response()->json(['message' => 'Plivo balance is temporarily unavailable.'], Response::HTTP_BAD_GATEWAY);
+        }
     }
 
     public function customerCalling(Request $request)
