@@ -1931,6 +1931,7 @@
                         </li>
                         @endif
                         @if(auth()->user()->can('call_management_access') || auth()->user()->can('call_management_dashboard_access'))
+                        <li class="fk-menu-section"><span>Call Management</span></li>
                         <li class="nav-link {{ request()->routeIs('call-management.dashboard', 'customer-calling.*', 'customer-call-history.*') ? 'active' : '' }}">
                             <a class="collapsed hoveradd" data-toggle="collapse" href="#callManagementMenu" aria-expanded="false">
                                 <i class="material-icons icon">headset_mic</i>
