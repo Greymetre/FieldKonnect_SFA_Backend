@@ -77,6 +77,20 @@
         .customer-call-message { display: none; margin-bottom: 14px; padding: 11px 14px; border: 1px solid rgba(34, 211, 238, .35); border-radius: 10px; background: rgba(34, 211, 238, .08); color: #73def0; font-size: 13px; }
         .customer-call-message.show { display: block; }
         .customer-call-message.error { border-color: rgba(248, 113, 113, .4); background: rgba(248, 113, 113, .08); color: #fca5a5; }
+        .call-method-modal { position:fixed;inset:0;z-index:4800;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(1,8,24,.8);backdrop-filter:blur(5px); }
+        .call-method-modal.show { display:flex; }
+        .call-method-dialog { width:min(520px,100%);overflow:hidden;border:1px solid rgba(85,126,218,.4);border-radius:18px;background:#0b1e47;box-shadow:0 26px 80px rgba(0,0,0,.48); }
+        .call-method-head { display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:22px 24px;border-bottom:1px solid rgba(85,126,218,.25); }
+        .call-method-head h2 { margin:0;color:#f5f8ff;font-size:20px;font-weight:800; }
+        .call-method-head p { margin:5px 0 0;color:#8395c4;font-size:13px; }
+        .call-method-close { display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border:1px solid rgba(85,126,218,.36);border-radius:10px;background:transparent;color:#afc0e8; }
+        .call-method-options { display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:24px; }
+        .call-method-option { position:relative;display:flex;min-height:150px;flex-direction:column;align-items:flex-start;padding:20px;border:1px solid rgba(85,126,218,.38);border-radius:14px;background:#071938;color:#c8d6f5;text-align:left;transition:border-color .18s ease,transform .18s ease,background .18s ease; }
+        .call-method-option:hover { transform:translateY(-2px);border-color:rgba(34,211,238,.65);background:#0a2450; }
+        .call-method-option > .material-icons { display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;margin-bottom:15px;border-radius:12px;background:rgba(34,211,238,.11);color:#2dd4ee;font-size:25px; }
+        .call-method-option strong { color:#f4f8ff;font-size:15px; }
+        .call-method-option small { margin-top:6px;color:#7f92c2;font-size:12px;line-height:1.45; }
+        .call-method-coming { position:absolute;top:14px;right:14px;padding:4px 8px;border-radius:999px;background:rgba(251,191,36,.12);color:#facc55;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase; }
         .customer-call-status { display:inline-flex;align-items:center;justify-content:center;min-width:90px;min-height:30px;padding:0 12px;border:1px solid rgba(34,211,238,.34);border-radius:999px;background:rgba(34,211,238,.06);color:#45d6ef;font-size:11px;font-weight:800;letter-spacing:.07em;line-height:1;text-transform:uppercase;white-space:nowrap;word-break:keep-all; }
         .customer-note-cell { min-width:190px;max-width:260px; }
         .customer-note-preview { display:block;overflow:hidden;color:#adbee6;line-height:1.45;text-overflow:ellipsis;white-space:nowrap; }
@@ -179,7 +193,7 @@
         .call-feedback-panel { display:flex;flex-direction:column; }
         .call-feedback-panel .call-ended-save { margin-top:auto; }
         @media (max-width: 800px) { #callEndedModal { padding:0; } #callEndedModal .call-ended-dialog { width:100vw;height:100vh;border:0;border-radius:0; } #callEndedModal .call-ended-form { overflow-y:auto;padding:16px; } .call-workspace-grid { display:block; } .call-workspace-panel { margin-bottom:14px;overflow:visible;padding:14px; } .call-workspace-panel .call-customer-details { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-        @media (max-width: 640px) { .customer-calling-heading { align-items:flex-start; } .customer-calling-title { font-size:22px; } .customer-calling-filter-trigger { min-width:44px;width:44px;padding:0; } .customer-calling-filter-trigger span:not(.material-icons),.customer-calling-create span:not(.material-icons) { display:none; } .customer-calling-create { width:44px;padding:0; } .customer-calling-filter-head,.customer-calling-filter-body { padding-left:20px;padding-right:20px; } .customer-calling-filter-grid,.customer-create-grid { grid-template-columns:1fr; } .customer-calling-filter-field.is-wide { grid-column:auto; } .customer-calling-filter-actions { grid-template-columns:1fr 1.5fr;padding-left:20px;padding-right:20px; } .customer-calling-footer { align-items:flex-start;flex-direction:column;gap:10px; } .call-workspace-panel .call-customer-details { grid-template-columns:1fr; } .call-customer-detail.is-wide { grid-column:auto; } }
+        @media (max-width: 640px) { .customer-calling-heading { align-items:flex-start; } .customer-calling-title { font-size:22px; } .customer-calling-filter-trigger { min-width:44px;width:44px;padding:0; } .customer-calling-filter-trigger span:not(.material-icons),.customer-calling-create span:not(.material-icons) { display:none; } .customer-calling-create { width:44px;padding:0; } .customer-calling-filter-head,.customer-calling-filter-body { padding-left:20px;padding-right:20px; } .customer-calling-filter-grid,.customer-create-grid { grid-template-columns:1fr; } .customer-calling-filter-field.is-wide { grid-column:auto; } .customer-calling-filter-actions { grid-template-columns:1fr 1.5fr;padding-left:20px;padding-right:20px; } .customer-calling-footer { align-items:flex-start;flex-direction:column;gap:10px; } .call-workspace-panel .call-customer-details { grid-template-columns:1fr; } .call-customer-detail.is-wide { grid-column:auto; } .call-method-options { grid-template-columns:1fr; } }
     </style>
 
     <div class="customer-calling-page">
@@ -417,6 +431,23 @@
         </aside>
     </div>
 
+    <div class="call-method-modal" id="callMethodModal" role="dialog" aria-modal="true" aria-labelledby="callMethodTitle" aria-hidden="true">
+        <div class="call-method-dialog">
+            <div class="call-method-head">
+                <div><h2 id="callMethodTitle">Choose Call Method</h2><p id="callMethodCustomer">How would you like to connect with this customer?</p></div>
+                <button class="call-method-close" id="closeCallMethod" type="button" aria-label="Close"><i class="material-icons">close</i></button>
+            </div>
+            <div class="call-method-options">
+                <button class="call-method-option" id="callThroughMobile" type="button">
+                    <i class="material-icons">phone_android</i><strong>Call through Mobile</strong><small>Your phone will ring first, then Plivo will connect the customer.</small>
+                </button>
+                <button class="call-method-option" id="callThroughCrm" type="button">
+                    <span class="call-method-coming">Coming soon</span><i class="material-icons">headset_mic</i><strong>Call through CRM</strong><small>Talk to the customer directly using your browser and headset.</small>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div class="call-ended-modal" id="callEndedModal" role="dialog" aria-modal="true" aria-labelledby="callEndedTitle" aria-hidden="true">
         <div class="call-ended-dialog">
             <div class="call-ended-head">
@@ -510,6 +541,9 @@
             const filterOverlay = document.getElementById('customerCallingFilterOverlay');
             const openFilters = document.getElementById('openCustomerCallingFilters');
             const closeFilters = document.getElementById('closeCustomerCallingFilters');
+            const callMethodModal = document.getElementById('callMethodModal');
+            const callMethodCustomer = document.getElementById('callMethodCustomer');
+            let selectedCallButton = null;
             let feedbackUrl = '';
             let activeCallButton = null;
 
@@ -633,7 +667,8 @@
             });
             document.addEventListener('keydown', function (event) {
                 if (event.key !== 'Escape') return;
-                if (filterOverlay.classList.contains('show')) setFiltersOpen(false);
+                if (callMethodModal.classList.contains('show')) setCallMethodModalOpen(false);
+                else if (filterOverlay.classList.contains('show')) setFiltersOpen(false);
                 else if (notesModal.classList.contains('show')) setNotesModalOpen(false);
                 else if (feedbackModal.classList.contains('show')) setFeedbackModalOpen(false);
                 @if($canCreateCall || $canEditDelete)
@@ -807,6 +842,13 @@
                 feedbackModal.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
             }
 
+            function setCallMethodModalOpen(isOpen) {
+                callMethodModal.classList.toggle('show', isOpen);
+                callMethodModal.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+                document.body.style.overflow = isOpen ? 'hidden' : '';
+                if (!isOpen) selectedCallButton = null;
+            }
+
             function renderPreviousNotes(notes) {
                 const container = document.getElementById('feedbackPreviousNotes');
                 if (!container) return;
@@ -922,34 +964,60 @@
                 }
             }
 
-            document.querySelectorAll('.customer-call-btn[data-call-url]').forEach(function (button) {
-                button.addEventListener('click', async function () {
-                    const icon = button.querySelector('.material-icons');
-                    button.disabled = true;
-                    activeCallButton = button;
-                    icon.textContent = 'hourglass_top';
-                    showMessage('Connecting with Plivo...', false);
+            async function initiateMobileCall(button) {
+                const icon = button.querySelector('.material-icons');
+                button.disabled = true;
+                activeCallButton = button;
+                icon.textContent = 'hourglass_top';
+                showMessage('Connecting with Plivo...', false);
 
+                try {
+                    const response = await fetch(button.dataset.callUrl, {
+                        method: 'POST',
+                        headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': token }
+                    });
+                    const result = await readJsonResponse(response, 'Unable to initiate call. Please contact the administrator');
+                    if (!response.ok || !result.success) throw new Error(result.message || 'Unable to initiate call.');
+                    showMessage(result.message, false);
                     try {
-                        const response = await fetch(button.dataset.callUrl, {
-                            method: 'POST',
-                            headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': token }
-                        });
-                        const result = await readJsonResponse(response, 'Unable to initiate call. Please contact the administrator');
-                        if (!response.ok || !result.success) throw new Error(result.message || 'Unable to initiate call.');
-                        showMessage(result.message, false);
-                        try {
-                            showFeedback(result.data, 0, true);
-                        } catch (popupError) {
-                            console.error('Unable to open call workspace:', popupError);
-                        }
-                        pollCall(result.data);
-                    } catch (error) {
-                        showMessage(error.message || 'Unable to initiate call.', true);
-                        button.disabled = false;
-                        icon.textContent = 'call';
+                        showFeedback(result.data, 0, true);
+                    } catch (popupError) {
+                        console.error('Unable to open call workspace:', popupError);
                     }
+                    pollCall(result.data);
+                } catch (error) {
+                    showMessage(error.message || 'Unable to initiate call.', true);
+                    button.disabled = false;
+                    icon.textContent = 'call';
+                }
+            }
+
+            document.querySelectorAll('.customer-call-btn[data-call-url]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    selectedCallButton = button;
+                    const row = button.closest('tr');
+                    const customerName = row ? row.dataset.contact || row.dataset.firm : '';
+                    callMethodCustomer.textContent = customerName
+                        ? 'Choose how to call ' + customerName + '.'
+                        : 'How would you like to connect with this customer?';
+                    setCallMethodModalOpen(true);
                 });
+            });
+
+            document.getElementById('closeCallMethod').addEventListener('click', function () {
+                setCallMethodModalOpen(false);
+            });
+            callMethodModal.addEventListener('click', function (event) {
+                if (event.target === callMethodModal) setCallMethodModalOpen(false);
+            });
+            document.getElementById('callThroughMobile').addEventListener('click', function () {
+                const button = selectedCallButton;
+                setCallMethodModalOpen(false);
+                if (button) initiateMobileCall(button);
+            });
+            document.getElementById('callThroughCrm').addEventListener('click', function () {
+                setCallMethodModalOpen(false);
+                showMessage('Call through CRM is coming soon. No call was initiated.', false);
             });
 
             document.getElementById('closeCallEnded').addEventListener('click', function () {
