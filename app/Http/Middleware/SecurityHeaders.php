@@ -48,7 +48,7 @@ class SecurityHeaders
                 "frame-ancestors 'none'; object-src 'none'; base-uri 'self'",
 
             'Permissions-Policy' =>
-                'camera=(), microphone=(), geolocation=(), fullscreen=(self)',
+                'camera=(), microphone=(self), geolocation=(), fullscreen=(self)',
         ]);
     }
 }
