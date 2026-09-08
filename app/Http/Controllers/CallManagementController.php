@@ -13,7 +13,6 @@ use App\Models\Status;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -191,25 +190,35 @@ class CallManagementController extends Controller
         $showCompleted = $selectedFeedbackStatus
             && $this->callManagementFeedbackOutcome($selectedFeedbackStatus) === 'completed';
 
+        $latestCallLogs = CallLog::query()
+            ->selectRaw('call_management_entry_id, MAX(id) as latest_call_log_id')
+            ->whereNotNull('call_management_entry_id')
+            ->groupBy('call_management_entry_id');
+
         $query = CallManagementEntry::query()
+            ->select('call_management_entries.*')
+            ->leftJoinSub($latestCallLogs, 'latest_call_logs', function ($join) {
+                $join->on('latest_call_logs.call_management_entry_id', '=', 'call_management_entries.id');
+            })
+            ->leftJoin('call_logs as latest_call_log', 'latest_call_log.id', '=', 'latest_call_logs.latest_call_log_id')
             ->with([
                 'assignedUser:id,name',
                 'latestCallLog.feedbackStatus:id,status_name,display_name',
                 'latestNotedCallLog',
             ])
-            ->where('status', $showCompleted ? 'completed' : 'assigned');
+            ->where('call_management_entries.status', $showCompleted ? 'completed' : 'assigned');
 
         if (! $canViewAllAgents) {
-            $query->where('assigned_user_id', auth()->id());
+            $query->where('call_management_entries.assigned_user_id', auth()->id());
         } elseif ($request->filled('agent_id') && $filterAgents->contains('id', $request->integer('agent_id'))) {
-            $query->where('assigned_user_id', $request->integer('agent_id'));
+            $query->where('call_management_entries.assigned_user_id', $request->integer('agent_id'));
         }
 
         if ($search = trim((string) $request->input('search'))) {
             $query->where(function ($searchQuery) use ($search) {
-                $searchQuery->where('firm_name', 'like', '%'.$search.'%')
-                    ->orWhere('contact_person_name', 'like', '%'.$search.'%')
-                    ->orWhere('mobile_number', 'like', '%'.$search.'%');
+                $searchQuery->where('call_management_entries.firm_name', 'like', '%'.$search.'%')
+                    ->orWhere('call_management_entries.contact_person_name', 'like', '%'.$search.'%')
+                    ->orWhere('call_management_entries.mobile_number', 'like', '%'.$search.'%');
             });
         }
 
@@ -217,66 +226,42 @@ class CallManagementController extends Controller
         $toDate = $request->input('to_date');
 
         if ($fromDate && preg_match('/^\d{4}-\d{2}-\d{2}$/', $fromDate)) {
-            $query->whereDate('updated_at', '>=', $fromDate);
+            $query->where('call_management_entries.updated_at', '>=', $fromDate.' 00:00:00');
         }
 
         if ($toDate && preg_match('/^\d{4}-\d{2}-\d{2}$/', $toDate)) {
-            $query->whereDate('updated_at', '<=', $toDate);
+            $query->where('call_management_entries.updated_at', '<=', $toDate.' 23:59:59');
         }
 
-        $entryCollection = $query
-            ->orderByDesc('listing_order')
-            ->orderByDesc('id')
-            ->get()
-            ->filter(function (CallManagementEntry $entry) use ($request) {
-                $selectedStatus = (string) $request->input('status');
+        if ($selectedStatus === 'assigned') {
+            $query->whereNull('latest_call_log.feedback_status_id');
+        } elseif ($selectedFeedbackStatus) {
+            $query->where('latest_call_log.feedback_status_id', $selectedFeedbackStatus->id);
+        } elseif ($selectedStatus !== '') {
+            $query->whereRaw('1 = 0');
+        }
 
-                if ($selectedStatus === '') {
-                    return true;
-                }
-
-                $feedbackStatusId = optional($entry->latestCallLog)->feedback_status_id;
-
-                if ($selectedStatus === 'assigned') {
-                    return ! $feedbackStatusId;
-                }
-
-                if (str_starts_with($selectedStatus, 'feedback:')) {
-                    return (int) $feedbackStatusId === (int) substr($selectedStatus, 9);
-                }
-
-                return false;
-            })
-            ->sortBy(function (CallManagementEntry $entry) {
-                $feedbackStatus = optional($entry->latestCallLog)->feedbackStatus;
-                $hasFeedback = (bool) optional($entry->latestCallLog)->feedback_status_id;
-
-                if ($this->isFollowUpFeedback($feedbackStatus)) {
-                    // A due follow-up is promoted to the top. Future follow-ups
-                    // remain below untouched assigned calls until their date.
-                    return $entry->follow_up_date && $entry->follow_up_date->lte(today()) ? 0 : 2;
-                }
-
-                // Calls that have not yet received feedback stay ahead of Wrong
-                // Number, Disconnected, No Response and other retained outcomes.
-                return $hasFeedback ? 2 : 1;
-            })
+        $followUpStatusIds = $feedbackStatuses
+            ->filter(fn (Status $status) => $this->isFollowUpFeedback($status))
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
             ->values();
 
-        $perPage = 10;
-        $totalEntries = $entryCollection->count();
-        $lastPage = max(1, (int) ceil($totalEntries / $perPage));
-        $currentPage = min(max(1, $request->integer('page', 1)), $lastPage);
-        $entries = new LengthAwarePaginator(
-            $entryCollection->forPage($currentPage, $perPage)->values(),
-            $totalEntries,
-            $perPage,
-            $currentPage,
-            [
-                'path' => $request->url(),
-                'query' => $request->query(),
-            ]
-        );
+        if ($followUpStatusIds->isNotEmpty()) {
+            $placeholders = $followUpStatusIds->map(fn () => '?')->implode(',');
+            $query->orderByRaw(
+                "CASE WHEN latest_call_log.feedback_status_id IN ({$placeholders}) AND call_management_entries.follow_up_date <= ? THEN 0 WHEN latest_call_log.feedback_status_id IS NULL THEN 1 ELSE 2 END",
+                [...$followUpStatusIds->all(), today()->toDateString()]
+            );
+        } else {
+            $query->orderByRaw('CASE WHEN latest_call_log.feedback_status_id IS NULL THEN 1 ELSE 2 END');
+        }
+
+        $entries = $query
+            ->orderByDesc('call_management_entries.listing_order')
+            ->orderByDesc('call_management_entries.id')
+            ->paginate(10)
+            ->withQueryString();
         $feedbackStatuses->each(function (Status $status) {
             $status->setAttribute('is_follow_up', $this->isFollowUpFeedback($status));
         });
@@ -289,16 +274,12 @@ class CallManagementController extends Controller
                 ->get(['id', 'name']);
         }
 
-        // Manual create and in-call editing both use the complete active
-        // pincode master; pincode visibility is not tied to user assignment.
-        $pincodes = Pincode::where('active', 'Y')
-            ->select('id', 'pincode')
-            ->orderByDesc('id')
-            ->get()
-            ->unique(function (Pincode $pincode) {
-                return trim((string) $pincode->pincode);
-            })
-            ->values();
+        // Pincodes are fetched on demand by Select2 instead of rendering the
+        // complete master into every customer-calling response.
+        $pincodes = collect();
+        if ($request->old('pincode_id')) {
+            $pincodes = Pincode::query()->whereKey($request->old('pincode_id'))->get(['id', 'pincode']);
+        }
 
         return view('calls.customer-calling', compact(
             'entries',
@@ -315,7 +296,7 @@ class CallManagementController extends Controller
 
     public function searchPincodes(Request $request)
     {
-        abort_if(Gate::denies('call_management_create') && Gate::denies('call_management_edit_delete'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $pincodes = Pincode::with([
                 'cityname:id,city_name,district_id,state_id',
@@ -325,7 +306,9 @@ class CallManagementController extends Controller
             ])
             ->where('active', 'Y')
             ->when(trim((string) $request->input('q')), function ($query, $search) {
-                $query->where('pincode', 'like', '%'.$search.'%');
+                $query->where('pincode', 'like', $search.'%');
+            }, function ($query) {
+                $query->whereRaw('1 = 0');
             })
             ->orderBy('pincode')
             ->paginate(20);

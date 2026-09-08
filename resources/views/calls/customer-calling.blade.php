@@ -513,6 +513,32 @@
             let feedbackUrl = '';
             let activeCallButton = null;
 
+            function pincodeSelect2Options(dropdownParent) {
+                return {
+                    dropdownParent: dropdownParent,
+                    placeholder: 'Search pincode',
+                    allowClear: true,
+                    width: '100%',
+                    minimumInputLength: 2,
+                    ajax: {
+                        url: @json(route('customer-calling.pincodes.search')),
+                        dataType: 'json',
+                        delay: 250,
+                        cache: true,
+                        data: function (params) {
+                            return { q: params.term || '', page: params.page || 1 };
+                        },
+                        processResults: function (data) {
+                            return data;
+                        }
+                    },
+                    language: {
+                        inputTooShort: function () { return 'Enter at least 2 digits'; },
+                        noResults: function () { return 'No matching pincode found'; }
+                    }
+                };
+            }
+
             function updateFollowUpDateVisibility() {
                 const option = feedbackStatus.options[feedbackStatus.selectedIndex];
                 const isFollowUp = option && option.dataset.followUp === '1';
@@ -565,13 +591,7 @@
             });
 
             if (window.jQuery && jQuery.fn.select2) {
-                jQuery(feedbackPincode).select2({
-                    dropdownParent: jQuery(feedbackModal),
-                    placeholder: 'Search pincode',
-                    allowClear: true,
-                    width: '100%',
-                    language: { noResults: function () { return 'No matching pincode found'; } }
-                });
+                jQuery(feedbackPincode).select2(pincodeSelect2Options(jQuery(feedbackModal)));
             }
 
             const nextDay = new Date();
@@ -690,13 +710,9 @@
                 createModal.addEventListener('click', function (event) { if (event.target === createModal) setCreateModalOpen(false); });
                 createPincode.addEventListener('change', fillCreateLocation);
                 if (window.jQuery && jQuery.fn.select2) {
-                    jQuery(createPincode).select2({
-                        dropdownParent: jQuery('#customerCreateCallModal'),
-                        placeholder: 'Search pincode',
-                        allowClear: true,
-                        width: '100%',
-                        language: { noResults: function () { return 'No matching pincode found'; } }
-                    }).on('select2:select select2:clear', fillCreateLocation);
+                    jQuery(createPincode)
+                        .select2(pincodeSelect2Options(jQuery('#customerCreateCallModal')))
+                        .on('select2:select select2:clear', fillCreateLocation);
                 }
                 document.getElementById('createMobile').addEventListener('input', function () {
                     this.value = this.value.replace(/\D/g, '').slice(0, 10);
