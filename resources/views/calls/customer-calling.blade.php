@@ -91,6 +91,8 @@
         .call-method-option strong { color:#f4f8ff;font-size:15px; }
         .call-method-option small { margin-top:6px;color:#7f92c2;font-size:12px;line-height:1.45; }
         .call-method-coming { position:absolute;top:14px;right:14px;padding:4px 8px;border-radius:999px;background:rgba(251,191,36,.12);color:#facc55;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase; }
+        .crm-call-end { display:none;height:36px;margin-left:auto;padding:0 14px;border:1px solid rgba(248,113,113,.5);border-radius:9px;background:rgba(248,113,113,.1);color:#fca5a5;font-size:12px;font-weight:800; }
+        .crm-call-end.show { display:inline-flex;align-items:center;gap:6px; }
         .customer-call-status { display:inline-flex;align-items:center;justify-content:center;min-width:90px;min-height:30px;padding:0 12px;border:1px solid rgba(34,211,238,.34);border-radius:999px;background:rgba(34,211,238,.06);color:#45d6ef;font-size:11px;font-weight:800;letter-spacing:.07em;line-height:1;text-transform:uppercase;white-space:nowrap;word-break:keep-all; }
         .customer-note-cell { min-width:190px;max-width:260px; }
         .customer-note-preview { display:block;overflow:hidden;color:#adbee6;line-height:1.45;text-overflow:ellipsis;white-space:nowrap; }
@@ -232,7 +234,7 @@
                                 <td>
                                     <div class="customer-call-actions">
                                         @if((int) $entry->assigned_user_id === (int) auth()->id())
-                                            <button class="customer-call-btn" type="button" data-call-url="{{ route('customer-calling.call', $entry) }}" title="Call {{ $entry->mobile_number }}" aria-label="Call {{ $entry->mobile_number }}"><i class="material-icons">call</i></button>
+                                            <button class="customer-call-btn" type="button" data-call-url="{{ route('customer-calling.call', $entry) }}" data-crm-call-url="{{ route('customer-calling.crm-session', $entry) }}" title="Call {{ $entry->mobile_number }}" aria-label="Call {{ $entry->mobile_number }}"><i class="material-icons">call</i></button>
                                         @else
                                             <button class="customer-call-btn is-view-only" type="button" disabled title="Assigned to {{ optional($entry->assignedUser)->name }}"><i class="material-icons">visibility</i></button>
                                         @endif
@@ -442,7 +444,7 @@
                     <i class="material-icons">phone_android</i><strong>Call through Mobile</strong><small>Your phone will ring first, then Plivo will connect the customer.</small>
                 </button>
                 <button class="call-method-option" id="callThroughCrm" type="button">
-                    <span class="call-method-coming">Coming soon</span><i class="material-icons">headset_mic</i><strong>Call through CRM</strong><small>Talk to the customer directly using your browser and headset.</small>
+                    <i class="material-icons">headset_mic</i><strong>Call through CRM</strong><small>Call the customer directly using your browser microphone and headset.</small>
                 </button>
             </div>
         </div>
@@ -452,6 +454,7 @@
         <div class="call-ended-dialog">
             <div class="call-ended-head">
                 <div><h2 id="callEndedTitle">Call in Progress</h2><p><span id="endedCustomerName"></span> · <span id="endedCallDuration">0:00</span></p></div>
+                <button class="crm-call-end" id="endCrmCall" type="button"><i class="material-icons" style="font-size:16px">call_end</i> End Call</button>
                 <button class="call-ended-close" id="closeCallEnded" type="button" aria-label="Close"><i class="material-icons">close</i></button>
             </div>
             <form class="call-ended-form" id="callFeedbackForm">
@@ -520,6 +523,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.plivo.com/sdk/browser/v2/plivo.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const message = document.getElementById('customerCallMessage');
@@ -543,9 +547,13 @@
             const closeFilters = document.getElementById('closeCustomerCallingFilters');
             const callMethodModal = document.getElementById('callMethodModal');
             const callMethodCustomer = document.getElementById('callMethodCustomer');
+            const endCrmCall = document.getElementById('endCrmCall');
             let selectedCallButton = null;
             let feedbackUrl = '';
             let activeCallButton = null;
+            let plivoBrowserSdk = null;
+            let activeCrmCall = null;
+            let crmAnsweredAt = null;
 
             function pincodeSelect2Options(dropdownParent) {
                 return {
@@ -965,6 +973,8 @@
             }
 
             async function initiateMobileCall(button) {
+                activeCrmCall = null;
+                endCrmCall.classList.remove('show');
                 const icon = button.querySelector('.material-icons');
                 button.disabled = true;
                 activeCallButton = button;
@@ -987,6 +997,144 @@
                     pollCall(result.data);
                 } catch (error) {
                     showMessage(error.message || 'Unable to initiate call.', true);
+                    button.disabled = false;
+                    icon.textContent = 'call';
+                }
+            }
+
+            async function postCrmEvent(eventName, callInfo) {
+                if (!activeCrmCall) return;
+                const duration = crmAnsweredAt ? Math.max(0, Math.floor((Date.now() - crmAnsweredAt) / 1000)) : 0;
+                try {
+                    await fetch(activeCrmCall.call_event_url, {
+                        method: 'POST',
+                        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token },
+                        body: JSON.stringify({
+                            event: eventName,
+                            call_uuid: callInfo && callInfo.callUUID ? callInfo.callUUID : null,
+                            duration: duration
+                        })
+                    });
+                } catch (error) {
+                    console.error('Unable to update CRM call state:', error);
+                }
+            }
+
+            function finishCrmCall(eventName, callInfo) {
+                if (!activeCrmCall) return;
+                postCrmEvent(eventName, callInfo);
+                const duration = crmAnsweredAt ? Math.max(0, Math.floor((Date.now() - crmAnsweredAt) / 1000)) : 0;
+                document.getElementById('endedCallDuration').textContent = formatDuration(duration);
+                document.getElementById('callEndedTitle').textContent = eventName === 'failed' ? 'Call Failed' : 'Call Ended';
+                endCrmCall.classList.remove('show');
+                showMessage(eventName === 'failed' ? 'CRM call could not be connected.' : 'CRM call ended.', eventName === 'failed');
+                if (activeCallButton) {
+                    activeCallButton.disabled = false;
+                    activeCallButton.querySelector('.material-icons').textContent = 'call';
+                }
+                activeCrmCall = null;
+                crmAnsweredAt = null;
+            }
+
+            function initializePlivoBrowser() {
+                if (plivoBrowserSdk) return plivoBrowserSdk;
+                if (!window.Plivo) throw new Error('Plivo Browser SDK could not be loaded.');
+
+                plivoBrowserSdk = new window.Plivo({
+                    debug: 'INFO',
+                    permOnClick: true,
+                    enableTracking: true,
+                    closeProtection: true
+                });
+                plivoBrowserSdk.client.on('onCallRemoteRinging', function (callInfo) {
+                    showMessage('Customer phone is ringing...', false);
+                    postCrmEvent('ringing', callInfo);
+                });
+                plivoBrowserSdk.client.on('onCallAnswered', function (callInfo) {
+                    crmAnsweredAt = Date.now();
+                    showMessage('CRM call connected.', false);
+                    setFeedbackText('callEndedTitle', 'Call in Progress');
+                    endCrmCall.classList.add('show');
+                    postCrmEvent('answered', callInfo);
+                });
+                plivoBrowserSdk.client.on('onMediaConnected', function (callInfo) {
+                    if (!crmAnsweredAt) crmAnsweredAt = Date.now();
+                    postCrmEvent('media-connected', callInfo);
+                });
+                plivoBrowserSdk.client.on('onCallTerminated', function (hangupInfo, callInfo) {
+                    finishCrmCall('terminated', callInfo || hangupInfo);
+                });
+                plivoBrowserSdk.client.on('onCallFailed', function (cause, callInfo) {
+                    finishCrmCall('failed', callInfo || cause);
+                });
+
+                return plivoBrowserSdk;
+            }
+
+            function loginPlivoBrowser(sdk, accessToken) {
+                if (sdk.client.isLoggedIn) return Promise.resolve();
+
+                return new Promise(function (resolve, reject) {
+                    let settled = false;
+                    const timeout = window.setTimeout(function () {
+                        if (!settled) reject(new Error('CRM calling login timed out.'));
+                    }, 15000);
+                    sdk.client.on('onLogin', function () {
+                        if (settled) return;
+                        settled = true;
+                        window.clearTimeout(timeout);
+                        resolve();
+                    });
+                    sdk.client.on('onLoginFailed', function (errorCode) {
+                        if (settled) return;
+                        settled = true;
+                        window.clearTimeout(timeout);
+                        reject(new Error('CRM calling login failed (' + errorCode + ').'));
+                    });
+                    sdk.client.loginWithAccessToken(accessToken);
+                });
+            }
+
+            async function initiateCrmCall(button) {
+                if (!button) return;
+                const icon = button.querySelector('.material-icons');
+                button.disabled = true;
+                activeCallButton = button;
+                icon.textContent = 'hourglass_top';
+                showMessage('Requesting microphone access...', false);
+
+                try {
+                    const sdk = initializePlivoBrowser();
+                    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                        throw new Error('This browser does not support microphone calling.');
+                    }
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    stream.getTracks().forEach(function (track) { track.stop(); });
+
+                    const response = await fetch(button.dataset.crmCallUrl, {
+                        method: 'POST',
+                        headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': token }
+                    });
+                    const result = await readJsonResponse(response, 'Unable to prepare CRM call.');
+                    if (!response.ok || !result.success) throw new Error(result.message || 'Unable to prepare CRM call.');
+
+                    activeCrmCall = result.data;
+                    crmAnsweredAt = null;
+                    feedbackUrl = result.data.feedback_url;
+                    showFeedback(result.data, 0, true);
+                    endCrmCall.classList.add('show');
+                    showMessage('Connecting CRM to Plivo...', false);
+                    await loginPlivoBrowser(sdk, result.data.access_token);
+                    const started = sdk.client.call(result.data.destination, result.data.sip_headers);
+                    if (started === false) throw new Error('Plivo could not start the CRM call.');
+                    postCrmEvent('calling');
+                } catch (error) {
+                    if (activeCrmCall) await postCrmEvent('failed');
+                    activeCrmCall = null;
+                    crmAnsweredAt = null;
+                    endCrmCall.classList.remove('show');
+                    setFeedbackModalOpen(false);
+                    showMessage(error.message || 'Unable to initiate CRM call.', true);
                     button.disabled = false;
                     icon.textContent = 'call';
                 }
@@ -1016,8 +1164,13 @@
                 if (button) initiateMobileCall(button);
             });
             document.getElementById('callThroughCrm').addEventListener('click', function () {
+                const button = selectedCallButton;
                 setCallMethodModalOpen(false);
-                showMessage('Call through CRM is coming soon. No call was initiated.', false);
+                initiateCrmCall(button);
+            });
+
+            endCrmCall.addEventListener('click', function () {
+                if (plivoBrowserSdk && activeCrmCall) plivoBrowserSdk.client.hangup();
             });
 
             document.getElementById('closeCallEnded').addEventListener('click', function () {

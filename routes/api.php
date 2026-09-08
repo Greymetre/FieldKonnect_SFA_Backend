@@ -107,6 +107,7 @@ Route::get('/exotel/get-recording', [ExotelApiController::class, 'getRecording']
 Route::match(['get', 'post'], '/plivo/answer', [PlivoController::class, 'answer']);
 Route::match(['get', 'post'], '/plivo/status', [PlivoController::class, 'status']);
 Route::match(['get', 'post'], '/plivo/recording', [PlivoController::class, 'recording']);
+Route::match(['get', 'post'], '/plivo/browser/answer', [PlivoController::class, 'browserAnswer']);
 Route::get('call-recordings/{callLog}', [CallLogController::class, 'playRecording'])
     ->middleware('signed')
     ->name('api.call-recordings.play');

@@ -63,6 +63,7 @@ class User extends Authenticatable implements HasMedia
         'sales_type',
         'customerid',
         'show_attandance_report','call_management','earned_leave_balance',
+        'plivo_endpoint_id', 'plivo_endpoint_username',
     'casual_leave_balance',
     'sick_leave_balance',
     'date_of_joining',

@@ -114,6 +114,38 @@ class PlivoController extends Controller
         return response($xml, 200)->header('Content-Type', 'application/xml');
     }
 
+    public function browserAnswer(Request $request)
+    {
+        $callLogId = $this->browserHeaderValue($request, 'calllogid');
+        $token = $this->browserHeaderValue($request, 'calltoken');
+        $callLog = CallLog::query()
+            ->whereKey($callLogId)
+            ->where('webhook_token', $token)
+            ->whereNotNull('call_management_entry_id')
+            ->firstOrFail();
+        $customerNumber = $this->e164($callLog->number);
+        abort_unless($customerNumber, 422, 'Invalid customer number.');
+
+        $query = http_build_query(['call_log_id' => $callLog->id, 'token' => $callLog->webhook_token]);
+        $statusUrl = $this->webhookUrl('status_url', 'api/plivo/status').'?'.$query;
+        $recordingUrl = $this->webhookUrl('recording_url', 'api/plivo/recording').'?'.$query;
+
+        $callLog->update([
+            'plivo_call_uuid' => $request->input('CallUUID', $callLog->plivo_call_uuid),
+            'plivo_status' => 'browser-connected',
+        ]);
+
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>'
+            .'<Response>'
+            .'<Record startOnDialAnswer="true" redirect="false" maxLength="'.self::RECORDING_MAX_LENGTH_SECONDS.'" finishOnKey="none" action="'.e($recordingUrl).'" method="POST" callbackUrl="'.e($recordingUrl).'" callbackMethod="POST" />'
+            .'<Dial callerId="'.e($this->fromNumber()).'" callbackUrl="'.e($statusUrl).'" callbackMethod="POST">'
+            .'<Number>'.e($customerNumber).'</Number>'
+            .'</Dial>'
+            .'</Response>';
+
+        return response($xml, 200)->header('Content-Type', 'application/xml');
+    }
+
     public function status(Request $request)
     {
         $callLog = $this->authorizedCallLog($request);
@@ -237,6 +269,16 @@ class PlivoController extends Controller
         return CallLog::whereKey($request->query('call_log_id'))
             ->where('webhook_token', $request->query('token'))
             ->firstOrFail();
+    }
+
+    private function browserHeaderValue(Request $request, string $expected): ?string
+    {
+        foreach ($request->all() as $key => $value) {
+            $normalized = strtolower(preg_replace('/[^a-z0-9]+/i', '', (string) $key));
+            if ($normalized === 'xph'.$expected) return is_scalar($value) ? (string) $value : null;
+        }
+
+        return null;
     }
 
     private function webhookUrl(string $configKey, string $path): string

@@ -1406,6 +1406,8 @@ Route::post('ajax/user-cities-by-district', [TourController::class, 'ajaxUserCit
     Route::get('customer-calling/pincodes/search', [CallManagementController::class, 'searchPincodes'])->name('customer-calling.pincodes.search');
     Route::get('customer-calling/{callManagementEntry}/notes', [CallManagementController::class, 'customerCallNotes'])->name('customer-calling.notes');
     Route::post('customer-calling/{callManagementEntry}/call', [CallManagementController::class, 'initiateCustomerCall'])->name('customer-calling.call');
+    Route::post('customer-calling/{callManagementEntry}/crm-session', [CallManagementController::class, 'createCrmCallSession'])->name('customer-calling.crm-session');
+    Route::post('customer-calling/crm-call/{callLog}/event', [CallManagementController::class, 'updateCrmCallEvent'])->name('customer-calling.crm-event');
     Route::get('customer-calling/call-status/{callLog}', [CallManagementController::class, 'customerCallStatus'])->name('customer-calling.call-status');
     Route::post('customer-calling/call-feedback/{callLog}', [CallManagementController::class, 'saveCustomerCallFeedback'])->name('customer-calling.call-feedback');
     Route::get('customer-call-history', [CallManagementController::class, 'customerCallHistory'])->name('customer-call-history.index');

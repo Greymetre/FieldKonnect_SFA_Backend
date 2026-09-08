@@ -601,6 +601,100 @@ class CallManagementController extends Controller
         }
     }
 
+    public function createCrmCallSession(CallManagementEntry $callManagementEntry)
+    {
+        abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $user = auth()->user();
+        abort_unless($user->call_management, Response::HTTP_FORBIDDEN, 'Plivo calling is not enabled for this user.');
+        abort_unless((int) $callManagementEntry->assigned_user_id === (int) $user->id, Response::HTTP_FORBIDDEN, 'This call is not assigned to you.');
+
+        $customerNumber = $this->e164($callManagementEntry->mobile_number);
+        if (! $customerNumber) {
+            return response()->json(['success' => false, 'message' => 'Customer mobile number is invalid.'], 422);
+        }
+
+        $this->ensurePlivoBrowserConfigured();
+
+        try {
+            $endpointUsername = $this->ensureAgentPlivoEndpoint($user);
+            $now = now()->timestamp;
+            $tokenResponse = Http::withBasicAuth(config('services.plivo.auth_id'), config('services.plivo.auth_token'))
+                ->acceptJson()
+                ->asJson()
+                ->connectTimeout(5)
+                ->timeout(15)
+                ->post('https://api.plivo.com/v1/Account/'.config('services.plivo.auth_id').'/JWT/Token/', [
+                    'iss' => config('services.plivo.auth_id'),
+                    'sub' => $endpointUsername,
+                    'nbf' => $now - 10,
+                    'exp' => $now + 300,
+                    'per' => ['voice' => ['incoming_allow' => false, 'outgoing_allow' => true]],
+                    'app' => (string) config('services.plivo.browser_app_id'),
+                ]);
+
+            if (! $tokenResponse->successful() || ! $tokenResponse->json('token')) {
+                Log::warning('Plivo browser JWT generation failed.', ['status' => $tokenResponse->status(), 'body' => $tokenResponse->json()]);
+                return response()->json(['success' => false, 'message' => 'Unable to authenticate CRM calling.'], 502);
+            }
+
+            $callLog = CallLog::create([
+                'call_management_entry_id' => $callManagementEntry->id,
+                'user_id' => $user->id,
+                'number' => $customerNumber,
+                'started_at' => now(),
+                'duration' => 0,
+                'status' => 0,
+                'plivo_status' => 'browser-initiating',
+                'webhook_token' => Str::random(64),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'CRM calling is ready.',
+                'data' => array_merge($this->customerCallData($callManagementEntry, $callLog, $user), [
+                    'access_token' => $tokenResponse->json('token'),
+                    'destination' => $customerNumber,
+                    'call_event_url' => route('customer-calling.crm-event', $callLog),
+                    'sip_headers' => [
+                        'X-PH-CallLogId' => (string) $callLog->id,
+                        'X-PH-CallToken' => $callLog->webhook_token,
+                    ],
+                ]),
+            ], 201);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return response()->json(['success' => false, 'message' => 'CRM calling service is currently unavailable.'], 502);
+        }
+    }
+
+    public function updateCrmCallEvent(Request $request, CallLog $callLog)
+    {
+        abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        abort_unless((int) $callLog->user_id === (int) auth()->id() && $callLog->call_management_entry_id, Response::HTTP_FORBIDDEN, 'You cannot update this call.');
+
+        $validated = $request->validate([
+            'event' => ['required', Rule::in(['calling', 'ringing', 'answered', 'media-connected', 'terminated', 'failed'])],
+            'call_uuid' => ['nullable', 'string', 'max:255'],
+            'duration' => ['nullable', 'integer', 'min:0', 'max:86400'],
+        ]);
+
+        $updates = ['plivo_status' => $validated['event']];
+        if (! empty($validated['call_uuid'])) $updates['plivo_call_uuid'] = $validated['call_uuid'];
+        if (in_array($validated['event'], ['answered', 'media-connected'], true) && ! $callLog->answered_at) {
+            $updates['answered_at'] = now();
+            $updates['status'] = 1;
+        }
+        if (in_array($validated['event'], ['terminated', 'failed'], true)) {
+            $updates['completed_at'] = $callLog->completed_at ?: now();
+            if (isset($validated['duration'])) $updates['duration'] = $validated['duration'];
+        }
+        $callLog->update($updates);
+
+        return response()->json(['success' => true]);
+    }
+
     public function customerCallNotes(CallManagementEntry $callManagementEntry)
     {
         abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
@@ -778,6 +872,88 @@ class CallManagementController extends Controller
     private function plivoWebhookUrl(string $configKey, string $path): string
     {
         return rtrim(config('services.plivo.'.$configKey) ?: url($path), '/');
+    }
+
+    private function ensurePlivoBrowserConfigured(): void
+    {
+        $this->ensurePlivoConfigured();
+        abort_unless(
+            config('services.plivo.browser_app_id'),
+            500,
+            'PLIVO_BROWSER_APP_ID is not configured on the server.'
+        );
+    }
+
+    private function ensureAgentPlivoEndpoint(User $user): string
+    {
+        if ($user->plivo_endpoint_username) return $user->plivo_endpoint_username;
+
+        $username = 'fk'.$user->id.Str::lower(Str::random(8));
+        $response = Http::withBasicAuth(config('services.plivo.auth_id'), config('services.plivo.auth_token'))
+            ->acceptJson()
+            ->asJson()
+            ->connectTimeout(5)
+            ->timeout(15)
+            ->post('https://api.plivo.com/v1/Account/'.config('services.plivo.auth_id').'/Endpoint/', [
+                'username' => $username,
+                'password' => Str::random(32),
+                'alias' => 'fieldkonnect_agent_'.$user->id,
+                'app_id' => (string) config('services.plivo.browser_app_id'),
+            ]);
+
+        if (! $response->successful()) {
+            Log::warning('Unable to provision Plivo browser endpoint.', ['user_id' => $user->id, 'status' => $response->status(), 'body' => $response->json()]);
+            throw new \RuntimeException('Unable to provision the Plivo browser endpoint.');
+        }
+
+        $user->forceFill([
+            'plivo_endpoint_id' => $response->json('endpoint_id'),
+            'plivo_endpoint_username' => $response->json('username') ?: $username,
+        ])->save();
+
+        return $user->plivo_endpoint_username;
+    }
+
+    private function customerCallData(CallManagementEntry $entry, CallLog $callLog, User $user): array
+    {
+        $previousNotes = CallLog::with('feedbackStatus:id,status_name,display_name')
+            ->where('call_management_entry_id', $entry->id)
+            ->where('id', '!=', $callLog->id)
+            ->whereNotNull('remark')
+            ->where('remark', '!=', '')
+            ->latest('started_at')
+            ->get()
+            ->map(fn (CallLog $previousCall) => [
+                'note' => $previousCall->remark,
+                'status' => optional($previousCall->feedbackStatus)->display_name ?: optional($previousCall->feedbackStatus)->status_name ?: '—',
+                'date' => optional($previousCall->started_at)->format('d M Y, h:i A') ?: '—',
+            ])->values();
+
+        return [
+            'call_log_id' => $callLog->id,
+            'status_url' => route('customer-calling.call-status', $callLog),
+            'feedback_url' => route('customer-calling.call-feedback', $callLog),
+            'customer_name' => $entry->contact_person_name ?: $entry->firm_name,
+            'project_name' => $entry->project_name,
+            'project_id' => $entry->project_id,
+            'parent_name' => $entry->parent_name,
+            'firm_name' => $entry->firm_name,
+            'contact_person' => $entry->contact_person_name,
+            'mobile' => $entry->mobile_number,
+            'customer_type' => $entry->customer_type,
+            'address' => $entry->address,
+            'pincode_id' => $entry->pincode_id,
+            'pincode' => $entry->pincode,
+            'city' => $entry->city,
+            'district' => $entry->district,
+            'state' => $entry->state,
+            'assigned_to' => $user->name,
+            'custom_column_1' => $entry->custom_column_1,
+            'custom_column_2' => $entry->custom_column_2,
+            'custom_column_3' => $entry->custom_column_3,
+            'custom_column_4' => $entry->custom_column_4,
+            'previous_notes' => $previousNotes,
+        ];
     }
 
     private function ensurePlivoConfigured(): void
