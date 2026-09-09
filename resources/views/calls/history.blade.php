@@ -1,6 +1,8 @@
 <x-app-layout>
-    @php($totalRecords = $callLogs->total())
-    @php($isClientHistory = $selectedHistoryType === \App\Models\CallManagementEntry::TYPE_CLIENT_CALLING)
+    @php
+        $totalRecords = $callLogs->total();
+        $isClientHistory = $selectedHistoryType === \App\Models\CallManagementEntry::TYPE_CLIENT_CALLING;
+    @endphp
     <style>
         .customer-history { color:#c5d2f3; }
         .customer-history-breadcrumb { margin-bottom:8px;color:#7185bd;font-size:11px;font-weight:800;letter-spacing:.22em;text-transform:uppercase; }
@@ -108,7 +110,10 @@
                 <table class="customer-history-table">
                     <thead><tr><th>Direction</th><th>Agent</th><th>Firm Name</th><th>Contact Person</th><th>Mobile</th><th>Date &amp; Time</th><th>Duration</th><th>Status</th><th>Agent Status</th><th>Notes</th><th>Recording</th></tr></thead>
                     <tbody>
-                        @forelse($callLogs as $callLog)
+                        @if($callLogs->isEmpty())
+                            <tr><td class="customer-history-empty" colspan="11">No {{ $isClientHistory ? 'client' : 'customer' }} call history available.</td></tr>
+                        @else
+                        @foreach($callLogs as $callLog)
                             @php
                                 $duration = (int) $callLog->duration;
                                 $historyEntry = $isClientHistory ? $callLog->entry : $callLog->callManagementEntry;
@@ -118,7 +123,7 @@
                                     : (($duration > 0 || $callLog->recording_url || (int) $callLog->status === 1) ? 'Completed' : ($callLog->plivo_status ?: 'initiated'));
                                 $historyNumber = optional($historyEntry)->mobile_number ?: ($isClientHistory ? $callLog->customer_number : $callLog->number);
                             @endphp
-                            <tr @if(!$isClientHistory) data-detail-url="{{ route('customer-call-history.show', $callLog) }}" @endif>
+                            <tr {!! $isClientHistory ? '' : 'data-detail-url="'.e(route('customer-call-history.show', $callLog)).'"' !!}>
                                 <td>{{ $isClientHistory ? ucfirst($callLog->direction) : 'Outbound' }}</td>
                                 <td>{{ optional($historyAgent)->name ?: '—' }}</td>
                                 <td>{{ optional($historyEntry)->firm_name ?: '—' }}</td>
@@ -137,9 +142,8 @@
                                     @endif
                                 </td>
                             </tr>
-                        @empty
-                            <tr><td class="customer-history-empty" colspan="11">No {{ $isClientHistory ? 'client' : 'customer' }} call history available.</td></tr>
-                        @endforelse
+                        @endforeach
+                        @endif
                     </tbody>
                 </table>
             </div>
@@ -158,8 +162,10 @@
                         @else
                             <a class="customer-history-page-link" href="{{ $callLogs->previousPageUrl() }}" rel="prev"><i class="material-icons">chevron_left</i></a>
                         @endif
-                        @php($historyPageStart = max(1, $callLogs->currentPage() - 2))
-                        @php($historyPageEnd = min($callLogs->lastPage(), $callLogs->currentPage() + 2))
+                        @php
+                            $historyPageStart = max(1, $callLogs->currentPage() - 2);
+                            $historyPageEnd = min($callLogs->lastPage(), $callLogs->currentPage() + 2);
+                        @endphp
                         @for($page = $historyPageStart; $page <= $historyPageEnd; $page++)
                             <a class="customer-history-page-link {{ $page === $callLogs->currentPage() ? 'is-current' : '' }}" href="{{ $callLogs->url($page) }}" aria-current="{{ $page === $callLogs->currentPage() ? 'page' : 'false' }}">{{ $page }}</a>
                         @endfor
