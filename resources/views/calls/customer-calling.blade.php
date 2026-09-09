@@ -17,6 +17,11 @@
         .customer-calling-tool { display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:1px solid rgba(85,126,218,.38);border-radius:12px;background:rgba(7,20,49,.62);color:#c7d5f5;text-decoration:none; }
         .customer-calling-tool:hover { border-color:rgba(34,211,238,.52);color:#2dd4ee; }
         .customer-calling-tool .material-icons { font-size:20px; }
+        .customer-calling-tabs { display:flex;align-items:center;gap:10px;margin:-4px 0 18px;padding:5px;border:1px solid rgba(85,126,218,.28);border-radius:13px;background:rgba(7,20,49,.48);width:max-content;max-width:100%; }
+        .customer-calling-tab { display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:170px;height:42px;padding:0 18px;border:1px solid transparent;border-radius:9px;color:#91a3ce;font-size:13px;font-weight:800;text-decoration:none;transition:.18s ease; }
+        .customer-calling-tab:hover { color:#d6e3ff;text-decoration:none;background:rgba(30,62,119,.25); }
+        .customer-calling-tab.is-active { border-color:rgba(34,211,238,.48);background:linear-gradient(135deg,rgba(43,209,232,.2),rgba(67,143,240,.22));color:#43dcf3;box-shadow:0 0 20px rgba(34,211,238,.08); }
+        .customer-calling-tab .material-icons { font-size:18px; }
         .customer-calling-filter-overlay { position:fixed;inset:0;z-index:4500;visibility:hidden;background:rgba(1,8,24,.68);opacity:0;transition:opacity .22s ease,visibility .22s ease;backdrop-filter:blur(3px); }
         .customer-calling-filter-overlay.show { visibility:visible;opacity:1; }
         .customer-calling-filter-drawer { position:absolute;top:0;right:0;display:flex;flex-direction:column;width:min(560px,100%);height:100%;border-left:1px solid rgba(85,126,218,.36);background:#081b42;box-shadow:-24px 0 70px rgba(0,0,0,.36);transform:translateX(100%);transition:transform .25s ease; }
@@ -206,14 +211,14 @@
     </style>
 
     <div class="customer-calling-page">
-        <div class="customer-calling-breadcrumb">Call Management <span>› &nbsp; Customer Calling</span></div>
+        <div class="customer-calling-breadcrumb">Call Management <span>› &nbsp; {{ $selectedCallingType === 'client_calling' ? 'Client Calling' : 'Customer Calling' }}</span></div>
         <div class="customer-calling-heading">
             <div class="customer-calling-heading-main">
-                <h1 class="customer-calling-title">Customer Calling</h1>
+                <h1 class="customer-calling-title">{{ $selectedCallingType === 'client_calling' ? 'Client Calling' : 'Customer Calling' }}</h1>
                 <span class="customer-calling-count">{{ $totalRecords }} {{ $totalRecords === 1 ? 'record' : 'records' }}</span>
             </div>
             <div class="customer-calling-heading-actions">
-                <button class="customer-calling-filter-trigger {{ request()->hasAny(['search', 'status', 'calling_type', 'agent_id', 'from_date', 'to_date']) ? 'is-active' : '' }}" id="openCustomerCallingFilters" type="button">
+                <button class="customer-calling-filter-trigger {{ request()->hasAny(['search', 'status', 'agent_id', 'from_date', 'to_date']) ? 'is-active' : '' }}" id="openCustomerCallingFilters" type="button">
                     <span class="material-icons">tune</span><span>Filters</span>
                 </button>
                 @if($canImportExport)
@@ -225,6 +230,14 @@
                 @endif
             </div>
         </div>
+        <nav class="customer-calling-tabs" aria-label="Calling lead types">
+            <a class="customer-calling-tab {{ $selectedCallingType === 'customer_calling' ? 'is-active' : '' }}" href="{{ route('customer-calling.index', array_merge(request()->except(['page', 'calling_type']), ['calling_type' => 'customer_calling'])) }}">
+                <span class="material-icons">support_agent</span><span>Customer Calling</span>
+            </a>
+            <a class="customer-calling-tab {{ $selectedCallingType === 'client_calling' ? 'is-active' : '' }}" href="{{ route('customer-calling.index', array_merge(request()->except(['page', 'calling_type']), ['calling_type' => 'client_calling'])) }}">
+                <span class="material-icons">phone_in_talk</span><span>Client Calling</span>
+            </a>
+        </nav>
         <div class="customer-call-message" id="customerCallMessage" role="status"></div>
 
         <section class="customer-calling-card">
@@ -330,7 +343,7 @@
                         <div class="customer-create-field">
                             <label for="createCallingType">Calling Type *</label>
                             <select id="createCallingType" name="calling_type" required>
-                                <option value="customer_calling" @selected(old('calling_type', 'customer_calling') === 'customer_calling')>Customer Calling</option>
+                                <option value="customer_calling" @selected(old('calling_type', $selectedCallingType) === 'customer_calling')>Customer Calling</option>
                                 <option value="client_calling" @selected(old('calling_type') === 'client_calling')>Client Calling</option>
                             </select>
                             @error('calling_type', 'addCall')<span class="customer-create-field-error">{{ $message }}</span>@enderror
@@ -406,6 +419,7 @@
                 <button class="customer-calling-filter-close" id="closeCustomerCallingFilters" type="button" aria-label="Close filters"><i class="material-icons">close</i></button>
             </div>
             <form class="customer-calling-filters" method="GET" action="{{ route('customer-calling.index') }}">
+                <input type="hidden" name="calling_type" value="{{ $selectedCallingType }}">
                 <div class="customer-calling-filter-body">
                     <div class="customer-calling-filter-grid">
                         <div class="customer-calling-filter-field is-wide">
@@ -420,14 +434,6 @@
                                 @foreach($feedbackStatuses as $feedbackStatus)
                                     <option value="feedback:{{ $feedbackStatus->id }}" @selected(request('status') === 'feedback:'.$feedbackStatus->id)>{{ $feedbackStatus->display_name ?: $feedbackStatus->status_name }}</option>
                                 @endforeach
-                            </select>
-                        </div>
-                        <div class="customer-calling-filter-field is-wide">
-                            <label for="customerCallingType">Calling Type</label>
-                            <select class="select2" id="customerCallingType" name="calling_type" style="width:100%;">
-                                <option value="">All calling types</option>
-                                <option value="customer_calling" @selected(request('calling_type') === 'customer_calling')>Customer Calling</option>
-                                <option value="client_calling" @selected(request('calling_type') === 'client_calling')>Client Calling</option>
                             </select>
                         </div>
                         @if($canViewAllAgents)
@@ -452,7 +458,7 @@
                     </div>
                 </div>
                 <div class="customer-calling-filter-actions">
-                    <a class="customer-calling-filter-clear" href="{{ route('customer-calling.index') }}">Reset</a>
+                    <a class="customer-calling-filter-clear" href="{{ route('customer-calling.index', ['calling_type' => $selectedCallingType]) }}">Reset</a>
                     <button class="customer-calling-filter-submit" type="submit">Apply Filters</button>
                 </div>
             </form>
@@ -765,6 +771,7 @@
                 @if($canCreateCall)
                     document.getElementById('openCustomerCreateCall').addEventListener('click', function () {
                         customerCallForm.reset();
+                        document.getElementById('createCallingType').value = @json($selectedCallingType);
                         customerCallForm.action = @json(route('calls.store'));
                         customerCallFormMethod.disabled = true;
                         document.getElementById('customerCallEntryId').value = '';

@@ -184,6 +184,10 @@ class CallManagementController extends Controller
             ->get(['id', 'status_name', 'display_name']);
 
         $selectedStatus = (string) $request->input('status');
+        $selectedCallingType = in_array($request->input('calling_type'), [
+            CallManagementEntry::TYPE_CUSTOMER_CALLING,
+            CallManagementEntry::TYPE_CLIENT_CALLING,
+        ], true) ? $request->input('calling_type') : CallManagementEntry::TYPE_CUSTOMER_CALLING;
         $selectedFeedbackStatus = str_starts_with($selectedStatus, 'feedback:')
             ? $feedbackStatuses->firstWhere('id', (int) substr($selectedStatus, 9))
             : null;
@@ -206,7 +210,8 @@ class CallManagementController extends Controller
                 'latestCallLog.feedbackStatus:id,status_name,display_name',
                 'latestNotedCallLog',
             ])
-            ->where('call_management_entries.status', $showCompleted ? 'completed' : 'assigned');
+            ->where('call_management_entries.status', $showCompleted ? 'completed' : 'assigned')
+            ->where('call_management_entries.calling_type', $selectedCallingType);
 
         if (! $canViewAllAgents) {
             $query->where('call_management_entries.assigned_user_id', auth()->id());
@@ -220,13 +225,6 @@ class CallManagementController extends Controller
                     ->orWhere('call_management_entries.contact_person_name', 'like', '%'.$search.'%')
                     ->orWhere('call_management_entries.mobile_number', 'like', '%'.$search.'%');
             });
-        }
-
-        if (in_array($request->input('calling_type'), [
-            CallManagementEntry::TYPE_CUSTOMER_CALLING,
-            CallManagementEntry::TYPE_CLIENT_CALLING,
-        ], true)) {
-            $query->where('call_management_entries.calling_type', $request->input('calling_type'));
         }
 
         $fromDate = $request->input('from_date');
@@ -305,7 +303,8 @@ class CallManagementController extends Controller
             'canViewAllAgents',
             'filterAgents',
             'callers',
-            'pincodes'
+            'pincodes',
+            'selectedCallingType'
         ));
     }
 
@@ -1031,7 +1030,7 @@ class CallManagementController extends Controller
             'created_by' => auth()->id(),
         ]));
 
-        return redirect()->route('customer-calling.index')
+        return redirect()->route('customer-calling.index', ['calling_type' => $validated['calling_type']])
             ->with('message_success', 'Call entry added successfully.');
     }
 
@@ -1074,7 +1073,7 @@ class CallManagementController extends Controller
             'state' => optional($state)->state_name,
         ]));
 
-        return redirect()->route('customer-calling.index')
+        return redirect()->route('customer-calling.index', ['calling_type' => $validated['calling_type']])
             ->with('message_success', 'Call entry updated successfully.');
     }
 
