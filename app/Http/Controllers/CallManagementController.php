@@ -222,6 +222,13 @@ class CallManagementController extends Controller
             });
         }
 
+        if (in_array($request->input('calling_type'), [
+            CallManagementEntry::TYPE_CUSTOMER_CALLING,
+            CallManagementEntry::TYPE_CLIENT_CALLING,
+        ], true)) {
+            $query->where('call_management_entries.calling_type', $request->input('calling_type'));
+        }
+
         $fromDate = $request->input('from_date');
         $toDate = $request->input('to_date');
 
@@ -995,6 +1002,10 @@ class CallManagementController extends Controller
             'contact_person_name' => ['required', 'string', 'max:200'],
             'mobile_number' => ['required', 'digits:10'],
             'customer_type' => ['nullable', 'string', 'max:100'],
+            'calling_type' => ['required', Rule::in([
+                CallManagementEntry::TYPE_CUSTOMER_CALLING,
+                CallManagementEntry::TYPE_CLIENT_CALLING,
+            ])],
             'address' => ['nullable', 'string', 'max:500'],
             'pincode_id' => ['required', 'integer', 'exists:pincodes,id'],
             'assigned_user_id' => ['required', 'integer', Rule::in($callerIds->all())],
@@ -1037,6 +1048,10 @@ class CallManagementController extends Controller
             'contact_person_name' => ['required', 'string', 'max:200'],
             'mobile_number' => ['required', 'digits:10'],
             'customer_type' => ['nullable', 'string', 'max:100'],
+            'calling_type' => ['required', Rule::in([
+                CallManagementEntry::TYPE_CUSTOMER_CALLING,
+                CallManagementEntry::TYPE_CLIENT_CALLING,
+            ])],
             'address' => ['nullable', 'string', 'max:500'],
             'pincode_id' => ['required', 'integer', 'exists:pincodes,id'],
             'assigned_user_id' => ['required', 'integer', Rule::in($callerIds->all())],

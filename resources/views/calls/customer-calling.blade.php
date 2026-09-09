@@ -213,7 +213,7 @@
                 <span class="customer-calling-count">{{ $totalRecords }} {{ $totalRecords === 1 ? 'record' : 'records' }}</span>
             </div>
             <div class="customer-calling-heading-actions">
-                <button class="customer-calling-filter-trigger {{ request()->hasAny(['search', 'status', 'agent_id', 'from_date', 'to_date']) ? 'is-active' : '' }}" id="openCustomerCallingFilters" type="button">
+                <button class="customer-calling-filter-trigger {{ request()->hasAny(['search', 'status', 'calling_type', 'agent_id', 'from_date', 'to_date']) ? 'is-active' : '' }}" id="openCustomerCallingFilters" type="button">
                     <span class="material-icons">tune</span><span>Filters</span>
                 </button>
                 @if($canImportExport)
@@ -234,10 +234,10 @@
             </div>
             <div class="customer-calling-scroll">
                 <table class="customer-calling-table">
-                    <thead><tr><th>Call</th><th>Firm Name</th><th>Contact Person</th><th>Mobile</th><th>Customer Type</th><th>City</th><th>State</th><th>Status</th><th>Follow-up Date</th><th>Latest Note</th>@if($canViewAllAgents)<th>Assigned To</th>@endif</tr></thead>
+                    <thead><tr><th>Call</th><th>Firm Name</th><th>Contact Person</th><th>Mobile</th><th>Customer Type</th><th>Calling Type</th><th>City</th><th>State</th><th>Status</th><th>Follow-up Date</th><th>Latest Note</th>@if($canViewAllAgents)<th>Assigned To</th>@endif</tr></thead>
                     <tbody>
                         @forelse($entries as $entry)
-                            <tr data-entry-id="{{ $entry->id }}" data-update-url="{{ route('calls.update', $entry) }}" data-firm="{{ $entry->firm_name }}" data-contact="{{ $entry->contact_person_name }}" data-mobile="{{ $entry->mobile_number }}" data-customer-type="{{ $entry->customer_type }}" data-address="{{ $entry->address }}" data-pincode-id="{{ $entry->pincode_id }}" data-pincode="{{ $entry->pincode }}" data-city="{{ $entry->city }}" data-district="{{ $entry->district }}" data-state="{{ $entry->state }}" data-caller-id="{{ $entry->assigned_user_id }}" data-custom-column-1="{{ $entry->custom_column_1 }}" data-custom-column-2="{{ $entry->custom_column_2 }}" data-custom-column-3="{{ $entry->custom_column_3 }}" data-custom-column-4="{{ $entry->custom_column_4 }}">
+                            <tr data-entry-id="{{ $entry->id }}" data-update-url="{{ route('calls.update', $entry) }}" data-firm="{{ $entry->firm_name }}" data-contact="{{ $entry->contact_person_name }}" data-mobile="{{ $entry->mobile_number }}" data-customer-type="{{ $entry->customer_type }}" data-calling-type="{{ $entry->calling_type }}" data-address="{{ $entry->address }}" data-pincode-id="{{ $entry->pincode_id }}" data-pincode="{{ $entry->pincode }}" data-city="{{ $entry->city }}" data-district="{{ $entry->district }}" data-state="{{ $entry->state }}" data-caller-id="{{ $entry->assigned_user_id }}" data-custom-column-1="{{ $entry->custom_column_1 }}" data-custom-column-2="{{ $entry->custom_column_2 }}" data-custom-column-3="{{ $entry->custom_column_3 }}" data-custom-column-4="{{ $entry->custom_column_4 }}">
                                 <td>
                                     <div class="customer-call-actions">
                                         @if((int) $entry->assigned_user_id === (int) auth()->id())
@@ -256,7 +256,9 @@
                                     </div>
                                 </td>
                                 <td>{{ $entry->firm_name }}</td><td>{{ $entry->contact_person_name }}</td><td>{{ $entry->mobile_number }}</td>
-                                <td>{{ $entry->customer_type ?: '—' }}</td><td>{{ $entry->city ?: '—' }}</td><td>{{ $entry->state ?: '—' }}</td>
+                                <td>{{ $entry->customer_type ?: '—' }}</td>
+                                <td>{{ $entry->calling_type === \App\Models\CallManagementEntry::TYPE_CLIENT_CALLING ? 'Client Calling' : 'Customer Calling' }}</td>
+                                <td>{{ $entry->city ?: '—' }}</td><td>{{ $entry->state ?: '—' }}</td>
                                 <td><span class="customer-call-status">{{ optional(optional($entry->latestCallLog)->feedbackStatus)->display_name ?: optional(optional($entry->latestCallLog)->feedbackStatus)->status_name ?: $entry->status }}</span></td>
                                 <td>{{ $entry->follow_up_date ? $entry->follow_up_date->format('d M Y') : '—' }}</td>
                                 <td class="customer-note-cell">
@@ -270,7 +272,7 @@
                                 @if($canViewAllAgents)<td>{{ optional($entry->assignedUser)->name ?: '—' }}</td>@endif
                             </tr>
                         @empty
-                            <tr><td class="customer-calling-empty" colspan="{{ $canViewAllAgents ? 11 : 10 }}">No matching assigned calls found.</td></tr>
+                            <tr><td class="customer-calling-empty" colspan="{{ $canViewAllAgents ? 12 : 11 }}">No matching assigned calls found.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -325,6 +327,14 @@
                         <div class="customer-create-field"><label for="createContactName">Contact Person *</label><input id="createContactName" name="contact_person_name" type="text" value="{{ old('contact_person_name') }}" maxlength="200" required>@error('contact_person_name', 'addCall')<span class="customer-create-field-error">{{ $message }}</span>@enderror</div>
                         <div class="customer-create-field"><label for="createMobile">Mobile Number *</label><input id="createMobile" name="mobile_number" type="tel" inputmode="numeric" value="{{ old('mobile_number') }}" minlength="10" maxlength="10" pattern="[0-9]{10}" required>@error('mobile_number', 'addCall')<span class="customer-create-field-error">{{ $message }}</span>@enderror</div>
                         <div class="customer-create-field"><label for="createCustomerType">Customer Type</label><input id="createCustomerType" name="customer_type" type="text" value="{{ old('customer_type') }}" maxlength="100"></div>
+                        <div class="customer-create-field">
+                            <label for="createCallingType">Calling Type *</label>
+                            <select id="createCallingType" name="calling_type" required>
+                                <option value="customer_calling" @selected(old('calling_type', 'customer_calling') === 'customer_calling')>Customer Calling</option>
+                                <option value="client_calling" @selected(old('calling_type') === 'client_calling')>Client Calling</option>
+                            </select>
+                            @error('calling_type', 'addCall')<span class="customer-create-field-error">{{ $message }}</span>@enderror
+                        </div>
                         <div class="customer-create-field"><label for="createAddress">Address</label><input id="createAddress" name="address" type="text" value="{{ old('address') }}" maxlength="500"></div>
                         <div class="customer-create-field">
                             <label for="createPincode">Pincode *</label>
@@ -375,6 +385,7 @@
                         <i class="material-icons">description</i>
                         <input name="import_file" type="file" accept=".xlsx,.xls,.csv" required>
                     </div>
+                    <p style="margin:0;color:#91a3ce;font-size:13px;line-height:1.5;">Use <strong>Yes</strong> in exactly one of the <strong>Customer Calling</strong> or <strong>Client Calling</strong> columns. Old files without these columns import as Customer Calling.</p>
                     @error('import_file', 'importCall')<span class="customer-create-field-error">{{ $message }}</span>@enderror
                     <div class="customer-create-actions">
                         <button class="customer-create-cancel" id="cancelCustomerCallImport" type="button">Cancel</button>
@@ -409,6 +420,14 @@
                                 @foreach($feedbackStatuses as $feedbackStatus)
                                     <option value="feedback:{{ $feedbackStatus->id }}" @selected(request('status') === 'feedback:'.$feedbackStatus->id)>{{ $feedbackStatus->display_name ?: $feedbackStatus->status_name }}</option>
                                 @endforeach
+                            </select>
+                        </div>
+                        <div class="customer-calling-filter-field is-wide">
+                            <label for="customerCallingType">Calling Type</label>
+                            <select class="select2" id="customerCallingType" name="calling_type" style="width:100%;">
+                                <option value="">All calling types</option>
+                                <option value="customer_calling" @selected(request('calling_type') === 'customer_calling')>Customer Calling</option>
+                                <option value="client_calling" @selected(request('calling_type') === 'client_calling')>Client Calling</option>
                             </select>
                         </div>
                         @if($canViewAllAgents)
@@ -790,6 +809,7 @@
                             document.getElementById('createContactName').value = row.dataset.contact || '';
                             document.getElementById('createMobile').value = row.dataset.mobile || '';
                             document.getElementById('createCustomerType').value = row.dataset.customerType || '';
+                            document.getElementById('createCallingType').value = row.dataset.callingType || 'customer_calling';
                             document.getElementById('createAddress').value = row.dataset.address || '';
                             document.getElementById('createCaller').value = row.dataset.callerId || '';
                             document.getElementById('createCustomColumn1').value = row.dataset.customColumn1 || '';

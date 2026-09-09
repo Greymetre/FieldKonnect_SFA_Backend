@@ -49,6 +49,7 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChu
                 $data['pincode'] = $this->digitsFromExcel($data['pincode'] ?? null);
                 $data['caller_email'] = trim((string) ($data['caller_email'] ?? ''));
                 $data['caller_name'] = trim((string) ($data['caller_name'] ?? ''));
+                $data['calling_type'] = $this->callingType($data, $index + 2);
                 foreach ([1, 2, 3, 4] as $columnNumber) {
                     $customColumn = 'custom_column_'.$columnNumber;
                     $data[$customColumn] = $this->textFromExcel($this->firstExcelValue($data, [
@@ -71,6 +72,7 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChu
                     'pincode' => ['required'],
                     'caller_email' => ['nullable', 'email'],
                     'caller_name' => ['nullable', 'string', 'max:255'],
+                    'calling_type' => ['required', 'in:customer_calling,client_calling'],
                     'custom_column_1' => ['nullable', 'string', 'max:255'],
                     'custom_column_2' => ['nullable', 'string', 'max:255'],
                     'custom_column_3' => ['nullable', 'string', 'max:255'],
@@ -83,7 +85,13 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChu
                     ]);
                 }
 
-                $entry = CallManagementEntry::where('mobile_number', $data['mobile_number'])->first();
+                // An export may legitimately contain the same mobile for
+                // different firms/contacts. Match the complete lead identity
+                // so importing that export does not overwrite another row.
+                $entry = CallManagementEntry::where('mobile_number', $data['mobile_number'])
+                    ->where('firm_name', $data['firm_name'])
+                    ->where('contact_person_name', $data['contact_person_name'])
+                    ->first();
 
                 $pincode = Pincode::with(['cityname.districtname.statename', 'cityname.statename'])
                     ->where('active', 'Y')
@@ -127,6 +135,7 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChu
                     'contact_person_name' => $data['contact_person_name'],
                     'mobile_number' => $data['mobile_number'],
                     'customer_type' => $data['customer_type'] ?? null,
+                    'calling_type' => $data['calling_type'],
                     'address' => $data['address'] ?? null,
                     'pincode_id' => $pincode->id,
                     'pincode' => $pincode->pincode,
@@ -170,6 +179,36 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChu
         return in_array($normalized, ['complete', 'completed', 'callcomplete', 'callcompleted', 'done'], true)
             ? 'completed'
             : 'assigned';
+    }
+
+    private function callingType(array $data, int $rowNumber): string
+    {
+        $customerColumnPresent = array_key_exists('customer_calling', $data);
+        $clientColumnPresent = array_key_exists('client_calling', $data);
+
+        // Backward compatibility: every row from the old 19-column export is
+        // part of the original Customer Calling flow.
+        if (! $customerColumnPresent && ! $clientColumnPresent) {
+            return CallManagementEntry::TYPE_CUSTOMER_CALLING;
+        }
+
+        $customerCalling = $this->excelBoolean($data['customer_calling'] ?? null);
+        $clientCalling = $this->excelBoolean($data['client_calling'] ?? null);
+
+        if ($customerCalling === $clientCalling) {
+            throw ValidationException::withMessages([
+                'import_file' => "Row {$rowNumber}: Select exactly one calling type using Yes/No in Customer Calling and Client Calling.",
+            ]);
+        }
+
+        return $clientCalling
+            ? CallManagementEntry::TYPE_CLIENT_CALLING
+            : CallManagementEntry::TYPE_CUSTOMER_CALLING;
+    }
+
+    private function excelBoolean($value): bool
+    {
+        return in_array(strtolower(trim((string) $value)), ['1', 'y', 'yes', 'true'], true);
     }
 
     private function digitsFromExcel($value): string

@@ -9,6 +9,9 @@ class CallManagementEntry extends Model
 {
     use HasFactory;
 
+    public const TYPE_CUSTOMER_CALLING = 'customer_calling';
+    public const TYPE_CLIENT_CALLING = 'client_calling';
+
     protected $fillable = [
         'project_name',
         'project_id',
@@ -17,6 +20,7 @@ class CallManagementEntry extends Model
         'contact_person_name',
         'mobile_number',
         'customer_type',
+        'calling_type',
         'address',
         'pincode_id',
         'pincode',

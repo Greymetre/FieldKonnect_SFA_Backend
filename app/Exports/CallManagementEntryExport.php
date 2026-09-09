@@ -22,7 +22,7 @@ class CallManagementEntryExport implements FromCollection, WithHeadings, WithMap
             'Contact Person Name', 'Mobile Number', 'Customer Type',
             'Address', 'Pincode', 'City', 'District', 'State', 'Caller Email',
             'Caller Name', 'Point Column 1', 'Point Column 2', 'Point Column 3',
-            'Point Column 4', 'Status',
+            'Point Column 4', 'Status', 'Customer Calling', 'Client Calling',
         ];
     }
 
@@ -48,6 +48,8 @@ class CallManagementEntryExport implements FromCollection, WithHeadings, WithMap
             $entry->custom_column_3,
             $entry->custom_column_4,
             $entry->status,
+            $entry->calling_type === CallManagementEntry::TYPE_CLIENT_CALLING ? 'No' : 'Yes',
+            $entry->calling_type === CallManagementEntry::TYPE_CLIENT_CALLING ? 'Yes' : 'No',
         ];
     }
 }
