@@ -14,6 +14,25 @@ return [
         'usd_to_inr_rate' => env('PLIVO_USD_TO_INR_RATE', 80.00),
     ],
 
+    // Dedicated inbound/outbound number for the isolated Client Calling flow.
+    // Do not fall back to the legacy Plivo number: a missing value must fail
+    // closed so an old caller ID is never used accidentally.
+    'client_calling' => [
+        'enabled' => env('CLIENT_CALLING_ENABLED', false),
+        'auth_id' => env('CLIENT_CALLING_PLIVO_AUTH_ID', env('PLIVO_AUTH_ID')),
+        'auth_token' => env('CLIENT_CALLING_PLIVO_AUTH_TOKEN', env('PLIVO_AUTH_TOKEN')),
+        'number' => env('CLIENT_CALLING_PLIVO_NUMBER'),
+        'app_id' => env('CLIENT_CALLING_PLIVO_APP_ID'),
+        'inbound_url' => env('CLIENT_CALLING_INBOUND_URL'),
+        'outbound_answer_url' => env('CLIENT_CALLING_OUTBOUND_ANSWER_URL'),
+        'status_url' => env('CLIENT_CALLING_STATUS_URL'),
+        'recording_url' => env('CLIENT_CALLING_RECORDING_URL'),
+        'fallback_url' => env('CLIENT_CALLING_FALLBACK_URL'),
+        'ring_timeout' => (int) env('CLIENT_CALLING_RING_TIMEOUT', 30),
+        'recording_enabled' => env('CLIENT_CALLING_RECORDING_ENABLED', true),
+        'validate_signature' => env('CLIENT_CALLING_VALIDATE_SIGNATURE', true),
+    ],
+
     'sarvam' => [
         'api_key' => env('SARVAM_API_KEY'),
         'model' => env('SARVAM_STT_MODEL', 'saaras:v3'),

@@ -108,6 +108,7 @@ use App\Http\Controllers\CustomerCustomFieldController;
 use App\Http\Controllers\CustomerProcessController;
 use App\Http\Controllers\LeadCallLogController;
 use App\Http\Controllers\CallManagementController;
+use App\Http\Controllers\ClientCallingController;
 use App\Models\CustomerCustomField;
 use App\Models\DealerPortalSettings;
 use App\Models\PowerBiSetting;
@@ -1407,6 +1408,9 @@ Route::post('ajax/user-cities-by-district', [TourController::class, 'ajaxUserCit
     Route::get('customer-calling/{callManagementEntry}/notes', [CallManagementController::class, 'customerCallNotes'])->name('customer-calling.notes');
     Route::post('customer-calling/{callManagementEntry}/call', [CallManagementController::class, 'initiateCustomerCall'])->name('customer-calling.call');
     Route::post('customer-calling/{callManagementEntry}/crm-session', [CallManagementController::class, 'createCrmCallSession'])->name('customer-calling.crm-session');
+    Route::post('customer-calling/{callManagementEntry}/client-phone-call', [ClientCallingController::class, 'initiate'])->name('client-calling.call');
+    Route::get('client-calling/{clientCallLog}/status', [ClientCallingController::class, 'status'])->name('client-calling.status');
+    Route::post('client-calling/{clientCallLog}/feedback', [ClientCallingController::class, 'feedback'])->name('client-calling.feedback');
     Route::post('customer-calling/crm-call/{callLog}/event', [CallManagementController::class, 'updateCrmCallEvent'])->name('customer-calling.crm-event');
     Route::get('customer-calling/call-status/{callLog}', [CallManagementController::class, 'customerCallStatus'])->name('customer-calling.call-status');
     Route::post('customer-calling/call-feedback/{callLog}', [CallManagementController::class, 'saveCustomerCallFeedback'])->name('customer-calling.call-feedback');

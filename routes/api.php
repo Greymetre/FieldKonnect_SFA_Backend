@@ -41,6 +41,7 @@ use App\Http\Controllers\Api\ComplaintAPICustomerController;
 use App\Http\Controllers\Api\ExotelApiController;
 use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\PlivoController;
+use App\Http\Controllers\Api\ClientCallingWebhookController;
 use App\Http\Controllers\Api\ServiceBillCustController;
 use App\Http\Controllers\Api\UserLatLongController;
 use App\Http\Controllers\Api\SecondaryCustomerController; // We'll create this
@@ -108,6 +109,14 @@ Route::match(['get', 'post'], '/plivo/answer', [PlivoController::class, 'answer'
 Route::match(['get', 'post'], '/plivo/status', [PlivoController::class, 'status']);
 Route::match(['get', 'post'], '/plivo/recording', [PlivoController::class, 'recording']);
 Route::match(['get', 'post'], '/plivo/browser/answer', [PlivoController::class, 'browserAnswer']);
+
+Route::prefix('client-calling/webhooks')->group(function () {
+    Route::post('inbound', [ClientCallingWebhookController::class, 'inbound']);
+    Route::post('outbound-answer', [ClientCallingWebhookController::class, 'outboundAnswer']);
+    Route::post('status', [ClientCallingWebhookController::class, 'status']);
+    Route::post('recording', [ClientCallingWebhookController::class, 'recording']);
+    Route::post('fallback', [ClientCallingWebhookController::class, 'fallback']);
+});
 Route::get('call-recordings/{callLog}', [CallLogController::class, 'playRecording'])
     ->middleware('signed')
     ->name('api.call-recordings.play');

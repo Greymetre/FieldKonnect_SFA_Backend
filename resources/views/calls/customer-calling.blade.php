@@ -234,7 +234,7 @@
                                 <td>
                                     <div class="customer-call-actions">
                                         @if((int) $entry->assigned_user_id === (int) auth()->id())
-                                            <button class="customer-call-btn" type="button" data-call-url="{{ route('customer-calling.call', $entry) }}" data-crm-call-url="{{ route('customer-calling.crm-session', $entry) }}" title="Call {{ $entry->mobile_number }}" aria-label="Call {{ $entry->mobile_number }}"><i class="material-icons">call</i></button>
+                                            <button class="customer-call-btn" type="button" data-call-url="{{ route('customer-calling.call', $entry) }}" data-crm-call-url="{{ route('customer-calling.crm-session', $entry) }}" data-client-call-url="{{ route('client-calling.call', $entry) }}" title="Call {{ $entry->mobile_number }}" aria-label="Call {{ $entry->mobile_number }}"><i class="material-icons">call</i></button>
                                         @else
                                             <button class="customer-call-btn is-view-only" type="button" disabled title="Assigned to {{ optional($entry->assignedUser)->name }}"><i class="material-icons">visibility</i></button>
                                         @endif
@@ -445,6 +445,9 @@
                 </button>
                 <button class="call-method-option" id="callThroughCrm" type="button">
                     <i class="material-icons">headset_mic</i><strong>Call through CRM</strong><small>Call the customer directly using your browser microphone and headset.</small>
+                </button>
+                <button class="call-method-option" id="callThroughClientPhone" type="button">
+                    <i class="material-icons">support_agent</i><strong>Client Calling through Phone</strong><small>Use the dedicated client number for outbound calls and customer callbacks.</small>
                 </button>
             </div>
         </div>
@@ -1002,6 +1005,36 @@
                 }
             }
 
+            async function initiateClientPhoneCall(button) {
+                activeCrmCall = null;
+                endCrmCall.classList.remove('show');
+                const icon = button.querySelector('.material-icons');
+                button.disabled = true;
+                activeCallButton = button;
+                icon.textContent = 'hourglass_top';
+                showMessage('Connecting through the client number...', false);
+
+                try {
+                    const response = await fetch(button.dataset.clientCallUrl, {
+                        method: 'POST',
+                        headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': token }
+                    });
+                    const result = await readJsonResponse(response, 'Unable to initiate client call.');
+                    if (!response.ok || !result.success) throw new Error(result.message || 'Unable to initiate client call.');
+                    showMessage(result.message, false);
+                    try {
+                        showFeedback(result.data, 0, true);
+                    } catch (popupError) {
+                        console.error('Unable to open client call workspace:', popupError);
+                    }
+                    pollCall(result.data);
+                } catch (error) {
+                    showMessage(error.message || 'Unable to initiate client call.', true);
+                    button.disabled = false;
+                    icon.textContent = 'call';
+                }
+            }
+
             async function postCrmEvent(eventName, callInfo) {
                 if (!activeCrmCall) return;
                 const duration = crmAnsweredAt ? Math.max(0, Math.floor((Date.now() - crmAnsweredAt) / 1000)) : 0;
@@ -1167,6 +1200,11 @@
                 const button = selectedCallButton;
                 setCallMethodModalOpen(false);
                 initiateCrmCall(button);
+            });
+            document.getElementById('callThroughClientPhone').addEventListener('click', function () {
+                const button = selectedCallButton;
+                setCallMethodModalOpen(false);
+                if (button) initiateClientPhoneCall(button);
             });
 
             endCrmCall.addEventListener('click', function () {
