@@ -28,6 +28,7 @@ return [
         'status_url' => env('CLIENT_CALLING_STATUS_URL'),
         'recording_url' => env('CLIENT_CALLING_RECORDING_URL'),
         'fallback_url' => env('CLIENT_CALLING_FALLBACK_URL'),
+        'webhook_secret' => env('CLIENT_CALLING_WEBHOOK_SECRET'),
         'ring_timeout' => (int) env('CLIENT_CALLING_RING_TIMEOUT', 30),
         'recording_enabled' => env('CLIENT_CALLING_RECORDING_ENABLED', true),
         'validate_signature' => env('CLIENT_CALLING_VALIDATE_SIGNATURE', true),

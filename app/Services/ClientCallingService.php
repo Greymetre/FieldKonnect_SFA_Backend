@@ -61,6 +61,12 @@ class ClientCallingService
 
     public function validateWebhook(Request $request): bool
     {
+        $webhookSecret = (string) config('services.client_calling.webhook_secret');
+        $providedSecret = (string) $request->query('webhook_key');
+        if ($webhookSecret !== '' && $providedSecret !== '' && hash_equals($webhookSecret, $providedSecret)) {
+            return true;
+        }
+
         if (! config('services.client_calling.validate_signature', true)) return true;
 
         $signatureHeaders = array_filter([
