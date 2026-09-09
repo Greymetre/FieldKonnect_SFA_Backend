@@ -492,6 +492,11 @@ class CallManagementController extends Controller
         $user = auth()->user();
         abort_unless($user->call_management, Response::HTTP_FORBIDDEN, 'Plivo calling is not enabled for this user.');
         abort_unless((int) $callManagementEntry->assigned_user_id === (int) $user->id, Response::HTTP_FORBIDDEN, 'This call is not assigned to you.');
+        abort_unless(
+            $callManagementEntry->calling_type === CallManagementEntry::TYPE_CUSTOMER_CALLING,
+            Response::HTTP_UNPROCESSABLE_ENTITY,
+            'Use Client Calling through Phone for this lead.'
+        );
 
         $agentNumber = $this->e164($user->mobile);
         $customerNumber = $this->e164($callManagementEntry->mobile_number);
@@ -620,6 +625,11 @@ class CallManagementController extends Controller
         $user = auth()->user();
         abort_unless($user->call_management, Response::HTTP_FORBIDDEN, 'Plivo calling is not enabled for this user.');
         abort_unless((int) $callManagementEntry->assigned_user_id === (int) $user->id, Response::HTTP_FORBIDDEN, 'This call is not assigned to you.');
+        abort_unless(
+            $callManagementEntry->calling_type === CallManagementEntry::TYPE_CUSTOMER_CALLING,
+            Response::HTTP_UNPROCESSABLE_ENTITY,
+            'Use Client Calling through Phone for this lead.'
+        );
 
         $customerNumber = $this->e164($callManagementEntry->mobile_number);
         if (! $customerNumber) {

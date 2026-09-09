@@ -90,7 +90,9 @@
         .call-method-head p { margin:5px 0 0;color:#8395c4;font-size:13px; }
         .call-method-close { display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border:1px solid rgba(85,126,218,.36);border-radius:10px;background:transparent;color:#afc0e8; }
         .call-method-options { display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:24px; }
+        .call-method-options.is-single { grid-template-columns:1fr; }
         .call-method-option { position:relative;display:flex;min-height:150px;flex-direction:column;align-items:flex-start;padding:20px;border:1px solid rgba(85,126,218,.38);border-radius:14px;background:#071938;color:#c8d6f5;text-align:left;transition:border-color .18s ease,transform .18s ease,background .18s ease; }
+        .call-method-option[hidden] { display:none; }
         .call-method-option:hover { transform:translateY(-2px);border-color:rgba(34,211,238,.65);background:#0a2450; }
         .call-method-option > .material-icons { display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;margin-bottom:15px;border-radius:12px;background:rgba(34,211,238,.11);color:#2dd4ee;font-size:25px; }
         .call-method-option strong { color:#f4f8ff;font-size:15px; }
@@ -254,7 +256,7 @@
                                 <td>
                                     <div class="customer-call-actions">
                                         @if((int) $entry->assigned_user_id === (int) auth()->id())
-                                            <button class="customer-call-btn" type="button" data-call-url="{{ route('customer-calling.call', $entry) }}" data-crm-call-url="{{ route('customer-calling.crm-session', $entry) }}" data-client-call-url="{{ route('client-calling.call', $entry) }}" title="Call {{ $entry->mobile_number }}" aria-label="Call {{ $entry->mobile_number }}"><i class="material-icons">call</i></button>
+                                            <button class="customer-call-btn" type="button" data-calling-type="{{ $entry->calling_type }}" data-call-url="{{ route('customer-calling.call', $entry) }}" data-crm-call-url="{{ route('customer-calling.crm-session', $entry) }}" data-client-call-url="{{ route('client-calling.call', $entry) }}" title="Call {{ $entry->mobile_number }}" aria-label="Call {{ $entry->mobile_number }}"><i class="material-icons">call</i></button>
                                         @else
                                             <button class="customer-call-btn is-view-only" type="button" disabled title="Assigned to {{ optional($entry->assignedUser)->name }}"><i class="material-icons">visibility</i></button>
                                         @endif
@@ -471,7 +473,7 @@
                 <div><h2 id="callMethodTitle">Choose Call Method</h2><p id="callMethodCustomer">How would you like to connect with this customer?</p></div>
                 <button class="call-method-close" id="closeCallMethod" type="button" aria-label="Close"><i class="material-icons">close</i></button>
             </div>
-            <div class="call-method-options">
+            <div class="call-method-options" id="callMethodOptions">
                 <button class="call-method-option" id="callThroughMobile" type="button">
                     <i class="material-icons">phone_android</i><strong>Call through Mobile</strong><small>Your phone will ring first, then Plivo will connect the customer.</small>
                 </button>
@@ -582,6 +584,10 @@
             const closeFilters = document.getElementById('closeCustomerCallingFilters');
             const callMethodModal = document.getElementById('callMethodModal');
             const callMethodCustomer = document.getElementById('callMethodCustomer');
+            const callMethodOptions = document.getElementById('callMethodOptions');
+            const callThroughMobile = document.getElementById('callThroughMobile');
+            const callThroughCrm = document.getElementById('callThroughCrm');
+            const callThroughClientPhone = document.getElementById('callThroughClientPhone');
             const endCrmCall = document.getElementById('endCrmCall');
             let selectedCallButton = null;
             let feedbackUrl = '';
@@ -1216,6 +1222,11 @@
                     selectedCallButton = button;
                     const row = button.closest('tr');
                     const customerName = row ? row.dataset.contact || row.dataset.firm : '';
+                    const isClientCalling = button.dataset.callingType === 'client_calling';
+                    callThroughMobile.hidden = isClientCalling;
+                    callThroughCrm.hidden = isClientCalling;
+                    callThroughClientPhone.hidden = !isClientCalling;
+                    callMethodOptions.classList.toggle('is-single', isClientCalling);
                     callMethodCustomer.textContent = customerName
                         ? 'Choose how to call ' + customerName + '.'
                         : 'How would you like to connect with this customer?';
@@ -1229,17 +1240,17 @@
             callMethodModal.addEventListener('click', function (event) {
                 if (event.target === callMethodModal) setCallMethodModalOpen(false);
             });
-            document.getElementById('callThroughMobile').addEventListener('click', function () {
+            callThroughMobile.addEventListener('click', function () {
                 const button = selectedCallButton;
                 setCallMethodModalOpen(false);
                 if (button) initiateMobileCall(button);
             });
-            document.getElementById('callThroughCrm').addEventListener('click', function () {
+            callThroughCrm.addEventListener('click', function () {
                 const button = selectedCallButton;
                 setCallMethodModalOpen(false);
                 initiateCrmCall(button);
             });
-            document.getElementById('callThroughClientPhone').addEventListener('click', function () {
+            callThroughClientPhone.addEventListener('click', function () {
                 const button = selectedCallButton;
                 setCallMethodModalOpen(false);
                 if (button) initiateClientPhoneCall(button);

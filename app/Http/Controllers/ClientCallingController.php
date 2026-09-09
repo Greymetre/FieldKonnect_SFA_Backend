@@ -23,6 +23,11 @@ class ClientCallingController extends Controller
         $user = auth()->user();
         abort_unless($user->call_management, Response::HTTP_FORBIDDEN, 'Calling is not enabled for this user.');
         abort_unless((int) $callManagementEntry->assigned_user_id === (int) $user->id, Response::HTTP_FORBIDDEN, 'This lead is not assigned to you.');
+        abort_unless(
+            $callManagementEntry->calling_type === CallManagementEntry::TYPE_CLIENT_CALLING,
+            Response::HTTP_UNPROCESSABLE_ENTITY,
+            'This lead belongs to Customer Calling.'
+        );
 
         $agentNumber = $service->number($user->mobile);
         $customerNumber = $service->number($callManagementEntry->mobile_number);

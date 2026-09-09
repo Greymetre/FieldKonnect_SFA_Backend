@@ -143,6 +143,7 @@ class ClientCallingWebhookController extends Controller
         $digits = preg_replace('/\D+/', '', $number);
         $national = substr($digits, -10);
         return CallManagementEntry::with('assignedUser')
+            ->where('calling_type', CallManagementEntry::TYPE_CLIENT_CALLING)
             ->whereRaw("RIGHT(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(mobile_number, '+', ''), ' ', ''), '-', ''), '(', ''), ')', ''), 10) = ?", [$national])
             ->latest('updated_at')->first();
     }
