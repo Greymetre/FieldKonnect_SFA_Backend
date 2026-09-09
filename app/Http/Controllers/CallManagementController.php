@@ -307,8 +307,6 @@ class CallManagementController extends Controller
             ->where('active', 'Y')
             ->when(trim((string) $request->input('q')), function ($query, $search) {
                 $query->where('pincode', 'like', $search.'%');
-            }, function ($query) {
-                $query->whereRaw('1 = 0');
             })
             ->orderBy('pincode')
             ->paginate(20);

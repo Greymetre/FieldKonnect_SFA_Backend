@@ -122,6 +122,13 @@
         .customer-create-modal .select2-container--default .select2-selection--single .select2-selection__arrow { height:42px;right:8px; }
         .customer-create-modal .select2-container--open .select2-selection--single { border-color:rgba(34,211,238,.62);box-shadow:0 0 0 3px rgba(34,211,238,.08); }
         .customer-create-modal .select2-container--open,.customer-create-modal .select2-dropdown { z-index:4701; }
+        .customer-create-modal .select2-dropdown { border-color:rgba(85,126,218,.45);background:#0b1e47; }
+        .customer-create-modal .select2-search--dropdown { padding:10px;background:#0b1e47; }
+        .customer-create-modal .select2-search--dropdown .select2-search__field { height:38px;border:1px solid rgba(85,126,218,.5);border-radius:8px;outline:0;background:#071938;color:#d5e0fa; }
+        .customer-create-modal .select2-results__options { background:#0b1e47; }
+        .customer-create-modal .select2-results__option { padding:10px 14px;background:#0b1e47;color:#d5e0fa; }
+        .customer-create-modal .select2-results__option--highlighted[aria-selected] { background:#17386f!important;color:#fff!important; }
+        .customer-create-modal .select2-results__option[aria-selected=true] { background:rgba(34,211,238,.14);color:#39d5ed; }
         .customer-create-field-error { display:block;margin-top:5px;color:#fca5a5;font-size:11px; }
         .customer-create-actions { display:flex;justify-content:flex-end;gap:10px;margin-top:22px; }
         .customer-create-cancel,.customer-create-submit { height:44px;padding:0 20px;border-radius:10px;font-size:14px;font-weight:800; }
@@ -564,7 +571,7 @@
                     placeholder: 'Search pincode',
                     allowClear: true,
                     width: '100%',
-                    minimumInputLength: 2,
+                    minimumInputLength: 0,
                     ajax: {
                         url: @json(route('customer-calling.pincodes.search')),
                         dataType: 'json',
@@ -578,7 +585,6 @@
                         }
                     },
                     language: {
-                        inputTooShort: function () { return 'Enter at least 2 digits'; },
                         noResults: function () { return 'No matching pincode found'; }
                     }
                 };
