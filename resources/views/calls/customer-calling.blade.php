@@ -763,7 +763,12 @@
                 createPincode.addEventListener('change', fillCreateLocation);
                 if (window.jQuery && jQuery.fn.select2) {
                     jQuery(createPincode)
-                        .select2(pincodeSelect2Options(jQuery('#customerCreateCallModal')))
+                        .select2({
+                            dropdownParent: jQuery('#customerCreateCallModal'),
+                            placeholder: 'Select pincode',
+                            allowClear: true,
+                            width: '100%'
+                        })
                         .on('select2:select select2:clear', fillCreateLocation);
                 }
                 document.getElementById('createMobile').addEventListener('input', function () {

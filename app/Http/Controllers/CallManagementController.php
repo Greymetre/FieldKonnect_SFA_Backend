@@ -274,12 +274,20 @@ class CallManagementController extends Controller
                 ->get(['id', 'name']);
         }
 
-        // Pincodes are fetched on demand by Select2 instead of rendering the
-        // complete master into every customer-calling response.
-        $pincodes = collect();
-        if ($request->old('pincode_id')) {
-            $pincodes = Pincode::query()->whereKey($request->old('pincode_id'))->get(['id', 'pincode']);
-        }
+        // Keep Create Call consistent with Customer Create: preload every active
+        // pincode available to the current user's reporting-area assignment.
+        // The feedback popup continues to use the paginated AJAX search.
+        $pincodeUserIds = getUsersReportingToAuth();
+        $pincodes = Pincode::query()
+            ->where('active', 'Y')
+            ->whereHas('assigncitiesusers', function ($query) use ($pincodeUserIds) {
+                if (! auth()->user()->hasRole('superadmin') && ! auth()->user()->hasRole('Admin')) {
+                    $query->whereIn('userid', $pincodeUserIds);
+                }
+            })
+            ->select('id', 'pincode')
+            ->orderByDesc('id')
+            ->get();
 
         return view('calls.customer-calling', compact(
             'entries',
