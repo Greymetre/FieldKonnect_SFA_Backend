@@ -63,9 +63,12 @@ class ClientCallingService
     {
         if (! config('services.client_calling.validate_signature', true)) return true;
 
-        $signatureHeader = trim((string) $request->header('X-Plivo-Signature-V3'));
+        $signatureHeaders = array_filter([
+            trim((string) $request->header('X-Plivo-Signature-V3')),
+            trim((string) $request->header('X-Plivo-Signature-Ma-V3')),
+        ]);
         $nonce = trim((string) $request->header('X-Plivo-Signature-V3-Nonce'));
-        if ($signatureHeader === '' || $nonce === '') return false;
+        if ($signatureHeaders === [] || $nonce === '') return false;
 
         $parameters = $request->isMethod('post') ? $request->post() : [];
         ksort($parameters, SORT_STRING);
@@ -75,7 +78,11 @@ class ClientCallingService
             if (is_scalar($value)) $payload .= $key.$value;
         }
 
-        $signatures = array_map('trim', explode(',', $signatureHeader));
+        $signatures = [];
+        foreach ($signatureHeaders as $signatureHeader) {
+            $signatures = array_merge($signatures, array_map('trim', explode(',', $signatureHeader)));
+        }
+        $signatures = array_values(array_unique(array_filter($signatures)));
         foreach ($this->signatureUrlCandidates($request) as $url) {
             $expected = base64_encode(hash_hmac(
                 'sha256', $url.$payload.$nonce, (string) config('services.client_calling.auth_token'), true
@@ -108,10 +115,20 @@ class ClientCallingService
         ] as $key) {
             $configuredUrl = trim((string) config('services.client_calling.'.$key));
             if ($configuredUrl === '') continue;
-            if ('/'.ltrim((string) parse_url($configuredUrl, PHP_URL_PATH), '/') !== $requestPath) continue;
+            $configuredPath = '/'.ltrim((string) parse_url($configuredUrl, PHP_URL_PATH), '/');
+            if (rtrim($configuredPath, '/') !== rtrim($requestPath, '/')) continue;
 
             $configuredUrl = strtok($configuredUrl, '?');
-            $candidates[] = $query ? $configuredUrl.'?'.$query : $configuredUrl;
+            $publicUrl = $query ? $configuredUrl.'?'.$query : $configuredUrl;
+            $candidates[] = $publicUrl;
+
+            // A trailing slash is significant to Plivo's signature even
+            // though the web server may route both forms identically.
+            $path = (string) parse_url($configuredUrl, PHP_URL_PATH);
+            $slashUrl = str_ends_with($path, '/')
+                ? preg_replace('#/(?=\?|$)#', '', $publicUrl, 1)
+                : preg_replace('#(\?|$)#', '/$1', $publicUrl, 1);
+            if ($slashUrl) $candidates[] = $slashUrl;
         }
 
         return array_values(array_unique($candidates));
