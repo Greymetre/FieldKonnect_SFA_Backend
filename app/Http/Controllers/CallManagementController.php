@@ -8,6 +8,7 @@ use App\Imports\CallManagementEntryImport;
 use App\Jobs\TranscribeCallRecording;
 use App\Models\CallManagementEntry;
 use App\Models\CallLog;
+use App\Models\ClientCallLog;
 use App\Models\Pincode;
 use App\Models\Status;
 use App\Models\User;
@@ -347,13 +348,22 @@ class CallManagementController extends Controller
     {
         abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $callLogs = $this->customerCallHistoryQuery($request)
+        $selectedHistoryType = $request->input('history_type') === CallManagementEntry::TYPE_CLIENT_CALLING
+            ? CallManagementEntry::TYPE_CLIENT_CALLING
+            : CallManagementEntry::TYPE_CUSTOMER_CALLING;
+        $historyQuery = $selectedHistoryType === CallManagementEntry::TYPE_CLIENT_CALLING
+            ? $this->clientCallHistoryQuery($request)
+            : $this->customerCallHistoryQuery($request);
+        $callLogs = $historyQuery
             ->latest('started_at')
             ->latest('id')
             ->paginate(10)
             ->withQueryString();
+        $agentIds = $selectedHistoryType === CallManagementEntry::TYPE_CLIENT_CALLING
+            ? ClientCallLog::query()->select('assigned_user_id')
+            : CallLog::whereNotNull('call_management_entry_id')->select('user_id');
         $agents = auth()->user()->hasRole('superadmin')
-            ? User::whereIn('id', CallLog::whereNotNull('call_management_entry_id')->select('user_id'))
+            ? User::whereIn('id', $agentIds)
                 ->orderBy('name')
                 ->get(['id', 'name'])
             : collect();
@@ -363,16 +373,26 @@ class CallManagementController extends Controller
             ->orderBy('id')
             ->get(['id', 'status_name', 'display_name']);
 
-        return view('calls.history', compact('callLogs', 'agents', 'feedbackStatuses'));
+        return view('calls.history', compact('callLogs', 'agents', 'feedbackStatuses', 'selectedHistoryType'));
     }
 
     public function exportCustomerCallHistory(Request $request)
     {
         abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $callLogs = $this->customerCallHistoryQuery($request)->latest('started_at')->get();
+        $selectedHistoryType = $request->input('history_type') === CallManagementEntry::TYPE_CLIENT_CALLING
+            ? CallManagementEntry::TYPE_CLIENT_CALLING
+            : CallManagementEntry::TYPE_CUSTOMER_CALLING;
+        $callLogs = ($selectedHistoryType === CallManagementEntry::TYPE_CLIENT_CALLING
+            ? $this->clientCallHistoryQuery($request)
+            : $this->customerCallHistoryQuery($request))
+            ->latest('started_at')->get();
 
-        return Excel::download(new CustomerCallHistoryExport($callLogs), 'customer-call-history.xlsx');
+        $filename = $selectedHistoryType === CallManagementEntry::TYPE_CLIENT_CALLING
+            ? 'client-calling-history.xlsx'
+            : 'customer-calling-history.xlsx';
+
+        return Excel::download(new CustomerCallHistoryExport($callLogs, $selectedHistoryType), $filename);
     }
 
     public function customerCallHistoryDetail(CallLog $callLog)
@@ -417,7 +437,10 @@ class CallManagementController extends Controller
                 'feedbackStatus:id,status_name,display_name',
                 'callManagementEntry:id,firm_name,contact_person_name,mobile_number',
             ])
-            ->whereNotNull('call_management_entry_id');
+            ->whereNotNull('call_management_entry_id')
+            ->whereHas('callManagementEntry', function ($entryQuery) {
+                $entryQuery->where('calling_type', CallManagementEntry::TYPE_CUSTOMER_CALLING);
+            });
 
         if (! auth()->user()->hasRole('superadmin')) {
             $query->where('user_id', auth()->id());
@@ -460,6 +483,52 @@ class CallManagementController extends Controller
                 ->where('duration', '<=', 0)
                 ->whereNull('recording_url')
                 ->where('status', '!=', 1);
+        }
+
+        return $query;
+    }
+
+    private function clientCallHistoryQuery(Request $request)
+    {
+        $query = ClientCallLog::with([
+            'assignedAgent:id,name',
+            'feedbackStatus:id,status_name,display_name',
+            'entry:id,firm_name,contact_person_name,mobile_number',
+        ]);
+
+        if (! auth()->user()->hasRole('superadmin')) {
+            $query->where('assigned_user_id', auth()->id());
+        } elseif ($request->filled('agent_id')) {
+            $query->where('assigned_user_id', $request->input('agent_id'));
+        }
+
+        if ($search = trim((string) $request->input('search'))) {
+            $query->where(function ($searchQuery) use ($search) {
+                $searchQuery->where('customer_number', 'like', '%'.$search.'%')
+                    ->orWhere('remark', 'like', '%'.$search.'%')
+                    ->orWhere('direction', 'like', '%'.$search.'%')
+                    ->orWhereHas('entry', function ($entryQuery) use ($search) {
+                        $entryQuery->where('firm_name', 'like', '%'.$search.'%')
+                            ->orWhere('contact_person_name', 'like', '%'.$search.'%')
+                            ->orWhere('mobile_number', 'like', '%'.$search.'%');
+                    });
+            });
+        }
+
+        if ($request->filled('feedback_status_id')) {
+            $query->where('feedback_status_id', $request->input('feedback_status_id'));
+        }
+        if ($request->filled('from_date') && preg_match('/^\d{4}-\d{2}-\d{2}$/', $request->input('from_date'))) {
+            $query->whereDate('started_at', '>=', $request->input('from_date'));
+        }
+        if ($request->filled('to_date') && preg_match('/^\d{4}-\d{2}-\d{2}$/', $request->input('to_date'))) {
+            $query->whereDate('started_at', '<=', $request->input('to_date'));
+        }
+        if ($request->input('call_status') === 'completed') {
+            $query->whereNotNull('completed_at');
+        } elseif ($request->filled('call_status')) {
+            $status = str_replace('-', '_', strtolower((string) $request->input('call_status')));
+            $query->whereRaw("REPLACE(LOWER(status), '-', '_') = ?", [$status]);
         }
 
         return $query;

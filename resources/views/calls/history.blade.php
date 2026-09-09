@@ -1,5 +1,6 @@
 <x-app-layout>
     @php($totalRecords = $callLogs->total())
+    @php($isClientHistory = $selectedHistoryType === \App\Models\CallManagementEntry::TYPE_CLIENT_CALLING)
     <style>
         .customer-history { color:#c5d2f3; }
         .customer-history-breadcrumb { margin-bottom:8px;color:#7185bd;font-size:11px;font-weight:800;letter-spacing:.22em;text-transform:uppercase; }
@@ -14,6 +15,11 @@
         .customer-history-filter-trigger.is-active::after { content:'';width:7px;height:7px;border-radius:50%;background:#2dd4ee;box-shadow:0 0 10px rgba(45,212,238,.8); }
         .customer-history-export:hover { border-color:rgba(34,211,238,.5);color:#2dd4ee; }
         .customer-history-filter-trigger .material-icons,.customer-history-export .material-icons { font-size:20px; }
+        .customer-history-tabs { display:flex;align-items:center;gap:10px;width:max-content;max-width:100%;margin:-4px 0 18px;padding:5px;border:1px solid rgba(85,126,218,.28);border-radius:13px;background:rgba(7,20,49,.48); }
+        .customer-history-tab { display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:190px;height:42px;padding:0 18px;border:1px solid transparent;border-radius:9px;color:#91a3ce;font-size:13px;font-weight:800;text-decoration:none;transition:.18s ease; }
+        .customer-history-tab:hover { color:#d6e3ff;text-decoration:none;background:rgba(30,62,119,.25); }
+        .customer-history-tab.is-active { border-color:rgba(34,211,238,.48);background:linear-gradient(135deg,rgba(43,209,232,.2),rgba(67,143,240,.22));color:#43dcf3; }
+        .customer-history-tab .material-icons { font-size:18px; }
         .customer-history-filter-overlay { position:fixed;inset:0;z-index:4500;visibility:hidden;background:rgba(1,8,24,.68);opacity:0;transition:opacity .22s ease,visibility .22s ease;backdrop-filter:blur(3px); }
         .customer-history-filter-overlay.show { visibility:visible;opacity:1; }
         .customer-history-filter-drawer { position:absolute;top:0;right:0;display:flex;flex-direction:column;width:min(560px,100%);height:100%;border-left:1px solid rgba(85,126,218,.36);background:#081b42;box-shadow:-24px 0 70px rgba(0,0,0,.36);transform:translateX(100%);transition:transform .25s ease; }
@@ -89,33 +95,50 @@
                 <a class="customer-history-export" href="{{ route('customer-call-history.export', request()->query()) }}"><span class="material-icons">download</span><span>Export Excel</span></a>
             </div>
         </div>
+        <nav class="customer-history-tabs" aria-label="Call history types">
+            <a class="customer-history-tab {{ !$isClientHistory ? 'is-active' : '' }}" href="{{ route('customer-call-history.index', array_merge(request()->except(['page', 'history_type']), ['history_type' => 'customer_calling'])) }}">
+                <span class="material-icons">support_agent</span><span>Customer Calling History</span>
+            </a>
+            <a class="customer-history-tab {{ $isClientHistory ? 'is-active' : '' }}" href="{{ route('customer-call-history.index', array_merge(request()->except(['page', 'history_type']), ['history_type' => 'client_calling'])) }}">
+                <span class="material-icons">phone_in_talk</span><span>Client Calling History</span>
+            </a>
+        </nav>
         <section class="customer-history-card">
             <div class="customer-history-scroll">
                 <table class="customer-history-table">
-                    <thead><tr><th>Agent</th><th>Firm Name</th><th>Contact Person</th><th>Mobile</th><th>Date &amp; Time</th><th>Duration</th><th>Status</th><th>Agent Status</th><th>Notes</th><th>Recording</th></tr></thead>
+                    <thead><tr><th>Direction</th><th>Agent</th><th>Firm Name</th><th>Contact Person</th><th>Mobile</th><th>Date &amp; Time</th><th>Duration</th><th>Status</th><th>Agent Status</th><th>Notes</th><th>Recording</th></tr></thead>
                     <tbody>
                         @forelse($callLogs as $callLog)
-                            @php($duration = (int) $callLog->duration)
-                            <tr data-detail-url="{{ route('customer-call-history.show', $callLog) }}">
-                                <td>{{ optional($callLog->user)->name ?: '—' }}</td>
-                                <td>{{ optional($callLog->callManagementEntry)->firm_name ?: '—' }}</td>
-                                <td>{{ optional($callLog->callManagementEntry)->contact_person_name ?: '—' }}</td>
-                                <td>{{ optional($callLog->callManagementEntry)->mobile_number ?: $callLog->number }}</td>
+                            @php
+                                $duration = (int) $callLog->duration;
+                                $historyEntry = $isClientHistory ? $callLog->entry : $callLog->callManagementEntry;
+                                $historyAgent = $isClientHistory ? $callLog->assignedAgent : $callLog->user;
+                                $historyStatus = $isClientHistory
+                                    ? ($callLog->status ?: 'initiated')
+                                    : (($duration > 0 || $callLog->recording_url || (int) $callLog->status === 1) ? 'Completed' : ($callLog->plivo_status ?: 'initiated'));
+                                $historyNumber = optional($historyEntry)->mobile_number ?: ($isClientHistory ? $callLog->customer_number : $callLog->number);
+                            @endphp
+                            <tr @if(!$isClientHistory) data-detail-url="{{ route('customer-call-history.show', $callLog) }}" @endif>
+                                <td>{{ $isClientHistory ? ucfirst($callLog->direction) : 'Outbound' }}</td>
+                                <td>{{ optional($historyAgent)->name ?: '—' }}</td>
+                                <td>{{ optional($historyEntry)->firm_name ?: '—' }}</td>
+                                <td>{{ optional($historyEntry)->contact_person_name ?: '—' }}</td>
+                                <td>{{ $historyNumber }}</td>
                                 <td>{{ optional($callLog->started_at)->format('d/m/Y h:i A') ?: '—' }}</td>
                                 <td>{{ sprintf('%02d:%02d:%02d', intdiv($duration, 3600), intdiv($duration % 3600, 60), $duration % 60) }}</td>
-                                <td><span class="customer-history-status">{{ ((int) $callLog->duration > 0 || $callLog->recording_url || (int) $callLog->status === 1) ? 'Completed' : ($callLog->plivo_status ?: 'initiated') }}</span></td>
+                                <td><span class="customer-history-status">{{ str_replace('_', ' ', $historyStatus) }}</span></td>
                                 <td>{{ optional($callLog->feedbackStatus)->display_name ?: optional($callLog->feedbackStatus)->status_name ?: '—' }}</td>
                                 <td><div class="customer-history-note" title="{{ $callLog->remark ?: '' }}">{{ $callLog->remark ?: '—' }}</div></td>
                                 <td>
                                     @if($callLog->recording_url)
-                                        <button class="customer-history-play open-recording-player" type="button" data-recording-url="{{ route('call-management.recording', $callLog) }}" data-customer="{{ optional($callLog->callManagementEntry)->contact_person_name ?: optional($callLog->callManagementEntry)->firm_name ?: $callLog->number }}" data-date="{{ optional($callLog->started_at)->format('d M Y, h:i A') }}" title="Play recording" aria-label="Play call recording"><i class="material-icons">play_arrow</i></button>
+                                        <button class="customer-history-play open-recording-player" type="button" data-recording-url="{{ $isClientHistory ? route('client-calling.recording', $callLog) : route('call-management.recording', $callLog) }}" data-customer="{{ optional($historyEntry)->contact_person_name ?: optional($historyEntry)->firm_name ?: $historyNumber }}" data-date="{{ optional($callLog->started_at)->format('d M Y, h:i A') }}" title="Play recording" aria-label="Play call recording"><i class="material-icons">play_arrow</i></button>
                                     @else
                                         <span class="customer-history-recording-unavailable">Processing / unavailable</span>
                                     @endif
                                 </td>
                             </tr>
                         @empty
-                            <tr><td class="customer-history-empty" colspan="10">No customer call history available.</td></tr>
+                            <tr><td class="customer-history-empty" colspan="11">No {{ $isClientHistory ? 'client' : 'customer' }} call history available.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -177,6 +200,7 @@
                 <button class="customer-history-filter-close" id="closeHistoryFilters" type="button" aria-label="Close filters"><i class="material-icons">close</i></button>
             </div>
             <form class="customer-history-filters" method="GET" action="{{ route('customer-call-history.index') }}">
+                <input type="hidden" name="history_type" value="{{ $selectedHistoryType }}">
                 <div class="customer-history-filter-body">
                     <div class="customer-history-filter-grid">
                         <div class="customer-history-filter is-wide">
@@ -214,7 +238,7 @@
                     </div>
                 </div>
                 <div class="customer-history-filter-actions">
-                    <a class="customer-history-reset" href="{{ route('customer-call-history.index') }}">Reset</a>
+                    <a class="customer-history-reset" href="{{ route('customer-call-history.index', ['history_type' => $selectedHistoryType]) }}">Reset</a>
                     <button class="customer-history-apply" type="submit">Apply Filters</button>
                 </div>
             </form>

@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Throwable;
@@ -127,6 +128,31 @@ class ClientCallingController extends Controller
         });
 
         return response()->json(['success' => true, 'message' => 'Client call record saved successfully.', 'data' => ['queue_removed' => $feedbackOutcome !== null, 'entry_status' => $feedbackOutcome ?: 'assigned', 'follow_up_date' => $isFollowUp ? $validated['follow_up_date'] : null]]);
+    }
+
+    public function recording(ClientCallLog $clientCallLog)
+    {
+        abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        if (! auth()->user()->hasRole('superadmin') && ! auth()->user()->hasRole('Admin')) {
+            abort_unless((int) $clientCallLog->assigned_user_id === (int) auth()->id(), Response::HTTP_FORBIDDEN, 'You cannot access this recording.');
+        }
+        abort_if(empty($clientCallLog->recording_url), Response::HTTP_NOT_FOUND, 'Recording not available.');
+
+        $headers = request()->hasHeader('Range') ? ['Range' => request()->header('Range')] : [];
+        $recording = Http::withBasicAuth(
+            config('services.client_calling.auth_id'),
+            config('services.client_calling.auth_token')
+        )->withHeaders($headers)->timeout(30)->get($clientCallLog->recording_url);
+        abort_unless($recording->successful(), Response::HTTP_BAD_GATEWAY, 'Unable to load recording from Plivo.');
+
+        return response($recording->body(), $recording->status(), array_filter([
+            'Content-Type' => $recording->header('Content-Type') ?: 'audio/mpeg',
+            'Content-Disposition' => 'inline; filename="client-call-'.$clientCallLog->id.'"',
+            'Cache-Control' => 'private, max-age=3600',
+            'Accept-Ranges' => $recording->header('Accept-Ranges') ?: 'bytes',
+            'Content-Length' => $recording->header('Content-Length'),
+            'Content-Range' => $recording->header('Content-Range'),
+        ]));
     }
 
     private function authorizeCall(ClientCallLog $call): void

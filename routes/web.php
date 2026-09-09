@@ -1411,6 +1411,7 @@ Route::post('ajax/user-cities-by-district', [TourController::class, 'ajaxUserCit
     Route::post('customer-calling/{callManagementEntry}/client-phone-call', [ClientCallingController::class, 'initiate'])->name('client-calling.call');
     Route::get('client-calling/{clientCallLog}/status', [ClientCallingController::class, 'status'])->name('client-calling.status');
     Route::post('client-calling/{clientCallLog}/feedback', [ClientCallingController::class, 'feedback'])->name('client-calling.feedback');
+    Route::get('client-calling/{clientCallLog}/recording', [ClientCallingController::class, 'recording'])->name('client-calling.recording');
     Route::post('customer-calling/crm-call/{callLog}/event', [CallManagementController::class, 'updateCrmCallEvent'])->name('customer-calling.crm-event');
     Route::get('customer-calling/call-status/{callLog}', [CallManagementController::class, 'customerCallStatus'])->name('customer-calling.call-status');
     Route::post('customer-calling/call-feedback/{callLog}', [CallManagementController::class, 'saveCustomerCallFeedback'])->name('customer-calling.call-feedback');
