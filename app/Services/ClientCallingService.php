@@ -67,21 +67,54 @@ class ClientCallingService
         $nonce = trim((string) $request->header('X-Plivo-Signature-V3-Nonce'));
         if ($signatureHeader === '' || $nonce === '') return false;
 
-        $url = $request->fullUrl();
         $parameters = $request->isMethod('post') ? $request->post() : [];
         ksort($parameters, SORT_STRING);
-        foreach ($parameters as $key => $value) {
-            if (is_scalar($value)) $url .= $key.$value;
-        }
-        $expected = base64_encode(hash_hmac(
-            'sha256', $url.$nonce, (string) config('services.client_calling.auth_token'), true
-        ));
 
-        foreach (explode(',', $signatureHeader) as $signature) {
-            if (hash_equals($expected, trim($signature))) return true;
+        $payload = '';
+        foreach ($parameters as $key => $value) {
+            if (is_scalar($value)) $payload .= $key.$value;
+        }
+
+        $signatures = array_map('trim', explode(',', $signatureHeader));
+        foreach ($this->signatureUrlCandidates($request) as $url) {
+            $expected = base64_encode(hash_hmac(
+                'sha256', $url.$payload.$nonce, (string) config('services.client_calling.auth_token'), true
+            ));
+
+            foreach ($signatures as $signature) {
+                if (hash_equals($expected, $signature)) return true;
+            }
         }
 
         return false;
+    }
+
+    private function signatureUrlCandidates(Request $request): array
+    {
+        $candidates = [$request->fullUrl()];
+
+        // Cloudflare/shared-hosting proxies can terminate HTTPS before the
+        // request reaches Laravel. Plivo signs the public HTTPS URL, not the
+        // internal URL observed by PHP, so also verify against the explicitly
+        // configured webhook URL for this route.
+        $requestPath = '/'.ltrim($request->path(), '/');
+        $query = $request->getQueryString();
+        foreach ([
+            'inbound_url',
+            'outbound_answer_url',
+            'status_url',
+            'recording_url',
+            'fallback_url',
+        ] as $key) {
+            $configuredUrl = trim((string) config('services.client_calling.'.$key));
+            if ($configuredUrl === '') continue;
+            if ('/'.ltrim((string) parse_url($configuredUrl, PHP_URL_PATH), '/') !== $requestPath) continue;
+
+            $configuredUrl = strtok($configuredUrl, '?');
+            $candidates[] = $query ? $configuredUrl.'?'.$query : $configuredUrl;
+        }
+
+        return array_values(array_unique($candidates));
     }
 
     public function url(string $key, string $fallback): string
