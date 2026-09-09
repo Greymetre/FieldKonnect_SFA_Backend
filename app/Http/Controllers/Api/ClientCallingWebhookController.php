@@ -59,7 +59,7 @@ class ClientCallingWebhookController extends Controller
         $call->update(['status' => 'agent_ringing', 'ringing_at' => now()]);
 
         $record = config('services.client_calling.recording_enabled')
-            ? '<Record startOnDialAnswer="true" redirect="false" callbackUrl="'.e($recordingUrl).'" callbackMethod="POST" />'
+            ? '<Record startOnDialAnswer="true" redirect="false" maxLength="3600" finishOnKey="none" action="'.e($recordingUrl).'" method="POST" callbackUrl="'.e($recordingUrl).'" callbackMethod="POST" />'
             : '';
         $dial = '<Dial callerId="'.e($service->configuredNumber()).'" timeout="'.(int) config('services.client_calling.ring_timeout', 30).'" callbackUrl="'.e($statusUrl).'" callbackMethod="POST"><Number>'.e($agentNumber).'</Number></Dial>';
 
@@ -81,7 +81,7 @@ class ClientCallingWebhookController extends Controller
         $statusUrl = $service->url('status_url', 'api/client-calling/webhooks/status').'?'.$query;
         $recordingUrl = $service->url('recording_url', 'api/client-calling/webhooks/recording').'?'.$query;
         $record = config('services.client_calling.recording_enabled')
-            ? '<Record startOnDialAnswer="true" redirect="false" callbackUrl="'.e($recordingUrl).'" callbackMethod="POST" />'
+            ? '<Record startOnDialAnswer="true" redirect="false" maxLength="3600" finishOnKey="none" action="'.e($recordingUrl).'" method="POST" callbackUrl="'.e($recordingUrl).'" callbackMethod="POST" />'
             : '';
 
         return $service->xml($record.'<Dial callerId="'.e($service->configuredNumber()).'" timeout="'.(int) config('services.client_calling.ring_timeout', 30).'" callbackUrl="'.e($statusUrl).'" callbackMethod="POST"><Number>'.e($call->customer_number).'</Number></Dial>');
@@ -169,6 +169,16 @@ class ClientCallingWebhookController extends Controller
 
     private function validateRequest(Request $request, ClientCallingService $service): void
     {
+        // Tokened callbacks are bound to one call. This also avoids false V3
+        // signature failures when a hosting proxy changes HTTPS to HTTP before
+        // Laravel sees the request. Untokened inbound calls still require V3.
+        if ($request->query('client_call_id') && $request->query('token')) {
+            $tokenMatches = ClientCallLog::whereKey($request->query('client_call_id'))
+                ->where('webhook_token', $request->query('token'))
+                ->exists();
+            if ($tokenMatches) return;
+        }
+
         abort_unless($service->validateWebhook($request), 403, 'Invalid Plivo webhook signature.');
     }
 
