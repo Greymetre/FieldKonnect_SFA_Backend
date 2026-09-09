@@ -46,18 +46,11 @@ class ClientCallingWebhookController extends Controller
         if (! $entry) return $this->missed($call, 'unknown_missed', 'We could not find your assigned representative. Please try again later.', $service);
         if (! $agent) return $this->missed($call, 'unassigned_missed', 'No representative is assigned. Please try again later.', $service);
 
-        $agentBusy = ClientCallLog::where('assigned_user_id', $agent->id)
-            ->where('id', '!=', $call->id)
-            ->whereNull('completed_at')
-            ->whereNull('feedback_status_id')
-            ->whereNull('remark')
-            ->whereIn('status', [
-                'initiating', 'queued', 'received', 'agent_ringing',
-                'agent_answered', 'ringing', 'answer', 'answered',
-                'in-progress', 'in_progress', 'connected',
-            ])
-            ->where('started_at', '>=', now()->subHours(2))->exists();
-        if ($agent->active !== 'Y' || ! $agent->call_management || ! $agentNumber || $agentBusy) {
+        // Do not infer physical-phone availability from database call state.
+        // Provider callbacks can be delayed or missed and would falsely block
+        // later callbacks. Always dial the one assigned agent; Plivo/the mobile
+        // network will report the real busy or no-answer outcome.
+        if ($agent->active !== 'Y' || ! $agent->call_management || ! $agentNumber) {
             return $this->missed($call, 'agent_unavailable', 'Your representative is unavailable. Please try again later.', $service);
         }
 
