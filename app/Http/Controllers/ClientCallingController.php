@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\TranscribeClientCallRecording;
 use App\Models\CallManagementEntry;
 use App\Models\ClientCallLog;
 use App\Models\Pincode;
@@ -153,6 +154,41 @@ class ClientCallingController extends Controller
             'Content-Length' => $recording->header('Content-Length'),
             'Content-Range' => $recording->header('Content-Range'),
         ]));
+    }
+
+    public function historyDetail(ClientCallLog $clientCallLog)
+    {
+        $this->authorizeHistoryCall($clientCallLog);
+        $clientCallLog->load(['entry', 'assignedAgent:id,name,email,mobile', 'feedbackStatus:id,status_name,display_name']);
+
+        return view('calls.client-history-detail', compact('clientCallLog'));
+    }
+
+    public function transcribe(ClientCallLog $clientCallLog)
+    {
+        abort_if(Gate::denies('call_management_transcribe'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        $this->authorizeHistoryCall($clientCallLog);
+        abort_if(empty($clientCallLog->recording_url), Response::HTTP_UNPROCESSABLE_ENTITY, 'Recording is not available.');
+
+        if (config('queue.default') === 'sync') {
+            return back()->with('error', 'Queue is not configured. Set QUEUE_CONNECTION=database and start the transcription worker.');
+        }
+        if ($clientCallLog->transcription_status === 'completed') return back()->with('success', 'Transcript is already available.');
+        if (in_array($clientCallLog->transcription_status, ['queued', 'processing'], true)) {
+            return back()->with('success', 'Transcription is already in progress.');
+        }
+
+        $clientCallLog->update(['transcription_status' => 'queued', 'transcription_error' => null]);
+        TranscribeClientCallRecording::dispatch($clientCallLog->id)->onQueue('transcriptions');
+
+        return back()->with('success', 'Recording queued for transcription. Refresh this page after a few minutes.');
+    }
+
+    private function authorizeHistoryCall(ClientCallLog $call): void
+    {
+        abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        if (auth()->user()->hasRole('superadmin') || auth()->user()->hasRole('Admin')) return;
+        abort_unless((int) $call->assigned_user_id === (int) auth()->id(), Response::HTTP_FORBIDDEN, 'You cannot access this call.');
     }
 
     private function authorizeCall(ClientCallLog $call): void

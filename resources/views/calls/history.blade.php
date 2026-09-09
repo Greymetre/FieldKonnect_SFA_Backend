@@ -123,7 +123,7 @@
                                     : (($duration > 0 || $callLog->recording_url || (int) $callLog->status === 1) ? 'Completed' : ($callLog->plivo_status ?: 'initiated'));
                                 $historyNumber = optional($historyEntry)->mobile_number ?: ($isClientHistory ? $callLog->customer_number : $callLog->number);
                             @endphp
-                            <tr {!! $isClientHistory ? '' : 'data-detail-url="'.e(route('customer-call-history.show', $callLog)).'"' !!}>
+                            <tr data-detail-url="{{ $isClientHistory ? route('client-call-history.show', $callLog) : route('customer-call-history.show', $callLog) }}">
                                 <td>{{ $isClientHistory ? ucfirst($callLog->direction) : 'Outbound' }}</td>
                                 <td>{{ optional($historyAgent)->name ?: '—' }}</td>
                                 <td>{{ optional($historyEntry)->firm_name ?: '—' }}</td>

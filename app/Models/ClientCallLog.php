@@ -16,6 +16,8 @@ class ClientCallLog extends Model
         'provider_agent_leg_uuid', 'provider_customer_leg_uuid', 'started_at',
         'ringing_at', 'answered_at', 'completed_at', 'duration',
         'recording_duration', 'recording_url', 'recording_id', 'cost',
+        'transcription_status', 'transcript', 'diarized_transcript',
+        'sarvam_job_id', 'transcription_error',
         'hangup_cause', 'remark', 'metadata', 'webhook_token',
     ];
 
@@ -25,6 +27,7 @@ class ClientCallLog extends Model
         'started_at' => 'datetime', 'ringing_at' => 'datetime',
         'answered_at' => 'datetime', 'completed_at' => 'datetime',
         'duration' => 'integer', 'recording_duration' => 'integer',
+        'diarized_transcript' => 'array',
         'metadata' => 'array',
     ];
 
