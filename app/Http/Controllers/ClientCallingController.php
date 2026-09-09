@@ -100,7 +100,15 @@ class ClientCallingController extends Controller
         if (! $pincode) throw ValidationException::withMessages(['pincode_id' => 'Please select a valid pincode.']);
 
         DB::transaction(function () use ($clientCallLog, $validated, $status, $pincode, $feedbackOutcome, $isFollowUp) {
-            $clientCallLog->update(['feedback_status_id' => $status->id, 'remark' => trim($validated['message'])]);
+            // Feedback is submitted from the post-call workspace. Treat it as a
+            // terminal signal as well, so a delayed/missing provider hangup
+            // callback cannot leave the agent falsely marked busy.
+            $clientCallLog->update([
+                'feedback_status_id' => $status->id,
+                'remark' => trim($validated['message']),
+                'completed_at' => $clientCallLog->completed_at ?: now(),
+                'status' => $clientCallLog->completed_at ? $clientCallLog->status : 'completed',
+            ]);
             $entryUpdates = [
                 'follow_up_date' => $isFollowUp ? $validated['follow_up_date'] : null,
                 'parent_name' => $validated['parent_name'] ?? null,

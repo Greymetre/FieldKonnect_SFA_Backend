@@ -47,7 +47,15 @@ class ClientCallingWebhookController extends Controller
         if (! $agent) return $this->missed($call, 'unassigned_missed', 'No representative is assigned. Please try again later.', $service);
 
         $agentBusy = ClientCallLog::where('assigned_user_id', $agent->id)
-            ->where('id', '!=', $call->id)->whereNull('completed_at')
+            ->where('id', '!=', $call->id)
+            ->whereNull('completed_at')
+            ->whereNull('feedback_status_id')
+            ->whereNull('remark')
+            ->whereIn('status', [
+                'initiating', 'queued', 'received', 'agent_ringing',
+                'agent_answered', 'ringing', 'answer', 'answered',
+                'in-progress', 'in_progress', 'connected',
+            ])
             ->where('started_at', '>=', now()->subHours(2))->exists();
         if ($agent->active !== 'Y' || ! $agent->call_management || ! $agentNumber || $agentBusy) {
             return $this->missed($call, 'agent_unavailable', 'Your representative is unavailable. Please try again later.', $service);
