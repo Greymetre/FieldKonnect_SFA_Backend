@@ -66,7 +66,7 @@ class ScheduledAttendancePunch extends Command
                 'punchin_summary' => '',
                 'working_type' => 'office work',
                 'city' => 'Indore',
-                'punchin_from' => 'Cron',
+                'punchin_from' => 'App',
                 'created_at' => $now,
             ]
         );
