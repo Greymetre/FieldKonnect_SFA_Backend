@@ -15,6 +15,7 @@ class ScheduledAttendancePunch extends Command
     private const USER_IDS = [19, 29];
     private const LATITUDE = '22.771557';
     private const LONGITUDE = '75.897860';
+    private const ADDRESS = 'Kanchan Vihar Public Park, Indore, MP, India';
 
     public function handle(): int
     {
@@ -52,9 +53,9 @@ class ScheduledAttendancePunch extends Command
                 'active' => 'Y',
                 'flag' => 'true',
                 'punchin_time' => $punchInTime,
-                'punchin_latitude' => self::LATITUDE,
-                'punchin_longitude' => self::LONGITUDE,
-                'punchin_address' => '',
+                'punchin_latitude' => self::LONGITUDE,
+                'punchin_longitude' => self::LATITUDE,
+                'punchin_address' => self::ADDRESS,
                 'punchin_image' => '',
                 'punchin_summary' => '',
                 'working_type' => 'office work',
@@ -94,7 +95,7 @@ class ScheduledAttendancePunch extends Command
             'punchout_time' => $punchOutTime,
             'punchout_latitude' => self::LATITUDE,
             'punchout_longitude' => self::LONGITUDE,
-            'punchout_address' => '',
+            'punchout_address' => self::ADDRESS,
             'punchout_image' => '',
             'punchout_summary' => 'all task completed',
             'worked_time' => gmdate('H:i:s', max(0, $punchInAt->diffInSeconds($punchOutAt))),
