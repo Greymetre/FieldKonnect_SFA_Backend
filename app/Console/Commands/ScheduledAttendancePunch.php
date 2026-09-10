@@ -29,6 +29,12 @@ class ScheduledAttendancePunch extends Command
 
         $now = Carbon::now('Asia/Kolkata');
 
+        if ($now->isWeekend()) {
+            $this->line("Skipping scheduled attendance on {$now->format('l')}.");
+
+            return self::SUCCESS;
+        }
+
         foreach (self::USER_IDS as $userId) {
             if ($action === 'in') {
                 $this->punchIn($userId, $now);
