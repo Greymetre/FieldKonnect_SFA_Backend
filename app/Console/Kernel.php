@@ -45,6 +45,14 @@ class Kernel extends ConsoleKernel
             ->timezone('Asia/Kolkata')
             ->hourly()
             ->withoutOverlapping();
+        $schedule->command('attendance:scheduled-punch in')
+            ->timezone('Asia/Kolkata')
+            ->dailyAt('10:00')
+            ->withoutOverlapping();
+        $schedule->command('attendance:scheduled-punch out')
+            ->timezone('Asia/Kolkata')
+            ->dailyAt('20:00')
+            ->withoutOverlapping();
         $schedule->command('tasks:send-pending-today')->everyMinute();
     }
 
