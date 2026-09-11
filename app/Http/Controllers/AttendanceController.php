@@ -1226,14 +1226,18 @@ if (
       $user = $request->user();
       $validator = Validator::make($request->all(), [
         'id' => 'required|exists:attendances,id',
+        'punchout_date' => 'nullable|date_format:Y-m-d',
         'punchout_time' => 'required|date_format:H:i',
+        'punchout_summary' => 'nullable|string|max:255',
       ]);
       if ($validator->fails()) {
         return response()->json(['status' => 'error', 'message' => $validator->errors()->first()], $this->badrequest);
       }
 
-      $punchout = Attendance::where('id', $request->id)->first();
-      $punchoutDate = $punchout->punchin_date;
+      $punchout = Attendance::findOrFail($request->id);
+      $punchoutDate = $request->filled('punchout_date')
+        ? $request->punchout_date
+        : $punchout->punchin_date;
       $selectedPunchoutTime = Carbon::createFromFormat('H:i', $request->punchout_time)->format('H:i:s');
       $punchInDateTime = Carbon::parse($punchout->punchin_date . ' ' . $punchout->punchin_time);
       $punchOutDateTime = Carbon::parse($punchoutDate . ' ' . $selectedPunchoutTime);
@@ -1243,6 +1247,13 @@ if (
           'status' => 'error',
           'message' => 'Punch out time cannot be earlier than punch in time.',
         ], $this->badrequest);
+      }
+
+      if (!empty($punchout->punchout_time)) {
+        return response()->json([
+          'status' => 'error',
+          'message' => 'This attendance has already been punched out.',
+        ], 409);
       }
 
       $workedSeconds = $punchInDateTime->diffInSeconds($punchOutDateTime);
@@ -1277,7 +1288,12 @@ if (
         return response()->json(['status' => 'success', 'message' => 'Punch Out successfully', 'punchout' => $punchout], 200);
       }
       return response()->json(['status' => 'error', 'message' => 'Error in Punch Out'], 404);
-    } catch (\Exception $e) {
+    } catch (\Throwable $e) {
+      \Log::error('Manual attendance punch out failed', [
+        'attendance_id' => $request->id,
+        'user_id' => optional($request->user())->id,
+        'exception' => $e,
+      ]);
       return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
     }
   }

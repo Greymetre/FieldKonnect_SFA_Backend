@@ -437,7 +437,7 @@
         });
 
         // Handle Punch Out form submit
-        $('#punchOutForm').on('submit', function(e) {
+        $('#punchOutForm').off('submit.punchout').on('submit.punchout', function(e) {
             e.preventDefault();
 
             // Basic client-side validation
@@ -480,9 +480,15 @@
                         );
                     }
                 },
-                error: function() {
+                error: function(xhr) {
+                    var message = xhr.responseJSON && xhr.responseJSON.message
+                        ? xhr.responseJSON.message
+                        : 'Server error. Try again.';
+                    $('#punchOutForm .punchout-error').remove();
                     $('#punchOutForm').prepend(
-                        '<div class="alert alert-danger mt-3">Server error. Try again.</div>'
+                        '<div class="alert alert-danger mt-3 punchout-error">' +
+                        $('<div>').text(message).html() +
+                        '</div>'
                     );
                 },
                 complete: function() {

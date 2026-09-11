@@ -839,20 +839,6 @@
       // });
 
 
-      // When user clicks "Punch Out Now" icon → open modal directly (no confirm)
-$('body').on('click', '.punchoutnow', function () {
-    var id = $(this).attr("value");
-
-    // Set the attendance ID in hidden field
-    $('#punchout_attendance_id').val(id);
-
-    // Optional: pre-fill punch out time with current time
-    let now = moment().format('HH:mm');
-    $('#punchout_time').val(now);
-
-    // Open the modal immediately — no confirmation
-    $('#punchOutModal').modal('show');
-});
       $('body').on('click', '.deleteAttendance', function() {
         var id = $(this).attr("value");
         var token = $("meta[name='csrf-token']").attr("content");
@@ -1009,7 +995,7 @@ $('#punchout_time').datetimepicker({
     });
 
     // When "Punch Out Now" button is clicked → open modal
-$('body').on('click', '.punchoutnow', function () {
+$('body').off('click.punchout', '.punchoutnow').on('click.punchout', '.punchoutnow', function () {
     var id = $(this).attr("value");
 
     // Set attendance ID
@@ -1024,7 +1010,7 @@ $('body').on('click', '.punchoutnow', function () {
 });
 
     // Handle Punch Out form submit
-$('#punchOutForm').on('submit', function (e) {
+$('#punchOutForm').off('submit.punchout').on('submit.punchout', function (e) {
     e.preventDefault();
 
     var formData = {
@@ -1056,9 +1042,15 @@ $('#punchOutForm').on('submit', function (e) {
                 );
             }
         },
-        error: function () {
+        error: function (xhr) {
+            var message = xhr.responseJSON && xhr.responseJSON.message
+                ? xhr.responseJSON.message
+                : 'Server error. Try again.';
+            $('#punchOutForm .punchout-error').remove();
             $('#punchOutForm').prepend(
-                '<div class="alert alert-danger mt-3">Server error. Try again.</div>'
+                '<div class="alert alert-danger mt-3 punchout-error">' +
+                $('<div>').text(message).html() +
+                '</div>'
             );
         },
         complete: function () {
