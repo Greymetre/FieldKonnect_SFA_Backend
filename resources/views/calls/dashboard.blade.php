@@ -101,7 +101,7 @@
             <article class="call-dashboard-kpi"><small>Total Dial</small><strong>{{ number_format($totalDial) }}</strong><div class="call-dashboard-kpi-meta">All call attempts</div><i class="material-icons">dialpad</i></article>
             <article class="call-dashboard-kpi"><small>Call Connected</small><strong>{{ number_format($connected) }}</strong><em>↗ {{ $connectRate }}% connect rate</em><i class="material-icons">phone_in_talk</i></article>
             <article class="call-dashboard-kpi"><small>Not Connected</small><strong>{{ number_format($notConnected) }}</strong><div class="call-dashboard-kpi-meta">Unanswered attempts</div><i class="material-icons">phone_missed</i></article>
-            <article class="call-dashboard-kpi"><small>Pending Calls</small><strong>{{ number_format($pendingCalls) }}</strong><div class="call-dashboard-kpi-meta">Awaiting action</div><i class="material-icons">pending_actions</i></article>
+            <article class="call-dashboard-kpi"><small>Pending Calls</small><strong>{{ number_format($pendingCalls) }}</strong><div class="call-dashboard-kpi-meta">Assigned · not called yet</div><i class="material-icons">pending_actions</i></article>
         </section>
         <div class="call-dashboard-section-title">Live operations</div>
         <section class="call-dashboard-kpis is-operations">

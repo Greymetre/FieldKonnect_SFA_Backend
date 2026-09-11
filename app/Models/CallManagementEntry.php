@@ -61,6 +61,16 @@ class CallManagementEntry extends Model
         return $this->hasOne(CallLog::class, 'call_management_entry_id')->latestOfMany();
     }
 
+    public function callLogs()
+    {
+        return $this->hasMany(CallLog::class, 'call_management_entry_id');
+    }
+
+    public function clientCallLogs()
+    {
+        return $this->hasMany(ClientCallLog::class, 'call_management_entry_id');
+    }
+
     public function latestNotedCallLog()
     {
         return $this->hasOne(CallLog::class, 'call_management_entry_id')

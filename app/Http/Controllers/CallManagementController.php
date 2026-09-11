@@ -34,7 +34,11 @@ class CallManagementController extends Controller
         $user = auth()->user();
         $canViewAllAgents = $user->hasRole('superadmin') || $user->hasRole('Admin');
         $calls = CallLog::query()->whereNotNull('call_management_entry_id');
-        $pendingCalls = CallManagementEntry::query()->where('status', 'assigned');
+        $pendingCalls = CallManagementEntry::query()
+            ->where('status', 'assigned')
+            ->whereNotNull('assigned_user_id')
+            ->whereDoesntHave('callLogs')
+            ->whereDoesntHave('clientCallLogs');
 
         if (! $canViewAllAgents) {
             $calls->where('user_id', $user->id);
