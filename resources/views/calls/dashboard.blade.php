@@ -106,7 +106,7 @@
         <div class="call-dashboard-section-title">Live operations</div>
         <section class="call-dashboard-kpis is-operations">
             <article class="call-dashboard-kpi"><small>Today's Calls</small><strong>{{ number_format($todayCalls) }}</strong><div class="call-dashboard-kpi-meta">Dialed today</div><i class="material-icons">today</i></article>
-            <article class="call-dashboard-kpi"><small>Live Agents</small><strong>{{ number_format($liveAgents) }}</strong><div class="call-dashboard-kpi-meta">Calling enabled</div><i class="material-icons">support_agent</i></article>
+            <article class="call-dashboard-kpi"><small>Follow-up / No Response</small><strong>{{ number_format($followUpOrNoResponseCalls) }}</strong><div class="call-dashboard-kpi-meta">Latest call outcome</div><i class="material-icons">phone_callback</i></article>
             <article class="call-dashboard-kpi"><small>Agents On Call</small><strong id="agentsOnCallCount">{{ number_format($agentsOnCall) }}</strong><div class="call-dashboard-kpi-meta is-live">Currently connected</div><i class="material-icons">phone_in_talk</i></article>
             <article class="call-dashboard-kpi"><small>Total Talk Time</small><strong>{{ $totalTalkTime }}</strong><div class="call-dashboard-kpi-meta">Connected duration</div><i class="material-icons">schedule</i></article>
         </section>

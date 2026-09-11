@@ -55,6 +55,25 @@ class CallManagementController extends Controller
         $totalTalkTime = (int) (clone $connectedQuery)->sum('duration');
         $todayCalls = (clone $calls)->whereDate('started_at', today())->count();
 
+        $followUpOrNoResponseStatusIds = Status::query()
+            ->where('module', Status::MODULE_CALL_MANAGEMENT_FEEDBACK)
+            ->get(['id', 'status_name', 'display_name'])
+            ->filter(fn (Status $status) => $this->isFollowUpFeedback($status) || $this->isNoResponseFeedback($status))
+            ->pluck('id');
+        $latestScopedCallIds = (clone $calls)
+            ->selectRaw('MAX(id)')
+            ->groupBy('call_management_entry_id');
+        $followUpOrNoResponseCalls = (clone $calls)
+            ->whereIn('id', $latestScopedCallIds)
+            ->where(function ($query) use ($followUpOrNoResponseStatusIds) {
+                $query->where('status', 0);
+                if ($followUpOrNoResponseStatusIds->isNotEmpty()) {
+                    $query->orWhereIn('feedback_status_id', $followUpOrNoResponseStatusIds);
+                }
+            })
+            ->distinct()
+            ->count('call_management_entry_id');
+
         $agentQuery = User::permission('call_management_access')
             ->where('active', 'Y')
             ->where('call_management', 1);
@@ -96,7 +115,7 @@ class CallManagementController extends Controller
             'connected' => $connected,
             'notConnected' => max(0, $totalDial - $connected),
             'connectRate' => $totalDial ? round(($connected / $totalDial) * 100, 1) : 0,
-            'liveAgents' => $agents->count(),
+            'followUpOrNoResponseCalls' => $followUpOrNoResponseCalls,
             'agentsOnCall' => $agentsOnCall,
             'totalTalkTime' => $this->formatDashboardDuration($totalTalkTime),
             'todayCalls' => $todayCalls,
@@ -949,6 +968,23 @@ class CallManagementController extends Controller
             $normalized = preg_replace('/[^a-z0-9]+/', '', strtolower((string) $label));
 
             if (str_contains($normalized, 'followup')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function isNoResponseFeedback(?Status $status): bool
+    {
+        if (! $status) {
+            return false;
+        }
+
+        foreach ([$status->status_name, $status->display_name] as $label) {
+            $normalized = preg_replace('/[^a-z0-9]+/', '', strtolower((string) $label));
+
+            if (str_contains($normalized, 'noresponse') || str_contains($normalized, 'notconnected')) {
                 return true;
             }
         }
