@@ -98,13 +98,14 @@ class CallManagementController extends Controller
             return $agent;
         })->sortByDesc('dashboard_calls_count')->values();
 
-        $trendStart = today()->subDays(6);
+        $trendStart = today()->startOfMonth();
+        $trendEnd = today();
         $trendCounts = (clone $calls)
-            ->whereDate('started_at', '>=', $trendStart)
+            ->whereBetween('started_at', [$trendStart->copy()->startOfDay(), $trendEnd->copy()->endOfDay()])
             ->selectRaw('DATE(started_at) as call_date, COUNT(*) as total')
             ->groupBy(DB::raw('DATE(started_at)'))
             ->pluck('total', 'call_date');
-        $trend = collect(range(0, 6))->map(function ($offset) use ($trendStart, $trendCounts) {
+        $trend = collect(range(0, $trendStart->diffInDays($trendEnd)))->map(function ($offset) use ($trendStart, $trendCounts) {
             $date = $trendStart->copy()->addDays($offset);
 
             return ['label' => $date->format('d M'), 'total' => (int) ($trendCounts[$date->toDateString()] ?? 0)];

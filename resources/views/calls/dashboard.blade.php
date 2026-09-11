@@ -132,7 +132,7 @@
             </article>
         </section>
         <section class="call-dashboard-panel call-dashboard-trend">
-            <h2>Calls Trend (last 7 days)</h2>
+            <h2>Calls Trend (current month)</h2>
             <div class="call-dashboard-panel-body"><canvas class="call-dashboard-chart" id="callTrendChart"></canvas></div>
         </section>
     </div>
