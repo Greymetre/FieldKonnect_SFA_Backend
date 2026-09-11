@@ -1231,7 +1231,10 @@ if (
         'punchout_summary' => 'nullable|string|max:255',
       ]);
       if ($validator->fails()) {
-        return response()->json(['status' => 'error', 'message' => $validator->errors()->first()], $this->badrequest);
+        return response()->json(
+          ['status' => 'error', 'message' => $validator->errors()->first()],
+          Response::HTTP_UNPROCESSABLE_ENTITY
+        );
       }
 
       $punchout = Attendance::findOrFail($request->id);
@@ -1246,7 +1249,7 @@ if (
         return response()->json([
           'status' => 'error',
           'message' => 'Punch out time cannot be earlier than punch in time.',
-        ], $this->badrequest);
+        ], Response::HTTP_UNPROCESSABLE_ENTITY);
       }
 
       if (!empty($punchout->punchout_time)) {
