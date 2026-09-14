@@ -459,7 +459,7 @@ class CallManagementController extends Controller
         $query = CallLog::with([
                 'user:id,name',
                 'feedbackStatus:id,status_name,display_name',
-                'callManagementEntry:id,firm_name,contact_person_name,mobile_number',
+                'callManagementEntry.assignedUser:id,name,email',
             ])
             ->whereNotNull('call_management_entry_id')
             ->whereHas('callManagementEntry', function ($entryQuery) {
@@ -517,7 +517,7 @@ class CallManagementController extends Controller
         $query = ClientCallLog::with([
             'assignedAgent:id,name',
             'feedbackStatus:id,status_name,display_name',
-            'entry:id,firm_name,contact_person_name,mobile_number',
+            'entry.assignedUser:id,name,email',
         ]);
 
         if (! auth()->user()->hasRole('superadmin')) {
