@@ -1021,8 +1021,7 @@
                     callButton.dataset.callingType = result.data.calling_type;
 
                     setManualCallModalOpen(false);
-                    if (result.data.calling_type === 'client_calling') initiateClientPhoneCall(callButton);
-                    else initiateMobileCall(callButton);
+                    openCallMethodSelector(callButton, result.data.customer_name);
                 } catch (error) {
                     manualCallError.textContent = error.message || 'Unable to start manual call.';
                     manualCallError.style.display = 'block';
@@ -1345,20 +1344,23 @@
                 }
             }
 
+            function openCallMethodSelector(button, customerName) {
+                selectedCallButton = button;
+                const isClientCalling = button.dataset.callingType === 'client_calling';
+                callThroughMobile.hidden = isClientCalling;
+                callThroughCrm.hidden = isClientCalling;
+                callThroughClientPhone.hidden = !isClientCalling;
+                callMethodOptions.classList.toggle('is-single', isClientCalling);
+                callMethodCustomer.textContent = customerName
+                    ? 'Choose how to call ' + customerName + '.'
+                    : 'How would you like to connect with this customer?';
+                setCallMethodModalOpen(true);
+            }
+
             document.querySelectorAll('.customer-call-btn[data-call-url]').forEach(function (button) {
                 button.addEventListener('click', function () {
-                    selectedCallButton = button;
                     const row = button.closest('tr');
-                    const customerName = row ? row.dataset.contact || row.dataset.firm : '';
-                    const isClientCalling = button.dataset.callingType === 'client_calling';
-                    callThroughMobile.hidden = isClientCalling;
-                    callThroughCrm.hidden = isClientCalling;
-                    callThroughClientPhone.hidden = !isClientCalling;
-                    callMethodOptions.classList.toggle('is-single', isClientCalling);
-                    callMethodCustomer.textContent = customerName
-                        ? 'Choose how to call ' + customerName + '.'
-                        : 'How would you like to connect with this customer?';
-                    setCallMethodModalOpen(true);
+                    openCallMethodSelector(button, row ? row.dataset.contact || row.dataset.firm : '');
                 });
             });
 
