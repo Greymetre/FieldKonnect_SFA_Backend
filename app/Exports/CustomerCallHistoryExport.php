@@ -25,8 +25,8 @@ class CustomerCallHistoryExport implements FromCollection, WithHeadings, WithMap
         return [
             'Project Name', 'Project ID', 'Parent Name', 'Firm Name',
             'Contact Person Name', 'Mobile Number', 'Customer Type',
-            'Address', 'Pincode', 'City', 'District', 'State', 'Caller Email',
-            'Caller Name', 'Point Column 1', 'Point Column 2', 'Point Column 3',
+            'Address', 'Pincode', 'City', 'District', 'State',
+            'Point Column 1', 'Point Column 2', 'Point Column 3',
             'Point Column 4', 'Status', 'Direction', 'Agent', 'Date & Time',
             'Duration', 'Call Status', 'Agent Status', 'Notes',
         ];
@@ -57,8 +57,6 @@ class CustomerCallHistoryExport implements FromCollection, WithHeadings, WithMap
             optional($entry)->city,
             optional($entry)->district,
             optional($entry)->state,
-            optional(optional($entry)->assignedUser)->email,
-            optional(optional($entry)->assignedUser)->name,
             optional($entry)->custom_column_1,
             optional($entry)->custom_column_2,
             optional($entry)->custom_column_3,
