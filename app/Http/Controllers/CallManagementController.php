@@ -711,6 +711,65 @@ class CallManagementController extends Controller
         }
     }
 
+    public function createManualCall(Request $request)
+    {
+        abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $user = auth()->user();
+        abort_unless($user->call_management, Response::HTTP_FORBIDDEN, 'Calling is not enabled for this user.');
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:200'],
+            'mobile_number' => ['required', 'regex:/^[0-9]{10}$/'],
+            'calling_type' => ['required', Rule::in([
+                CallManagementEntry::TYPE_CUSTOMER_CALLING,
+                CallManagementEntry::TYPE_CLIENT_CALLING,
+            ])],
+        ]);
+
+        $name = trim($validated['name']);
+        $mobile = $validated['mobile_number'];
+
+        $entry = CallManagementEntry::query()
+            ->where('assigned_user_id', $user->id)
+            ->where('mobile_number', $mobile)
+            ->where('calling_type', $validated['calling_type'])
+            ->latest('id')
+            ->first();
+
+        if (! $entry) {
+            $entry = CallManagementEntry::create([
+                'firm_name' => $name,
+                'contact_person_name' => $name,
+                'mobile_number' => $mobile,
+                'customer_type' => 'Manual Call',
+                'calling_type' => $validated['calling_type'],
+                'assigned_user_id' => $user->id,
+                'status' => 'assigned',
+                'created_by' => $user->id,
+            ]);
+        } else {
+            $entry->update([
+                'firm_name' => $name,
+                'contact_person_name' => $name,
+                'status' => 'assigned',
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Manual call is ready.',
+            'data' => [
+                'entry_id' => $entry->id,
+                'calling_type' => $entry->calling_type,
+                'customer_name' => $name,
+                'call_url' => route('customer-calling.call', $entry),
+                'crm_call_url' => route('customer-calling.crm-session', $entry),
+                'client_call_url' => route('client-calling.call', $entry),
+            ],
+        ], 201);
+    }
+
     public function createCrmCallSession(CallManagementEntry $callManagementEntry)
     {
         abort_if(Gate::denies('call_management_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');

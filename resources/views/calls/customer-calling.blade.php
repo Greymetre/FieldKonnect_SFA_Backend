@@ -11,6 +11,8 @@
         .customer-calling-filter-trigger { display:inline-flex;align-items:center;justify-content:center;gap:9px;min-width:148px;height:44px;padding:0 20px;border:1px solid rgba(85,126,218,.38);border-radius:12px;background:rgba(7,20,49,.62);color:#c7d5f5;font-size:14px;font-weight:700; }
         .customer-calling-filter-trigger .material-icons { font-size:20px; }
         .customer-calling-filter-trigger.is-active::after { content:'';width:7px;height:7px;border-radius:50%;background:#2dd4ee;box-shadow:0 0 10px rgba(45,212,238,.8); }
+        .customer-calling-manual { display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border:1px solid rgba(34,211,238,.52);border-radius:12px;background:rgba(34,211,238,.1);color:#42d9f1;font-size:14px;font-weight:800; }
+        .customer-calling-manual .material-icons { font-size:20px; }
         .customer-calling-create { display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border:0;border-radius:12px;background:linear-gradient(135deg,#2bd1e8,#438ff0);color:#061329;font-size:14px;font-weight:800; }
         .customer-calling-create .material-icons { font-size:20px; }
         .customer-calling-heading-actions { display:flex;align-items:center;gap:10px; }
@@ -98,6 +100,21 @@
         .call-method-option strong { color:#f4f8ff;font-size:15px; }
         .call-method-option small { margin-top:6px;color:#7f92c2;font-size:12px;line-height:1.45; }
         .call-method-coming { position:absolute;top:14px;right:14px;padding:4px 8px;border-radius:999px;background:rgba(251,191,36,.12);color:#facc55;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase; }
+        .manual-call-dialog { width:min(430px,100%); }
+        .manual-call-form { padding:22px 24px 24px; }
+        .manual-call-field { margin-bottom:16px; }
+        .manual-call-field label { display:block;margin-bottom:7px;color:#91a3ce;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase; }
+        .manual-call-field input { width:100%;height:48px;padding:0 14px;border:1px solid rgba(85,126,218,.4);border-radius:11px;outline:0;background:#071938;color:#e3ebff;font-size:15px; }
+        .manual-call-field input:focus { border-color:rgba(34,211,238,.65);box-shadow:0 0 0 3px rgba(34,211,238,.08); }
+        .manual-call-number-wrap { position:relative; }
+        .manual-call-number-wrap .material-icons { position:absolute;top:14px;left:14px;color:#35d2ed;font-size:20px; }
+        .manual-call-number-wrap input { padding-left:44px;font-size:21px;font-weight:700;letter-spacing:.09em; }
+        .manual-dialpad { display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0; }
+        .manual-dial-key { height:48px;border:1px solid rgba(85,126,218,.34);border-radius:11px;background:#081a3e;color:#d9e5ff;font-size:19px;font-weight:700; }
+        .manual-dial-key:hover { border-color:rgba(34,211,238,.55);background:#0c2856;color:#42d9f1; }
+        .manual-call-error { display:none;margin-bottom:12px;color:#fca5a5;font-size:12px; }
+        .manual-call-submit { display:flex;align-items:center;justify-content:center;gap:9px;width:100%;height:48px;border:0;border-radius:11px;background:linear-gradient(135deg,#2bd1e8,#438ff0);color:#061329;font-size:15px;font-weight:900; }
+        .manual-call-submit:disabled { cursor:wait;opacity:.65; }
         .crm-call-end { display:none;height:36px;margin-left:auto;padding:0 14px;border:1px solid rgba(248,113,113,.5);border-radius:9px;background:rgba(248,113,113,.1);color:#fca5a5;font-size:12px;font-weight:800; }
         .crm-call-end.show { display:inline-flex;align-items:center;gap:6px; }
         .customer-call-status { display:inline-flex;align-items:center;justify-content:center;min-width:90px;min-height:30px;padding:0 12px;border:1px solid rgba(34,211,238,.34);border-radius:999px;background:rgba(34,211,238,.06);color:#45d6ef;font-size:11px;font-weight:800;letter-spacing:.07em;line-height:1;text-transform:uppercase;white-space:nowrap;word-break:keep-all; }
@@ -209,7 +226,7 @@
         .call-feedback-panel { display:flex;flex-direction:column; }
         .call-feedback-panel .call-ended-save { margin-top:auto; }
         @media (max-width: 800px) { #callEndedModal { padding:0; } #callEndedModal .call-ended-dialog { width:100vw;height:100vh;border:0;border-radius:0; } #callEndedModal .call-ended-form { overflow-y:auto;padding:16px; } .call-workspace-grid { display:block; } .call-workspace-panel { margin-bottom:14px;overflow:visible;padding:14px; } .call-workspace-panel .call-customer-details { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-        @media (max-width: 640px) { .customer-calling-heading { align-items:flex-start; } .customer-calling-title { font-size:22px; } .customer-calling-filter-trigger { min-width:44px;width:44px;padding:0; } .customer-calling-filter-trigger span:not(.material-icons),.customer-calling-create span:not(.material-icons) { display:none; } .customer-calling-create { width:44px;padding:0; } .customer-calling-filter-head,.customer-calling-filter-body { padding-left:20px;padding-right:20px; } .customer-calling-filter-grid,.customer-create-grid { grid-template-columns:1fr; } .customer-calling-filter-field.is-wide { grid-column:auto; } .customer-calling-filter-actions { grid-template-columns:1fr 1.5fr;padding-left:20px;padding-right:20px; } .customer-calling-footer { align-items:flex-start;flex-direction:column;gap:10px; } .call-workspace-panel .call-customer-details { grid-template-columns:1fr; } .call-customer-detail.is-wide { grid-column:auto; } .call-method-options { grid-template-columns:1fr; } }
+        @media (max-width: 640px) { .customer-calling-heading { align-items:flex-start; } .customer-calling-title { font-size:22px; } .customer-calling-filter-trigger,.customer-calling-manual { min-width:44px;width:44px;padding:0; } .customer-calling-filter-trigger span:not(.material-icons),.customer-calling-manual span:not(.material-icons),.customer-calling-create span:not(.material-icons) { display:none; } .customer-calling-create { width:44px;padding:0; } .customer-calling-filter-head,.customer-calling-filter-body { padding-left:20px;padding-right:20px; } .customer-calling-filter-grid,.customer-create-grid { grid-template-columns:1fr; } .customer-calling-filter-field.is-wide { grid-column:auto; } .customer-calling-filter-actions { grid-template-columns:1fr 1.5fr;padding-left:20px;padding-right:20px; } .customer-calling-footer { align-items:flex-start;flex-direction:column;gap:10px; } .call-workspace-panel .call-customer-details { grid-template-columns:1fr; } .call-customer-detail.is-wide { grid-column:auto; } .call-method-options { grid-template-columns:1fr; } }
     </style>
 
     <div class="customer-calling-page">
@@ -220,6 +237,9 @@
                 <span class="customer-calling-count">{{ $totalRecords }} {{ $totalRecords === 1 ? 'record' : 'records' }}</span>
             </div>
             <div class="customer-calling-heading-actions">
+                <button class="customer-calling-manual" id="openManualCall" type="button">
+                    <span class="material-icons">dialpad</span><span>Manual Calling</span>
+                </button>
                 <button class="customer-calling-filter-trigger {{ request()->hasAny(['search', 'status', 'agent_id', 'from_date', 'to_date']) ? 'is-active' : '' }}" id="openCustomerCallingFilters" type="button">
                     <span class="material-icons">tune</span><span>Filters</span>
                 </button>
@@ -467,6 +487,32 @@
         </aside>
     </div>
 
+    <div class="call-method-modal" id="manualCallModal" role="dialog" aria-modal="true" aria-labelledby="manualCallTitle" aria-hidden="true">
+        <div class="call-method-dialog manual-call-dialog">
+            <div class="call-method-head">
+                <div><h2 id="manualCallTitle">Manual Calling</h2><p>Enter a customer or lead and dial their number.</p></div>
+                <button class="call-method-close" id="closeManualCall" type="button" aria-label="Close"><i class="material-icons">close</i></button>
+            </div>
+            <form class="manual-call-form" id="manualCallForm">
+                <div class="manual-call-field">
+                    <label for="manualCallName">Customer / Lead Name *</label>
+                    <input id="manualCallName" name="name" type="text" maxlength="200" placeholder="Enter customer or lead name" autocomplete="name" required>
+                </div>
+                <div class="manual-call-field">
+                    <label for="manualCallNumber">Mobile Number *</label>
+                    <div class="manual-call-number-wrap"><i class="material-icons">phone</i><input id="manualCallNumber" name="mobile_number" type="tel" inputmode="numeric" maxlength="10" pattern="[0-9]{10}" placeholder="Enter 10 digit number" autocomplete="tel" required></div>
+                </div>
+                <div class="manual-dialpad" aria-label="Phone dial pad">
+                    @foreach(['1','2','3','4','5','6','7','8','9','backspace','0','clear'] as $key)
+                        <button class="manual-dial-key" type="button" data-dial-key="{{ $key }}" aria-label="{{ $key === 'backspace' ? 'Delete last digit' : ($key === 'clear' ? 'Clear number' : 'Digit '.$key) }}">@if($key === 'backspace')<i class="material-icons">backspace</i>@elseif($key === 'clear')<i class="material-icons">clear</i>@else{{ $key }}@endif</button>
+                    @endforeach
+                </div>
+                <div class="manual-call-error" id="manualCallError"></div>
+                <button class="manual-call-submit" id="manualCallSubmit" type="submit"><i class="material-icons">call</i><span>Call Now</span></button>
+            </form>
+        </div>
+    </div>
+
     <div class="call-method-modal" id="callMethodModal" role="dialog" aria-modal="true" aria-labelledby="callMethodTitle" aria-hidden="true">
         <div class="call-method-dialog">
             <div class="call-method-head">
@@ -582,6 +628,12 @@
             const filterOverlay = document.getElementById('customerCallingFilterOverlay');
             const openFilters = document.getElementById('openCustomerCallingFilters');
             const closeFilters = document.getElementById('closeCustomerCallingFilters');
+            const manualCallModal = document.getElementById('manualCallModal');
+            const manualCallForm = document.getElementById('manualCallForm');
+            const manualCallName = document.getElementById('manualCallName');
+            const manualCallNumber = document.getElementById('manualCallNumber');
+            const manualCallError = document.getElementById('manualCallError');
+            const manualCallSubmit = document.getElementById('manualCallSubmit');
             const callMethodModal = document.getElementById('callMethodModal');
             const callMethodCustomer = document.getElementById('callMethodCustomer');
             const callMethodOptions = document.getElementById('callMethodOptions');
@@ -715,7 +767,8 @@
             });
             document.addEventListener('keydown', function (event) {
                 if (event.key !== 'Escape') return;
-                if (callMethodModal.classList.contains('show')) setCallMethodModalOpen(false);
+                if (manualCallModal.classList.contains('show')) setManualCallModalOpen(false);
+                else if (callMethodModal.classList.contains('show')) setCallMethodModalOpen(false);
                 else if (filterOverlay.classList.contains('show')) setFiltersOpen(false);
                 else if (notesModal.classList.contains('show')) setNotesModalOpen(false);
                 else if (feedbackModal.classList.contains('show')) setFeedbackModalOpen(false);
@@ -903,6 +956,81 @@
                 document.body.style.overflow = isOpen ? 'hidden' : '';
                 if (!isOpen) selectedCallButton = null;
             }
+
+            function setManualCallModalOpen(isOpen) {
+                manualCallModal.classList.toggle('show', isOpen);
+                manualCallModal.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+                document.body.style.overflow = isOpen ? 'hidden' : '';
+                if (isOpen) window.setTimeout(function () { manualCallName.focus(); }, 100);
+            }
+
+            document.getElementById('openManualCall').addEventListener('click', function () {
+                manualCallForm.reset();
+                manualCallError.style.display = 'none';
+                setManualCallModalOpen(true);
+            });
+            document.getElementById('closeManualCall').addEventListener('click', function () { setManualCallModalOpen(false); });
+            manualCallModal.addEventListener('click', function (event) {
+                if (event.target === manualCallModal) setManualCallModalOpen(false);
+            });
+            manualCallNumber.addEventListener('input', function () {
+                this.value = this.value.replace(/\D/g, '').slice(0, 10);
+            });
+            document.querySelectorAll('[data-dial-key]').forEach(function (key) {
+                key.addEventListener('click', function () {
+                    const value = key.dataset.dialKey;
+                    if (value === 'backspace') manualCallNumber.value = manualCallNumber.value.slice(0, -1);
+                    else if (value === 'clear') manualCallNumber.value = '';
+                    else if (manualCallNumber.value.length < 10) manualCallNumber.value += value;
+                    manualCallNumber.focus();
+                });
+            });
+            manualCallForm.addEventListener('submit', async function (event) {
+                event.preventDefault();
+                const name = manualCallName.value.trim();
+                const mobile = manualCallNumber.value.replace(/\D/g, '');
+                manualCallError.style.display = 'none';
+                if (!name || !/^[0-9]{10}$/.test(mobile)) {
+                    manualCallError.textContent = !name ? 'Please enter the customer or lead name.' : 'Please enter a valid 10 digit mobile number.';
+                    manualCallError.style.display = 'block';
+                    return;
+                }
+
+                manualCallSubmit.disabled = true;
+                manualCallSubmit.querySelector('span').textContent = 'Connecting...';
+                try {
+                    const response = await fetch(@json(route('customer-calling.manual-call')), {
+                        method: 'POST',
+                        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token },
+                        body: JSON.stringify({ name: name, mobile_number: mobile, calling_type: @json($selectedCallingType) })
+                    });
+                    const result = await readJsonResponse(response, 'Unable to prepare manual call.');
+                    if (!response.ok || !result.success) {
+                        const validationMessage = result.errors ? Object.values(result.errors).flat()[0] : null;
+                        throw new Error(validationMessage || result.message || 'Unable to prepare manual call.');
+                    }
+
+                    const callButton = document.createElement('button');
+                    const callIcon = document.createElement('i');
+                    callIcon.className = 'material-icons';
+                    callIcon.textContent = 'call';
+                    callButton.appendChild(callIcon);
+                    callButton.dataset.callUrl = result.data.call_url;
+                    callButton.dataset.crmCallUrl = result.data.crm_call_url;
+                    callButton.dataset.clientCallUrl = result.data.client_call_url;
+                    callButton.dataset.callingType = result.data.calling_type;
+
+                    setManualCallModalOpen(false);
+                    if (result.data.calling_type === 'client_calling') initiateClientPhoneCall(callButton);
+                    else initiateMobileCall(callButton);
+                } catch (error) {
+                    manualCallError.textContent = error.message || 'Unable to start manual call.';
+                    manualCallError.style.display = 'block';
+                } finally {
+                    manualCallSubmit.disabled = false;
+                    manualCallSubmit.querySelector('span').textContent = 'Call Now';
+                }
+            });
 
             function renderPreviousNotes(notes) {
                 const container = document.getElementById('feedbackPreviousNotes');
