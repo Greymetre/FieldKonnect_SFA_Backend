@@ -58,7 +58,10 @@
                         <div class="transcript-empty">{{ $callLog->transcript ?: 'No transcript returned.' }}</div>
                     @endforelse
                 </div>
-            @elseif($callLog->transcription_status === 'failed')<p>Transcription failed. An authorized Super Admin can retry it.</p>@else<p>Transcript has not been generated yet.</p>@endif
+            @elseif($callLog->transcription_status === 'failed')<p>Transcription failed: {{ $callLog->transcription_error ?: 'Unknown error' }}. An authorized Super Admin can retry it.</p>@else<p>Transcript has not been generated yet.</p>@endif
         </section>
     </div>
+    @if(in_array($callLog->transcription_status, ['queued', 'processing'], true))
+        <script>window.setTimeout(function () { window.location.reload(); }, 10000);</script>
+    @endif
 </x-app-layout>
