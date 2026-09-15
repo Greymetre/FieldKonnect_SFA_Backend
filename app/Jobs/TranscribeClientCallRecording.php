@@ -17,8 +17,8 @@ class TranscribeClientCallRecording implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $timeout = 600;
-    public int $tries = 3;
-    public array $backoff = [60, 180];
+    public int $tries = 1;
+    public bool $failOnTimeout = true;
 
     public function __construct(public int $clientCallLogId)
     {

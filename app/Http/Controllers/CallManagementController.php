@@ -444,7 +444,8 @@ class CallManagementController extends Controller
             return back()->with('success', 'Transcript is already available.');
         }
 
-        if (in_array($callLog->transcription_status, ['queued', 'processing'], true)) {
+        if (in_array($callLog->transcription_status, ['queued', 'processing'], true)
+            && $callLog->updated_at?->gt(now()->subMinutes(15))) {
             return back()->with('success', 'Transcription is already in progress.');
         }
 

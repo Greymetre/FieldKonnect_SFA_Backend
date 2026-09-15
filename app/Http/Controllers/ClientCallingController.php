@@ -174,7 +174,8 @@ class ClientCallingController extends Controller
             return back()->with('error', 'Queue is not configured. Set QUEUE_CONNECTION=database and start the transcription worker.');
         }
         if ($clientCallLog->transcription_status === 'completed') return back()->with('success', 'Transcript is already available.');
-        if (in_array($clientCallLog->transcription_status, ['queued', 'processing'], true)) {
+        if (in_array($clientCallLog->transcription_status, ['queued', 'processing'], true)
+            && $clientCallLog->updated_at?->gt(now()->subMinutes(15))) {
             return back()->with('success', 'Transcription is already in progress.');
         }
 
