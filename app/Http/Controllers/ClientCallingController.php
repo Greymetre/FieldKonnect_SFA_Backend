@@ -179,7 +179,9 @@ class ClientCallingController extends Controller
         }
 
         $clientCallLog->update(['transcription_status' => 'queued', 'transcription_error' => null]);
-        TranscribeClientCallRecording::dispatch($clientCallLog->id)->onQueue('transcriptions');
+        // Keep transcription jobs on the configured default queue. Sending them
+        // to a named queue without a matching worker leaves them queued forever.
+        TranscribeClientCallRecording::dispatch($clientCallLog->id);
 
         return back()->with('success', 'Recording queued for transcription. Refresh this page after a few minutes.');
     }
