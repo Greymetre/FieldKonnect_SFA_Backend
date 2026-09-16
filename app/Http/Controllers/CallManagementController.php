@@ -287,6 +287,11 @@ class CallManagementController extends Controller
             $query->orderByRaw('CASE WHEN latest_call_log.feedback_status_id IS NULL THEN 1 ELSE 2 END');
         }
 
+        // Among entries that already have feedback (e.g. No Response), show the
+        // least recently called first so a just-called entry drops to the bottom
+        // and the agent does not call the same customer twice by mistake.
+        $query->orderByRaw('CASE WHEN latest_call_log.feedback_status_id IS NOT NULL THEN latest_call_log.id END ASC');
+
         $entries = $query
             ->orderByDesc('call_management_entries.listing_order')
             ->orderByDesc('call_management_entries.id')
