@@ -8,47 +8,38 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasColumn('leads', 'import_batch_order')) {
-            throw new \RuntimeException('The lead import tracking columns are missing. Run the import-order migration first.');
-        }
+        DB::transaction(function () {
+            $leadIds = DB::table('leads')->pluck('id');
 
-        $latestBatch = DB::table('leads')
-            ->whereNotNull('import_batch_order')
-            ->max('import_batch_order');
+            if (Schema::hasTable('tasks') && Schema::hasColumn('tasks', 'lead_id')) {
+                $taskIds = DB::table('tasks')->whereIn('lead_id', $leadIds)->pluck('id');
 
-        if ($latestBatch === null) {
-            throw new \RuntimeException('No tracked lead import batch was found. No leads were deleted.');
-        }
+                foreach (['task_assignments', 'task_comments', 'task_status_logs'] as $table) {
+                    if (Schema::hasTable($table) && Schema::hasColumn($table, 'task_id')) {
+                        DB::table($table)->whereIn('task_id', $taskIds)->delete();
+                    }
+                }
 
-        $leadIds = DB::table('leads')
-            ->where('import_batch_order', $latestBatch)
-            ->pluck('id');
+                DB::table('tasks')->whereIn('id', $taskIds)->delete();
+            }
 
-        if ($leadIds->isEmpty()) {
-            throw new \RuntimeException('The latest tracked lead import batch is empty. No leads were deleted.');
-        }
-
-        DB::transaction(function () use ($leadIds) {
             foreach ([
                 'call_logs',
                 'lead_check_in',
-                'lead_contacts',
                 'lead_logs',
                 'lead_notes',
                 'lead_opportunities',
                 'lead_tasks',
-                'tasks',
+                'lead_contacts',
             ] as $table) {
                 if (Schema::hasTable($table) && Schema::hasColumn($table, 'lead_id')) {
                     DB::table($table)->whereIn('lead_id', $leadIds)->delete();
                 }
             }
 
+            // Includes assignment notifications whose model_id is null.
             if (Schema::hasTable('lead_notifications')) {
-                DB::table('lead_notifications')
-                    ->whereIn('model_id', $leadIds)
-                    ->where('model', 'lead')
-                    ->delete();
+                DB::table('lead_notifications')->delete();
             }
 
             if (Schema::hasTable('addresses')) {
@@ -59,10 +50,12 @@ return new class extends Migration
             }
 
             if (Schema::hasTable('media')) {
-                DB::table('media')
+                \Spatie\MediaLibrary\MediaCollections\Models\Media::query()
                     ->where('model_type', 'App\\Models\\Lead')
                     ->whereIn('model_id', $leadIds)
-                    ->delete();
+                    ->eachById(function ($media) {
+                        $media->delete();
+                    });
             }
 
             DB::table('leads')->whereIn('id', $leadIds)->delete();
