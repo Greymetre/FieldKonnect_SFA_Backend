@@ -650,7 +650,7 @@ class LeadController extends Controller
             }
         }
 
-        return redirect()->route('leads.show', $lead);
+        return redirect()->route('leads.index')->with('message_success', 'Lead created successfully.');
     }
 
     public function storeAddress(Request $request)
@@ -731,7 +731,10 @@ class LeadController extends Controller
             $city_name = $address->cityname->city_name ?? '';
             $state_name = $address->statename->state_name ?? '';
             $pincodename = $address->pincodename->pincode ?? '';
-            $address_data = $address1 . "," . $address2 . "," . $city_name . "," . $state_name . "," . $pincodename;
+            $address_data = collect([$address1, $address2, $city_name, $state_name, $pincodename])
+                ->map(fn ($part) => trim((string) $part))
+                ->filter(fn ($part) => $part !== '' && strtoupper($part) !== 'N/A')
+                ->implode(', ');
         } else {
             $address_data = "";
         }

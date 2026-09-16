@@ -946,6 +946,196 @@
             }
         }
 
+
+        /* Lead detail header + list polish */
+        .lead-detail-page .card-body.shdnone > .container-fluid > .card:first-child,
+        .lead-detail-page .lead-header-card {
+            margin-top: 0 !important;
+        }
+
+        .lead-detail-page .lead-header-card .inermain {
+            align-items: center;
+            gap: 18px;
+            min-width: 0;
+        }
+
+        .lead-detail-page .lead-header-card .image-profile {
+            flex: 0 0 72px;
+            width: 72px;
+            height: 72px;
+            margin: 0;
+            border: 3px solid rgba(255, 255, 255, .25);
+            font-size: 32px;
+            font-weight: 700;
+        }
+
+        .lead-detail-page .lead-title-row {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .lead-detail-page .lead-title-row h3 {
+            font-size: 22px !important;
+            line-height: 1.3 !important;
+        }
+
+        .lead-detail-page .lead-edit-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            border: 1px solid var(--fk-list-border-strong);
+            border-radius: 8px;
+            background: var(--fk-list-control);
+        }
+
+        .lead-detail-page .lead-edit-link i {
+            font-size: 16px;
+        }
+
+        .lead-detail-page .lead-title-row .bootstrap-select,
+        .lead-detail-page .lead-title-row .dropdown.bootstrap-select.form-control {
+            width: 170px !important;
+            margin: 0 0 0 6px !important;
+            padding: 0 !important;
+            border: 0 !important;
+            background: transparent !important;
+        }
+
+        .lead-detail-page .lead-title-row .bootstrap-select > .dropdown-toggle {
+            width: 100% !important;
+            height: 34px;
+            padding: 4px 12px !important;
+            border: 1px solid var(--fk-list-border-strong) !important;
+            border-radius: 999px !important;
+            font-size: 13px;
+            text-transform: none;
+        }
+
+        .lead-detail-page .lead-url {
+            display: inline-block;
+            margin-top: 4px;
+            font-size: 13px;
+        }
+
+        .lead-detail-page .lead-address {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 6px !important;
+        }
+
+        .lead-detail-page .lead-address i,
+        .lead-detail-page .lead-meta i {
+            font-size: 16px;
+            color: var(--fk-list-accent);
+        }
+
+        .lead-detail-page .infomation-data ul.lead-meta {
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 10px 0 0;
+            list-style: none;
+        }
+
+        .lead-detail-page .lead-meta li,
+        .lead-detail-page .lead-meta li a {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .lead-detail-page .lead-meta li {
+            padding: 5px 12px;
+            border: 1px solid var(--fk-list-border);
+            border-radius: 999px;
+            background: var(--fk-list-control);
+        }
+
+        .lead-detail-page .lead-meta li a span,
+        .lead-detail-page .lead-meta li span {
+            color: var(--fk-list-text) !important;
+            font-size: 13px;
+        }
+
+        .lead-detail-page .button-box .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            text-transform: none;
+        }
+
+        .lead-detail-page .button-box .btn i {
+            font-size: 18px;
+        }
+
+        .lead-detail-page ul.cn-list li {
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--fk-list-border);
+        }
+
+        .lead-detail-page ul.cn-list li:last-child {
+            border-bottom: 0;
+        }
+
+        .lead-detail-page .cn-list .contact-person h5 {
+            margin: 0;
+            font-size: 15px;
+        }
+
+        .lead-detail-page .cn-list .contact-person p:empty {
+            display: none;
+        }
+
+        .lead-detail-page .contac-link {
+            width: auto;
+            gap: 8px;
+            margin-left: auto;
+            margin-right: 8px;
+        }
+
+        .lead-detail-page .contact-icon-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border: 1px solid var(--fk-list-border-strong);
+            border-radius: 50%;
+            background: var(--fk-list-control);
+            color: var(--fk-list-accent) !important;
+        }
+
+        .lead-detail-page .contact-icon-btn i {
+            font-size: 16px;
+        }
+
+        .lead-detail-page .lead-empty {
+            margin: 4px 0;
+            padding: 14px 0;
+            text-align: center;
+            font-size: 13px;
+            color: var(--fk-list-muted) !important;
+        }
+
+        @media (max-width: 767px) {
+            .lead-detail-page .lead-header-card .inermain {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .lead-detail-page .lead-title-row .bootstrap-select,
+            .lead-detail-page .lead-title-row .dropdown.bootstrap-select.form-control {
+                width: 100% !important;
+                margin-left: 0 !important;
+            }
+        }
+
         .shdnone {
             box-shadow: unset !important;
             background: #e3e9f6;
@@ -1050,15 +1240,16 @@
 </button> -->
 <!--  -->
 <!-- Header -->
-<div class="card p-0 px-3 py-3">
+<div class="card p-0 px-3 py-3 lead-header-card">
     <div class="d-flex justify-content-between align-items-center mb-0 mbcss">
         <div class="inermain">
             <div class="image-profile">
-                {{strtoupper(substr($lead->company_name, 0, 1));}}
+                {{ strtoupper(substr($lead->company_name, 0, 1)) }}
             </div>
             <div class="infomation-data">
-                <!-- <h3>{{$lead->company_name??''}} <span class="badge badge-pill badge-info">{{$lead->status_is?$lead->status_is->display_name:'Pending'}}</span> </h3> -->
-                <span style="display: flex;align-items: center;justify-content: space-between"><h3>{{$lead->company_name??''}}<a href="{{route('leads.edit',[$lead->id])}}"><i class="material-icons">edit</i></a></h3>
+                <div class="lead-title-row">
+                    <h3>{{ $lead->company_name ?? '' }}</h3>
+                    <a href="{{ route('leads.edit', [$lead->id]) }}" class="lead-edit-link" title="Edit Lead"><i class="material-icons">edit</i></a>
                     <select name="status" id="status" class="form-control selectpicker">
                         <option value="0" {{$lead->status == 0 ? 'selected' : ''}}>Pending</option>
                         @if($status->count() > 0)
@@ -1067,27 +1258,34 @@
                         @endforeach
                         @endif
                     </select>
-                </span>
-                <a href="{{$lead->company_url??''}}" target="_blank">{{$lead->company_url??''}}</a>
-                <p>{{$address_data??''}}</p>
-                <ul>
+                </div>
+                @if($lead->company_url)
+                <a href="{{ $lead->company_url }}" target="_blank" class="lead-url">{{ $lead->company_url }}</a>
+                @endif
+                @if($address_data)
+                <p class="lead-address"><i class="material-icons">place</i> {{ $address_data }}</p>
+                @endif
+                <ul class="lead-meta">
+                    @if($lead_contacts[0]->phone_number ?? '')
                     <li>
-                        @if($lead_contacts[0]->email??'')
-                        <img src="{{url('/').'/'.asset('assets/img')}}/mail.svg"> <span>{{$lead_contacts[0]->email??''}}</span>
-                        @endif
+                        <a href="tel:{{ $lead_contacts[0]->phone_number }}"><i class="material-icons">call</i> <span>{{ $lead_contacts[0]->phone_number }}</span></a>
                     </li>
+                    @endif
+                    @if($lead_contacts[0]->email ?? '')
                     <li>
-                        @if($lead_contacts[0]->phone_number??'')
-                        <img src="{{url('/').'/'.asset('assets/img')}}/phone.svg"> <span>{{$lead_contacts[0]->phone_number??''}}</span>
-                        @endif
+                        <a href="mailto:{{ $lead_contacts[0]->email }}"><i class="material-icons">mail</i> <span>{{ $lead_contacts[0]->email }}</span></a>
                     </li>
+                    @endif
+                    @if($lead->lead_source)
+                    <li><i class="material-icons">campaign</i> <span>{{ $lead->lead_source }}</span></li>
+                    @endif
                 </ul>
             </div>
         </div>
         <div class="button-box">
-            <button class="btn btn-primary me-2" onclick="activateNotesTab()"><img src="{{url('/').'/'.asset('assets/img')}}/paper.svg"> Note</button>
-            @if($lead_contacts[0]->email??'')
-            <a  href="mailto:{{$lead_contacts[0]->email??''}}" class="btn btn-outline-primary text-white email_s"><img src="{{url('/').'/'.asset('assets/img')}}/btnmail.svg">Email</a>
+            <button class="btn btn-primary me-2" onclick="activateNotesTab()"><i class="material-icons">sticky_note_2</i> Note</button>
+            @if($lead_contacts[0]->email ?? '')
+            <a href="mailto:{{ $lead_contacts[0]->email }}" class="btn btn-outline-primary email_s"><i class="material-icons">mail</i> Email</a>
             @endif
         </div>
     </div>
@@ -1212,6 +1410,9 @@ action="{{ route('lead-tasks.store') }}" class="form-horizontal taskform" id="fr
 </div>
 </form>
 
+@if($lead_tasks->isEmpty())
+<p class="lead-empty">No tasks yet.</p>
+@endif
 <ul class="list-group list-group-flush list-task contact-list">
     @foreach($lead_tasks as $lead_task)
     <li> 
@@ -1338,23 +1539,13 @@ action="{{ route('lead-contacts.store') }}" class="form-horizontal contact-task-
             <p>{{$lead_contact->title??''}}</p>
         </div>
         <div class="contac-link">
-
-<!-- <p><img src="{{ url('/').'/'.asset('assets/img/whatsup.svg') }}"></p> -->
-    @if($lead_contact->email)
-        <p>
-            <a href="mailto:{{ $lead_contacts[0]->email }}">
-                <img src="{{ url('/').'/'.asset('assets/img/mail.svg') }}" alt="Mail icon" title="{{$lead_contact->email}}" data-toggle="tooltip" >
-            </a>
-        </p>
-    @endif
-    @if($lead_contact->phone_number)
-        <p>
-            <a href="tel:{{ $lead_contacts[0]->phone_number }}">
-                <img src="{{ url('/').'/'.asset('assets/img/phone.svg') }}" alt="Mail icon" title="{{$lead_contact->phone_number}}" data-toggle="tooltip">
-            </a>
-        </p>
-    @endif
-    </div>
+            @if($lead_contact->email)
+            <a href="mailto:{{ $lead_contact->email }}" class="contact-icon-btn" title="{{ $lead_contact->email }}" data-toggle="tooltip"><i class="material-icons">mail</i></a>
+            @endif
+            @if($lead_contact->phone_number)
+            <a href="tel:{{ $lead_contact->phone_number }}" class="contact-icon-btn" title="{{ $lead_contact->phone_number }}" data-toggle="tooltip"><i class="material-icons">call</i></a>
+            @endif
+        </div>
     <div class="editdelte d-flex flex-row ">
 
         <div class="contact_edit" onclick="editContact('{{$lead_contact}}')"><img src="{{ url('/').'/'.asset('assets/img/ph_note-pencil-fill.svg') }}"></div>
@@ -1506,6 +1697,9 @@ action="{{ route('lead-opportunities.store') }}" class="form-horizontal taskform
 </div>
 </form>
 <!--  -->
+@if($lead_opportunities->isEmpty())
+<p class="lead-empty">No opportunities yet.</p>
+@endif
 <ul class="list-group list-group-flush list-task cn-list appurt">
     @foreach($lead_opportunities  as $lead_opportunity)
     <li>
@@ -1597,6 +1791,9 @@ action="{{ route('lead-opportunities.store') }}" class="form-horizontal taskform
         @php
         $previousDate = null;
         @endphp
+        @if($combined->isEmpty())
+        <p class="lead-empty">No activity yet.</p>
+        @endif
         @foreach($combined as $lead_note)
         @php
         $noteDate = \Carbon\Carbon::parse($lead_note->created_at)->format('d M Y'); // e.g., 28 Feb 2024
