@@ -142,6 +142,9 @@ class LeadController extends Controller
         }
 
         $leads = $leads->orderBy('created_at', 'desc')->select(\DB::raw(with(new Lead)->getTable() . '.*'))->groupBy('id');
+        $canEditLead = $this->permissionAllows('lead_edit');
+        $canDeleteLead = $this->permissionAllows('lead_delete');
+
         return DataTables::of($leads)
             ->editColumn('company_name', function ($lead) {
                 $url = route('leads.show', $lead);
@@ -185,6 +188,21 @@ class LeadController extends Controller
                 $lead_id = "'" . $lead->id . "'";
 
                 return '<input type="checkbox" class="lead-checkbox checkbox_cls" value="' . $lead->id . '" name="lead_ids[]">';
+            })
+
+            ->addColumn('action', function ($lead) use ($canEditLead, $canDeleteLead) {
+                $btn = '';
+                if ($canEditLead) {
+                    $btn .= '<a href="' . route('leads.edit', $lead) . '" class="btn btn-success btn-just-icon btn-sm" title="Edit Lead">
+                                <i class="material-icons">edit</i>
+                            </a>';
+                }
+                if ($canDeleteLead) {
+                    $btn .= '<button type="button" class="btn btn-danger btn-just-icon btn-sm lead-delete-btn" data-id="' . $lead->id . '" title="Delete Lead">
+                                <i class="material-icons">delete</i>
+                            </button>';
+                }
+                return '<div class="btn-group btn-group-sm" role="group">' . $btn . '</div>';
             })
 
             ->editColumn('status', function ($lead) {
@@ -1027,6 +1045,13 @@ class LeadController extends Controller
             $q->whereIn('assign_to', $userIds)
                 ->orWhereIn('created_by', $userIds);
         });
+    }
+
+    protected function permissionAllows(string $ability): bool
+    {
+        $gate = Gate::getFacadeRoot();
+
+        return ! (method_exists($gate, 'has') && Gate::has($ability)) || Gate::allows($ability);
     }
 
     protected function abortIfPermissionDenied(string $ability): void

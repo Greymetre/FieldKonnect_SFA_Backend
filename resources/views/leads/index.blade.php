@@ -179,6 +179,7 @@
               <thead class=" text-primary">
                 <tr>
                   <th><input type="checkbox" id="checkAll"></th>
+                  <th>Action</th>
                   <th>Date</th>
                   <th>Company Name</th>
                   <th>Contact</th>
@@ -322,6 +323,12 @@
             searchable: false
           },
           {
+            data: 'action',
+            name: 'action',
+            orderable: false,
+            searchable: false
+          },
+          {
             data: 'created_at',
             name: 'created_at'
           },
@@ -377,7 +384,7 @@
           },
         ],
         order: [
-          [1, 'desc']
+          [2, 'desc']
         ],
         dom: 't<"bottom"lip>',
 
@@ -479,6 +486,45 @@
         $('.ass_del').addClass('d-none');
         // $('#deleteButton').prop('disabled', true);
       }
+    });
+
+    $(document).on('click', '.lead-delete-btn', function() {
+      var leadId = $(this).data('id');
+      Swal.fire({
+        title: 'Are you sure?',
+        text: "You won't be able to revert this lead!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, delete it!'
+      }).then((result) => {
+        if (result.value) {
+          $.ajax({
+            url: "{{ route('leads.deleteLead') }}",
+            method: 'POST',
+            data: {
+              lead_id: [leadId],
+              _token: '{{ csrf_token() }}'
+            },
+            success: function(res) {
+              Swal.fire({
+                icon: res.status == 'success' ? 'success' : 'error',
+                title: res.message
+              });
+              if (res.status == 'success') {
+                getLeads();
+              }
+            },
+            error: function() {
+              Swal.fire({
+                icon: 'error',
+                title: 'Something went wrong.'
+              });
+            }
+          });
+        }
+      });
     });
 
     $('#del_btn').on('click', function() {
