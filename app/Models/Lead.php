@@ -33,6 +33,8 @@ class Lead extends Model implements HasMedia
         'others_4',
         'others_5',
         'others',
+        'import_batch_order',
+        'import_row_order',
         'created_by',
     ];
     

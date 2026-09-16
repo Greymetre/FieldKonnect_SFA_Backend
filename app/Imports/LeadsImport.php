@@ -29,6 +29,14 @@ class LeadsImport implements ToCollection, WithValidation, WithHeadingRow, WithB
 {
     use Importable, SkipsFailures;
 
+    private int $importBatchOrder;
+
+    private int $importRowOrder = 0;
+
+    public function __construct()
+    {
+        $this->importBatchOrder = (int) round(microtime(true) * 1000000);
+    }
 
     public function collection(Collection $rows)
     {
@@ -102,6 +110,8 @@ class LeadsImport implements ToCollection, WithValidation, WithHeadingRow, WithB
                 'others_4' => $row['others_4'] ?? null,
                 'others_5' => $row['others_5'] ?? null,
                 'others' => $otherData,
+                'import_batch_order' => $this->importBatchOrder,
+                'import_row_order' => ++$this->importRowOrder,
             ]);
             if ($lead->id) {
                 Address::create([

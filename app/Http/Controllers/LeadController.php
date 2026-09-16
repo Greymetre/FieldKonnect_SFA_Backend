@@ -141,7 +141,13 @@ class LeadController extends Controller
             $leads->whereIn('assign_to', $user_ids);
         }
 
-        $leads = $leads->orderBy('created_at', 'desc')->select(\DB::raw(with(new Lead)->getTable() . '.*'))->groupBy('id');
+        $leads = $leads
+            ->orderByRaw('COALESCE(import_batch_order, (UNIX_TIMESTAMP(created_at) * 1000000) + id) DESC')
+            ->orderByRaw('CASE WHEN import_row_order IS NULL THEN 0 ELSE 1 END ASC')
+            ->orderBy('import_row_order', 'asc')
+            ->orderBy('id', 'desc')
+            ->select(\DB::raw(with(new Lead)->getTable() . '.*'))
+            ->groupBy('id');
         $canEditLead = $this->permissionAllows('lead_edit');
         $canDeleteLead = $this->permissionAllows('lead_delete');
 
