@@ -8,18 +8,16 @@ use App\Models\District;
 use App\Models\Lead;
 use App\Models\LeadContact;
 use App\Models\LeadNote;
-use App\Models\Notes;
 use App\Models\Pincode;
 use App\Models\State;
 use App\Models\Status;
 use App\Models\User;
 use Carbon\Carbon;
-use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Validators\Failure;
 use Maatwebsite\Excel\Concerns\SkipsFailures;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\Importable;
 use Maatwebsite\Excel\Concerns\WithValidation;
@@ -35,13 +33,22 @@ class LeadsImport implements ToCollection, WithValidation, WithHeadingRow, WithB
     public function collection(Collection $rows)
     {
         foreach ($rows as $row) {
-
-            if (isset($row['lead_generation_date']) && is_numeric($row['lead_generation_date'])) {
-                $excelDate = $row['lead_generation_date'] - 25569; // Adjust for Excel's epoch
-                $unixTimestamp = strtotime('+' . $excelDate . ' days', strtotime('1970-01-01'));
-                $row['lead_generation_date'] = !empty($row['lead_generation_date']) ? Carbon::createFromTimestamp($unixTimestamp)->toDateString() : '';
+            // Do not create an empty lead for blank/spacer rows in the sheet.
+            if ($row->filter(fn ($value) => $value !== null && $value !== '')->isEmpty()) {
+                continue;
             }
-            $status = Status::where('display_name', $row['lead_type'])->first()?->id ?? 0;
+
+            $leadGenerationDate = $row['lead_generation_date'] ?? null;
+            if (is_numeric($leadGenerationDate)) {
+                $excelDate = $leadGenerationDate - 25569; // Adjust for Excel's epoch
+                $unixTimestamp = strtotime('+' . $excelDate . ' days', strtotime('1970-01-01'));
+                $leadGenerationDate = Carbon::createFromTimestamp($unixTimestamp)->toDateString();
+            } elseif (!empty($leadGenerationDate)) {
+                $leadGenerationDate = Carbon::parse($leadGenerationDate)->toDateString();
+            }
+            $status = !empty($row['lead_type'])
+                ? Status::where('display_name', $row['lead_type'])->value('id')
+                : null;
             $expectedKeys = [
                 'lead_generation_date',
                 'firm_name',
@@ -58,42 +65,63 @@ class LeadsImport implements ToCollection, WithValidation, WithHeadingRow, WithB
                 'lead_type',
                 'assignee',
                 'note',
-                'website'
+                'website',
+                'designation',
+                'alternet_number',
+                'revenue_rs_cr',
+                'others_1',
+                'others_2',
+                'others_3',
+                'others_4',
+                'others_5',
             ];
 
             // Step 1: Collect other (unexpected) keys without null/empty key or value
             $otherData = collect($row)->filter(function ($value, $key) use ($expectedKeys) {
                 return !in_array($key, $expectedKeys) && !is_null($key) && $key !== '' && !is_null($value) && $value !== '';
             })->toArray();
-            $otherData = json_encode($otherData, JSON_UNESCAPED_UNICODE);
+
+            $otherData = !empty($otherData)
+                ? json_encode($otherData, JSON_UNESCAPED_UNICODE)
+                : null;
             $lead = Lead::create([
-                'company_name' => $row['firm_name'],
-                'company_url' => $row['website'],
-                'status' => $status,
+                'company_name' => $row['firm_name'] ?? null,
+                'company_url' => $row['website'] ?? null,
+                'status' => $status ?? 0,
                 'created_by' => Auth::id(),
-                'lead_generation_date' => date('Y-m-d', strtotime($row['lead_generation_date'] ?? time())),
-                'lead_source' => $row['lead_source'],
-                'assign_to' => User::where('name', $row['assignee'])->first()->id ?? null,
+                'lead_generation_date' => $leadGenerationDate ?: null,
+                'lead_source' => $row['lead_source'] ?? null,
+                'assign_to' => !empty($row['assignee'])
+                    ? User::where('name', $row['assignee'])->value('id')
+                    : null,
+                'alternate_number' => isset($row['alternet_number']) ? (string) $row['alternet_number'] : null,
+                'revenue_rs_cr' => $row['revenue_rs_cr'] ?? null,
+                'others_1' => $row['others_1'] ?? null,
+                'others_2' => $row['others_2'] ?? null,
+                'others_3' => $row['others_3'] ?? null,
+                'others_4' => $row['others_4'] ?? null,
+                'others_5' => $row['others_5'] ?? null,
                 'others' => $otherData,
             ]);
             if ($lead->id) {
                 Address::create([
                     'model_type' => 'App\Models\Lead',
                     'model_id' => $lead->id,
-                    'address1' => $row['address'] ?? 'N/A',
-                    'address2' => $row['place'] ?? 'N/A',
+                    'address1' => $row['address'] ?? '',
+                    'address2' => $row['place'] ?? '',
                     'country_id' => 1,
-                    'pincode_id' => $row['pincode'] ? Pincode::where('pincode', $row['pincode'])->first()->id : null,
-                    'state_id' => $row['state'] ? State::where('state_name', $row['state'])->first()->id : null,
-                    'city_id' => $row['city'] ? City::where('city_name', $row['city'])->first()->id : null,
-                    'district_id' => $row['district'] ? District::where('district_name', $row['district'])->first()->id : null,
+                    'pincode_id' => !empty($row['pincode']) ? Pincode::where('pincode', $row['pincode'])->value('id') : null,
+                    'state_id' => !empty($row['state']) ? State::where('state_name', $row['state'])->value('id') : null,
+                    'city_id' => !empty($row['city']) ? City::where('city_name', $row['city'])->value('id') : null,
+                    'district_id' => !empty($row['district']) ? District::where('district_name', $row['district'])->value('id') : null,
                     'created_by' => Auth::id()
                 ]);
-                $category = LeadContact::create([
-                    'name' => $row['customer_name'],
-                    'phone_number' => (string)$row['customer_number'],
-                    'email' => $row['email'],
-                    'lead_source' => $row['lead_source'],
+                LeadContact::create([
+                    'name' => $row['customer_name'] ?? null,
+                    'title' => $row['designation'] ?? null,
+                    'phone_number' => isset($row['customer_number']) ? (string) $row['customer_number'] : null,
+                    'email' => $row['email'] ?? null,
+                    'lead_source' => $row['lead_source'] ?? null,
                     'lead_id' => $lead->id,
                     'created_by' => Auth::id()
                 ]);
@@ -119,8 +147,14 @@ class LeadsImport implements ToCollection, WithValidation, WithHeadingRow, WithB
     public function rules(): array
     {
         return [
+            'lead_generation_date' => 'nullable',
             'firm_name' => 'required',
             'customer_name' => 'required',
+            'designation' => 'nullable',
+            'customer_number' => 'nullable',
+            'alternet_number' => 'nullable',
+            'revenue_rs_cr' => 'nullable',
+            'email' => 'nullable',
             'pincode' => 'nullable|exists:pincodes,pincode',
             'city' => 'nullable|exists:cities,city_name',
             'district' => 'nullable|exists:districts,district_name',
@@ -128,6 +162,15 @@ class LeadsImport implements ToCollection, WithValidation, WithHeadingRow, WithB
             'lead_type' => 'nullable|exists:statuses,display_name',
             'lead_source' => 'nullable|in:Google,Indiamart,Justdial,Instagram,Facebook,LinkedIn,Self',
             'assignee' => 'nullable|exists:users,name',
+            'place' => 'nullable',
+            'address' => 'nullable',
+            'note' => 'nullable',
+            'website' => 'nullable',
+            'others_1' => 'nullable',
+            'others_2' => 'nullable',
+            'others_3' => 'nullable',
+            'others_4' => 'nullable',
+            'others_5' => 'nullable',
         ];
     }
 
@@ -136,8 +179,6 @@ class LeadsImport implements ToCollection, WithValidation, WithHeadingRow, WithB
         return [
             'firm_name.required' => 'Firm name is required.',
             'customer_name.required' => 'Customer name is required.',
-            'customer_number.required' => 'Customer number is required.',
-
             'pincode.exists' => 'The selected pincode is not valid.',
             'city.exists' => 'The selected city does not exist in our records.',
             'district.exists' => 'The selected district does not exist in our records.',

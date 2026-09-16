@@ -25,6 +25,13 @@ class Lead extends Model implements HasMedia
         'latitude',
         'longitude',
         'location_address',
+        'alternate_number',
+        'revenue_rs_cr',
+        'others_1',
+        'others_2',
+        'others_3',
+        'others_4',
+        'others_5',
         'others',
         'created_by',
     ];
