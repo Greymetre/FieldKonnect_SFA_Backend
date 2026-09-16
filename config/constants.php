@@ -50,6 +50,7 @@ return [
         'Justdial' => 'Justdial',
         'Instagram' => 'Instagram',
         'Facebook' => 'Facebook',
+        'LinkedIn' => 'LinkedIn',
         'Self' => 'Self',
     ],
     'customer_roles' => [

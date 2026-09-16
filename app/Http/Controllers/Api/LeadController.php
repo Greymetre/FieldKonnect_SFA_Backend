@@ -196,6 +196,10 @@ class LeadController extends Controller
                 'value' => 'Justdial'
             ],
             [
+                'key' => 'LinkedIn',
+                'value' => 'LinkedIn'
+            ],
+            [
                 'key' => 'Self',
                 'value' => 'Self'
             ],
@@ -228,7 +232,7 @@ class LeadController extends Controller
                     }
                 },
             ],
-            'lead_source' => 'required|in:Google,Indiamart,Justdial,Instagram,Facebook,Self',
+            'lead_source' => 'required|in:Google,Indiamart,Justdial,Instagram,Facebook,LinkedIn,Self',
         ]);
 
         if ($validate->fails()) {
