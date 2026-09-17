@@ -107,6 +107,7 @@ class MoveLeadInboundCalls extends Command
         // lead call reached this customer more recently than a Client Calling call.
         $before = $call->started_at ?: $call->created_at;
         $lastLeadCall = CallLog::whereNotNull('lead_id')->whereNull('call_management_entry_id')
+            ->where('direction', 'outbound')
             ->whereRaw($normalized('number'), [$national])
             ->where('started_at', '<=', $before)->max('started_at');
         if (! $lastLeadCall) return null;

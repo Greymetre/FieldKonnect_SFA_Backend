@@ -28,8 +28,8 @@ class ClientCallingWebhookController extends Controller
 
         // Lead click-to-call uses this number as caller ID, so a callback from a
         // lead contact goes to the agent that lead is assigned to. When the number
-        // is both a lead contact and a Client Calling entry, the side that called
-        // the customer most recently receives the callback.
+        // is both a lead contact and a Client Calling entry, the side that last
+        // made an outbound call to the customer receives the callback.
         $lead = $this->leadForCustomer($customerNumber);
         if ($lead && (! $entry || $this->leadCalledMoreRecently($customerNumber, $entry))) {
             return $this->routeLeadCallback($service, $lead, $customerNumber, $providerUuid);
@@ -163,13 +163,18 @@ class ClientCallingWebhookController extends Controller
     private function leadCalledMoreRecently(string $number, CallManagementEntry $entry): bool
     {
         $national = substr(preg_replace('/\D+/', '', $number), -10);
+        // Only outbound calls decide the owner. Counting inbound calls would let one
+        // misrouted callback keep every later callback on the same side.
         $lastLeadCall = CallLog::whereNotNull('lead_id')
             ->whereNull('call_management_entry_id')
+            ->where('direction', 'outbound')
             ->whereRaw("RIGHT(REPLACE(REPLACE(REPLACE(number, '+', ''), ' ', ''), '-', ''), 10) = ?", [$national])
             ->max('started_at');
         if (! $lastLeadCall) return false;
 
-        $lastClientCall = ClientCallLog::where('call_management_entry_id', $entry->id)->max('started_at');
+        $lastClientCall = ClientCallLog::where('call_management_entry_id', $entry->id)
+            ->where('direction', 'outbound')
+            ->max('started_at');
 
         return ! $lastClientCall || strtotime($lastLeadCall) >= strtotime($lastClientCall);
     }
