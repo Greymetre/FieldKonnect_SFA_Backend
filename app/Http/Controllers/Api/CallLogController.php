@@ -292,6 +292,14 @@ class CallLogController extends Controller
             $query->where('started_at', '>=', now()->startOfWeek());
         }
 
+        // Optional date range (Y-m-d), inclusive of both days.
+        foreach (['start_date' => '>=', 'end_date' => '<='] as $key => $operator) {
+            $date = (string) $request->input($key, '');
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+                $query->whereDate('started_at', $operator, $date);
+            }
+        }
+
         if (in_array($request->input('direction'), ['inbound', 'outbound'], true)) {
             $query->where('direction', $request->input('direction'));
         }
