@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Exports\ExcelExport;
 use App\Http\Controllers\Controller;
-use App\Jobs\TranscribeCallRecording;
+use App\Services\CallTranscriptionService;
 use App\Models\CallLog;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -292,31 +292,32 @@ class LeadCallLogController extends Controller
             'feedbackStatus',
         ]);
 
+        app(CallTranscriptionService::class)->sync($callLog);
+
         return view('call_logs.show', compact('callLog'));
     }
 
-    public function transcribe(CallLog $callLog)
+    public function transcribe(CallLog $callLog, CallTranscriptionService $transcription)
     {
         abort_if(Gate::denies('call_management_transcribe'), 403, '403 Forbidden');
         $this->authorizeCallLog($callLog);
         abort_if(empty($callLog->recording_url), 422, 'Recording is not available.');
 
-        if (config('queue.default') === 'sync') {
-            return back()->with('error', 'Queue is not configured. Set QUEUE_CONNECTION=database and start the transcription worker.');
-        }
         if ($callLog->transcription_status === 'completed') {
             return back()->with('success', 'Transcript is already available.');
         }
-        if (in_array($callLog->transcription_status, ['queued', 'processing'], true)
+        if ($callLog->transcription_status === 'processing' && $callLog->sarvam_job_id
             && $callLog->updated_at?->gt(now()->subMinutes(15))) {
-            return back()->with('success', 'Transcription is already in progress.');
+            return back()->with('success', 'Transcript is already being generated.');
         }
 
-        $callLog->update(['transcription_status' => 'queued', 'transcription_error' => null]);
-        // Same Sarvam job and default queue as Customer Calling transcripts.
-        TranscribeCallRecording::dispatch($callLog->id);
+        // Started inline and completed by the detail page's status checks, so no
+        // queue worker or cron is needed on shared hosting.
+        $transcription->start($callLog);
 
-        return back()->with('success', 'Recording queued for transcription. The transcript will appear here in a few minutes.');
+        return $callLog->transcription_status === 'failed'
+            ? back()->with('error', 'Transcript could not be started. Please try again.')
+            : back()->with('success', 'Generating transcript. It will appear here shortly.');
     }
 
     private function authorizeCallLog(CallLog $callLog): void

@@ -5,7 +5,7 @@
     $duration = (int) $callLog->duration;
     $recordingDuration = (int) $callLog->recording_duration;
     $formatDuration = static fn ($seconds) => sprintf('%02d:%02d:%02d', intdiv($seconds, 3600), intdiv($seconds % 3600, 60), $seconds % 60);
-    $transcriptInProgress = in_array($callLog->transcription_status, ['queued', 'processing'], true)
+    $transcriptInProgress = $callLog->transcription_status === 'processing' && $callLog->sarvam_job_id
       && $callLog->updated_at?->gt(now()->subMinutes(15));
     // Consecutive lines from the same speaker are merged into one bubble.
     $conversation = collect(data_get($callLog->diarized_transcript, 'entries', []))->reduce(function ($groups, $line) {
@@ -118,9 +118,9 @@
               @endforelse
             </div>
           @elseif($transcriptInProgress)
-            <p class="recording-unavailable"><i class="material-icons">hourglass_top</i> Sarvam AI is transcribing this recording. This page refreshes automatically.</p>
+            <p class="recording-unavailable"><i class="material-icons">hourglass_top</i> Generating transcript. It will appear here automatically.</p>
           @elseif($callLog->transcription_status === 'failed')
-            <p class="recording-unavailable"><i class="material-icons">error_outline</i> Transcription failed: {{ $callLog->transcription_error ?: 'Unknown error' }}</p>
+            <p class="recording-unavailable"><i class="material-icons">error_outline</i> Transcript could not be generated. Please try again.</p>
           @elseif(empty($callLog->recording_url))
             <p class="recording-unavailable"><i class="material-icons">info_outline</i> A transcript can be generated once the recording is available.</p>
           @else
@@ -131,6 +131,6 @@
     </div>
   </div>
   @if($transcriptInProgress)
-    <script>setTimeout(function () { window.location.reload(); }, 15000);</script>
+    <script>setTimeout(function () { window.location.reload(); }, 5000);</script>
   @endif
 </x-app-layout>
