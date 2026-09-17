@@ -79,6 +79,21 @@
                   </div>
                 </div>
                 <div class="form-row">
+                  {{-- Designation --}}
+                  <div class="form-group col-6 mb-2">
+                    <input type="text" name="designation" id="designation" value="{{ old('designation', isset($lead) ? $lead->contacts?->first()?->title : '') }}"
+                      class="form-control form-control-lg" placeholder="Designation">
+                    @error('designation') <small class="text-danger d-block mt-1">{{ $message }}</small> @enderror
+                  </div>
+
+                  {{-- Alternate Number --}}
+                  <div class="form-group col-6 mb-2">
+                    <input type="tel" name="alternate_number" id="alternate_number" value="{{ old('alternate_number', isset($lead) ? $lead->alternate_number : '') }}"
+                      class="form-control form-control-lg" placeholder="Alternate Number" maxlength="15">
+                    @error('alternate_number') <small class="text-danger d-block mt-1">{{ $message }}</small> @enderror
+                  </div>
+                </div>
+                <div class="form-row">
                   {{-- Email --}}
                   <div class="form-group col-6 mb-2">
                     <input type="email" name="email" id="email" value="{{ old('email', isset($lead) ? $lead->contacts?->first()->email : '') }}"
@@ -91,6 +106,22 @@
                     <input type="text" name="address" id="address" value="{{ old('address', isset($lead) ? $lead->address?->address1 : '') }}"
                       class="form-control form-control-lg" placeholder="Address">
                     @error('address') <small class="text-danger d-block mt-1">{{ $message }}</small> @enderror
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  {{-- Place --}}
+                  <div class="form-group col-6 mb-2">
+                    <input type="text" name="place" id="place" value="{{ old('place', isset($lead) ? $lead->address?->address2 : '') }}"
+                      class="form-control form-control-lg" placeholder="Place">
+                    @error('place') <small class="text-danger d-block mt-1">{{ $message }}</small> @enderror
+                  </div>
+
+                  {{-- Revenue --}}
+                  <div class="form-group col-6 mb-2">
+                    <input type="text" name="revenue_rs_cr" id="revenue_rs_cr" value="{{ old('revenue_rs_cr', isset($lead) ? $lead->revenue_rs_cr : '') }}"
+                      class="form-control form-control-lg" placeholder="Revenue (Rs Cr)">
+                    @error('revenue_rs_cr') <small class="text-danger d-block mt-1">{{ $message }}</small> @enderror
                   </div>
                 </div>
 
@@ -171,6 +202,17 @@
                     </select>
                     @error('assign_to') <small class="text-danger d-block mt-1">{{ $message }}</small> @enderror
                   </div>
+                </div>
+
+                {{-- Others 1-5 --}}
+                <div class="form-row">
+                  @for($i = 1; $i <= 5; $i++)
+                  <div class="form-group {{ $i == 5 ? 'col-12' : 'col-6' }} mb-2">
+                    <input type="text" name="others_{{ $i }}" id="others_{{ $i }}" value="{{ old('others_'.$i, isset($lead) ? $lead->{'others_'.$i} : '') }}"
+                      class="form-control form-control-lg" placeholder="Others {{ $i }}">
+                    @error('others_'.$i) <small class="text-danger d-block mt-1">{{ $message }}</small> @enderror
+                  </div>
+                  @endfor
                 </div>
 
                 {{-- Note --}}
