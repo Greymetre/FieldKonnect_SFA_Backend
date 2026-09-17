@@ -7,11 +7,17 @@
     $formatDuration = static fn ($seconds) => sprintf('%02d:%02d:%02d', intdiv($seconds, 3600), intdiv($seconds % 3600, 60), $seconds % 60);
     $transcriptInProgress = $callLog->transcription_status === 'processing' && $callLog->sarvam_job_id
       && $callLog->updated_at?->gt(now()->subMinutes(15));
-    // Consecutive lines from the same speaker are merged into one bubble.
-    $conversation = collect(data_get($callLog->diarized_transcript, 'entries', []))->reduce(function ($groups, $line) {
-      $speaker = (int) data_get($line, 'speaker_id', 0);
+    // Speaker IDs may arrive as 0/1, "1", or "SPEAKER_01". They are numbered
+    // 1, 2, ... in order of first appearance, and consecutive lines from the
+    // same speaker are merged into one bubble.
+    $speakerNumbers = [];
+    $conversation = collect(data_get($callLog->diarized_transcript, 'entries', []))->reduce(function ($groups, $line) use (&$speakerNumbers) {
       $text = trim((string) data_get($line, 'transcript', ''));
       if ($text === '') return $groups;
+      $rawSpeaker = (string) data_get($line, 'speaker_id', '0');
+      $key = preg_match('/\d+/', $rawSpeaker, $digits) ? (int) $digits[0] : $rawSpeaker;
+      $speakerNumbers[$key] ??= count($speakerNumbers) + 1;
+      $speaker = $speakerNumbers[$key];
       $last = count($groups) - 1;
       if ($last >= 0 && $groups[$last]['speaker'] === $speaker) {
         $groups[$last]['text'] .= ' '.$text;
@@ -102,7 +108,9 @@
           @can('call_management_transcribe')
             @if($transcriptInProgress)
               <button class="call-transcribe-btn" type="button" disabled><i class="material-icons">hourglass_top</i> Processing…</button>
-            @elseif($callLog->recording_url && $callLog->transcription_status !== 'completed')
+            @elseif($callLog->recording_url && $callLog->transcription_status === 'completed')
+              <form method="POST" action="{{ route('call-management.transcribe', $callLog) }}" onsubmit="return confirm('Generate the transcript again? The current transcript will be replaced.')">@csrf<input type="hidden" name="regenerate" value="1"><button class="call-transcribe-btn" type="submit"><i class="material-icons">refresh</i> Regenerate Transcript</button></form>
+            @elseif($callLog->recording_url)
               <form method="POST" action="{{ route('call-management.transcribe', $callLog) }}">@csrf<button class="call-transcribe-btn" type="submit"><i class="material-icons">auto_awesome</i> {{ $callLog->transcription_status === 'failed' ? 'Retry Transcript' : 'Generate Transcript' }}</button></form>
             @endif
           @endcan
@@ -112,7 +120,7 @@
             <div class="transcript-conversation">
               @forelse($conversation as $line)
                 @php($speaker = (int) $line['speaker'])
-                <div class="transcript-row {{ $speaker % 2 ? 'alt' : '' }}"><span class="transcript-avatar">S{{ $speaker + 1 }}</span><div class="transcript-bubble"><div class="transcript-meta"><span>Speaker {{ $speaker + 1 }}</span>@if($line['start'] !== null)<span class="transcript-time">{{ gmdate('i:s', (int) $line['start']) }}</span>@endif</div>{{ $line['text'] }}</div></div>
+                <div class="transcript-row {{ $speaker % 2 === 0 ? 'alt' : '' }}"><span class="transcript-avatar">S{{ $speaker }}</span><div class="transcript-bubble"><div class="transcript-meta"><span>Speaker {{ $speaker }}</span>@if($line['start'] !== null)<span class="transcript-time">{{ gmdate('i:s', (int) $line['start']) }}</span>@endif</div>{{ $line['text'] }}</div></div>
               @empty
                 <div class="transcript-empty">{{ $callLog->transcript ?: 'No transcript returned.' }}</div>
               @endforelse

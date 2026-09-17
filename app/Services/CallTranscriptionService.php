@@ -30,7 +30,7 @@ class CallTranscriptionService
             $jobId = $client->post(self::BASE_URL, [
                 'job_parameters' => [
                     'model' => config('services.sarvam.model'),
-                    'mode' => config('services.sarvam.mode'),
+                    'mode' => config('services.sarvam.lead_call_mode', 'translate'),
                     'language_code' => config('services.sarvam.language_code'),
                     'with_diarization' => true,
                     'num_speakers' => 2,

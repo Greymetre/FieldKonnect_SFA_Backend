@@ -39,6 +39,8 @@ return [
         'model' => env('SARVAM_STT_MODEL', 'saaras:v3'),
         'mode' => env('SARVAM_STT_MODE', 'codemix'),
         'language_code' => env('SARVAM_STT_LANGUAGE', 'unknown'),
+        // Lead call transcripts are translated to English whatever language is spoken.
+        'lead_call_mode' => env('SARVAM_LEAD_CALL_MODE', 'translate'),
     ],
 
     /*

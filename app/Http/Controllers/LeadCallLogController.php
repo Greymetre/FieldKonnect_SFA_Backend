@@ -297,13 +297,13 @@ class LeadCallLogController extends Controller
         return view('call_logs.show', compact('callLog'));
     }
 
-    public function transcribe(CallLog $callLog, CallTranscriptionService $transcription)
+    public function transcribe(Request $request, CallLog $callLog, CallTranscriptionService $transcription)
     {
         abort_if(Gate::denies('call_management_transcribe'), 403, '403 Forbidden');
         $this->authorizeCallLog($callLog);
         abort_if(empty($callLog->recording_url), 422, 'Recording is not available.');
 
-        if ($callLog->transcription_status === 'completed') {
+        if ($callLog->transcription_status === 'completed' && ! $request->boolean('regenerate')) {
             return back()->with('success', 'Transcript is already available.');
         }
         if ($callLog->transcription_status === 'processing' && $callLog->sarvam_job_id
