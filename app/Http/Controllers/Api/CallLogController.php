@@ -67,6 +67,39 @@ class CallLogController extends Controller
         ]);
     }
 
+    /**
+     * Latest finished lead call (outbound or answered inbound) that still needs
+     * feedback. The app checks this when it returns to the foreground, which
+     * covers inbound callbacks and calls whose status polling was interrupted.
+     */
+    public function pendingFeedback(Request $request)
+    {
+        $user = $request->user('users');
+
+        $callLog = CallLog::with(['lead:id,company_name', 'lead.contacts:id,lead_id,name'])
+            ->where('user_id', $user->id)
+            ->whereNotNull('lead_id')
+            ->whereNull('call_management_entry_id')
+            ->whereNotNull('completed_at')
+            ->where('completed_at', '>=', now()->subDay())
+            ->where(fn ($query) => $query->whereNull('remark')->orWhere('remark', ''))
+            ->where(fn ($query) => $query->where('direction', 'outbound')->orWhereNotNull('answered_at'))
+            ->latest('completed_at')
+            ->first();
+
+        return response()->json([
+            'success' => true,
+            'data' => $callLog ? [
+                'call_log_id' => $callLog->id,
+                'lead_id' => $callLog->lead_id,
+                'direction' => $callLog->direction,
+                'customer_name' => $callLog->lead?->contacts->first()?->name ?: $callLog->lead?->company_name ?: 'Customer',
+                'number' => $callLog->number,
+                'duration' => (int) $callLog->duration,
+            ] : null,
+        ]);
+    }
+
     public function mobileHistory(Request $request)
     {
         try {
@@ -133,6 +166,10 @@ class CallLogController extends Controller
             $query->where('started_at', '>=', now()->startOfWeek());
         }
 
+        if (in_array($request->input('direction'), ['inbound', 'outbound'], true)) {
+            $query->where('direction', $request->input('direction'));
+        }
+
         $search = trim((string) $request->input('q', $request->input('search', '')));
         if ($search !== '') {
             $query->where(function ($searchQuery) use ($search) {
@@ -178,6 +215,7 @@ class CallLogController extends Controller
             return [
                 'id' => $log->id,
                 'lead_id' => $log->lead_id,
+                'direction' => $log->direction ?: 'outbound',
                 'customer_name' => $contact?->name ?: $log->lead?->company_name ?: 'Unknown customer',
                 'company_name' => $log->lead?->company_name,
                 'number' => $log->number,

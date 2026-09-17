@@ -11,6 +11,7 @@ class CallLog extends Model
 
     protected $fillable = [
         'lead_id',
+        'direction',
         'call_management_entry_id',
         'number',
         'started_at',

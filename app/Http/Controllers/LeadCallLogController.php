@@ -54,7 +54,10 @@ class LeadCallLogController extends Controller
             if ($request->has('lead_id')) {
                 $query->where('lead_id', $request->lead_id);
             }
-            $statusSearch = trim((string) $request->input('columns.6.search.value', ''));
+            if (in_array($request->input('direction'), ['inbound', 'outbound'], true)) {
+                $query->where('direction', $request->input('direction'));
+            }
+            $statusSearch = trim((string) $request->input('columns.7.search.value', ''));
             if ($statusSearch !== '') {
             
                 // Adjust this according to how your status is stored
@@ -138,6 +141,9 @@ class LeadCallLogController extends Controller
                     'customer_name' => $contact?->name ?: '-',
                     'lead' => ['company_name' => $row->lead?->company_name ?: '-'],
                     'number' => $row->number ?: '-',
+                    'direction' => $row->direction === 'inbound'
+                        ? '<span class="badge badge-info">Inbound</span>'
+                        : '<span class="badge badge-primary">Outbound</span>',
                     'started_at' => $row->started_at?->format('d/m/Y h:i A') ?: '-',
                     'duration' => sprintf(
                         '%02d:%02d:%02d',
@@ -196,12 +202,15 @@ class LeadCallLogController extends Controller
         if ($request->has('lead_id')) {
             $query->where('lead_id', $request->lead_id);
         }
+        if (in_array($request->input('direction'), ['inbound', 'outbound'], true)) {
+            $query->where('direction', $request->input('direction'));
+        }
 
         $call_logs = $query->orderBy('started_at', 'desc')->get();
 
         $rows = [];
 
-        $headers = ['Agent', 'Customer', 'Lead', 'Contact No', 'Date & Time', 'Call Duration', 'Call Status', 'Plivo Status', 'Call UUID', 'Recording URL', 'Cost', 'Remark'];
+        $headers = ['Agent', 'Customer', 'Lead', 'Contact No', 'Direction', 'Date & Time', 'Call Duration', 'Call Status', 'Plivo Status', 'Call UUID', 'Recording URL', 'Cost', 'Remark'];
 
         foreach ($call_logs as $call_log) {
             $seconds = (int) $call_log->duration;
@@ -216,6 +225,7 @@ class LeadCallLogController extends Controller
                 optional(optional($call_log->lead)->contacts->first())->name ?: 'Not Found',
                 $call_log->lead ? $call_log->lead->company_name : 'Not Found',
                 $call_log->number,
+                $call_log->direction === 'inbound' ? 'Inbound' : 'Outbound',
                 date('d/m/Y h:i A', strtotime($call_log->started_at)),
                 $call_duration,
                 $call_log->status == 0 ? 'No Response' : 'Connected',

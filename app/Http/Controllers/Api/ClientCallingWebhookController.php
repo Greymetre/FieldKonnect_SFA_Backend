@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\CallLog;
 use App\Models\CallManagementEntry;
 use App\Models\ClientCallEvent;
 use App\Models\ClientCallLog;
+use App\Models\Lead;
 use App\Services\ClientCallingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -21,10 +23,17 @@ class ClientCallingWebhookController extends Controller
         abort_unless($customerNumber && hash_equals($service->configuredNumber(), (string) $calledNumber), 404);
 
         $entry = $this->entryForCustomer($customerNumber);
-        $agent = $entry?->assignedUser;
-        $agentNumber = $service->number($agent?->mobile);
         $providerUuid = trim((string) $request->input('CallUUID')) ?: null;
         abort_unless($providerUuid, 422, 'CallUUID is required.');
+
+        // Lead click-to-call uses this number as caller ID, so a callback from a
+        // lead contact goes to the agent that lead is assigned to.
+        if (! $entry && $lead = $this->leadForCustomer($customerNumber)) {
+            return $this->routeLeadCallback($service, $lead, $customerNumber, $providerUuid);
+        }
+
+        $agent = $entry?->assignedUser;
+        $agentNumber = $service->number($agent?->mobile);
 
         $call = ClientCallLog::firstOrCreate(
             ['provider_call_uuid' => $providerUuid],
@@ -146,6 +155,63 @@ class ClientCallingWebhookController extends Controller
             ->where('calling_type', CallManagementEntry::TYPE_CLIENT_CALLING)
             ->whereRaw("RIGHT(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(mobile_number, '+', ''), ' ', ''), '-', ''), '(', ''), ')', ''), 10) = ?", [$national])
             ->latest('updated_at')->first();
+    }
+
+    private function leadForCustomer(string $number): ?Lead
+    {
+        $national = substr(preg_replace('/\D+/', '', $number), -10);
+        $normalized = fn (string $column) => "RIGHT(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE({$column}, '+', ''), ' ', ''), '-', ''), '(', ''), ')', ''), 10) = ?";
+
+        return Lead::with('assign_user')
+            ->where(function ($query) use ($normalized, $national) {
+                $query->whereHas('contacts', fn ($contacts) => $contacts->whereRaw($normalized('phone_number'), [$national]))
+                    ->orWhereRaw($normalized('alternate_number'), [$national]);
+            })
+            ->orderByRaw('assign_to IS NULL')
+            ->latest('updated_at')
+            ->first();
+    }
+
+    /**
+     * Lead callbacks are stored in call_logs so they appear in the lead call
+     * history and use the same feedback, status and recording flow as
+     * outbound lead calls.
+     */
+    private function routeLeadCallback(ClientCallingService $service, Lead $lead, string $customerNumber, string $providerUuid)
+    {
+        $agent = $lead->assign_user;
+        $agentNumber = $service->number($agent?->mobile);
+        $callLog = CallLog::firstOrCreate(
+            ['plivo_call_uuid' => $providerUuid],
+            [
+                'lead_id' => $lead->id,
+                'direction' => 'inbound',
+                'user_id' => $agent?->id,
+                'number' => $customerNumber,
+                'started_at' => now(),
+                'duration' => 0,
+                'status' => 0,
+                'plivo_status' => 'received',
+                'webhook_token' => Str::random(64),
+            ]
+        );
+
+        if (! $agent || $agent->active !== 'Y' || ! $agent->call_management || ! $agentNumber) {
+            $callLog->update(['plivo_status' => 'agent-unavailable', 'completed_at' => now()]);
+            return $service->xml('<Speak>Your representative is unavailable. Please try again later.</Speak><Hangup />');
+        }
+
+        $query = http_build_query(['call_log_id' => $callLog->id, 'token' => $callLog->webhook_token]);
+        $statusUrl = rtrim(config('services.plivo.status_url') ?: url('api/plivo/status'), '/').'?'.$query;
+        $recordingUrl = rtrim(config('services.plivo.recording_url') ?: url('api/plivo/recording'), '/').'?'.$query;
+        $callLog->update(['plivo_status' => 'agent-ringing']);
+
+        $record = config('services.client_calling.recording_enabled')
+            ? '<Record startOnDialAnswer="true" redirect="false" maxLength="3600" finishOnKey="none" action="'.e($recordingUrl).'" method="POST" callbackUrl="'.e($recordingUrl).'" callbackMethod="POST" />'
+            : '';
+        $dial = '<Dial callerId="'.e($service->configuredNumber()).'" timeout="'.(int) config('services.client_calling.ring_timeout', 30).'" callbackUrl="'.e($statusUrl).'" callbackMethod="POST"><Number>'.e($agentNumber).'</Number></Dial>';
+
+        return $service->xml('<Speak>Please wait while we connect you to your representative.</Speak>'.$record.$dial);
     }
 
     private function missed(ClientCallLog $call, string $status, string $message, ClientCallingService $service)

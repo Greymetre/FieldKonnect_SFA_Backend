@@ -57,6 +57,13 @@
                     </div>
                     <div class="p-2" style="width:150px;"><input type="text" class="form-control datepicker" id="start_date" name="start_date" placeholder="Start Date" autocomplete="off" readonly></div>
                     <div class="p-2" style="width:150px;"><input type="text" class="form-control datepicker" id="end_date" name="end_date" placeholder="End Date" autocomplete="off" readonly></div>
+                    <div class="p-2" style="width:150px;">
+                      <select class="form-control" name="direction" id="direction">
+                        <option value="">All Calls</option>
+                        <option value="outbound">Outbound</option>
+                        <option value="inbound">Inbound</option>
+                      </select>
+                    </div>
                     @if(auth()->user()->can(['call_log_download']))
                     <div class="p-2"><button class="btn btn-just-icon btn-theme" title="{!!  trans('panel.global.download') !!}  Call Logs"><i class="material-icons">cloud_download</i></button></div>
                     @endif
@@ -133,6 +140,7 @@
                 <th>Customer Name</th>
                 <th>Lead / Company</th>
                 <th>Contact Number</th>
+                <th>Direction</th>
                 <th>Date & Time</th>
                 <th>Call Duration</th>
                 <th>Call Status</th>
@@ -172,7 +180,8 @@
           data: function(d) {
             d.user_id = $('#executive_id').val(),
               d.start_date = $('#start_date').val(),
-              d.end_date = $('#end_date').val()
+              d.end_date = $('#end_date').val(),
+              d.direction = $('#direction').val()
           },
           dataSrc: function(json) {
             // ✅ Set summary values
@@ -213,6 +222,13 @@
             name: 'number',
             "defaultContent": '',
             orderable: false,
+          },
+          {
+            data: 'direction',
+            name: 'direction',
+            "defaultContent": '',
+            orderable: false,
+            searchable: false,
           },
           {
             data: 'started_at',
@@ -257,6 +273,9 @@
       $('#executive_id').change(function() {
         table.draw();
       });
+      $('#direction').change(function() {
+        table.draw();
+      });
       $('#end_date').change(function() {
         table.draw();
       });
@@ -276,7 +295,7 @@
       $(div).find('.card').fadeOut(100).fadeIn(200).addClass('active-card');
       $(div).find('.card-text').css('font-weight', '600');
       // Filter table data
-      table.column(6).search(status).draw();
+      table.column(7).search(status).draw();
     }
   </script>
 </x-app-layout>

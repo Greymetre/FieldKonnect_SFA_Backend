@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\CallLog;
 use App\Models\Lead;
+use App\Services\ClientCallingService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -54,7 +55,7 @@ class PlivoController extends Controller
             $response = Http::withBasicAuth(config('services.plivo.auth_id'), config('services.plivo.auth_token'))
                 ->asJson()
                 ->post('https://api.plivo.com/v1/Account/'.config('services.plivo.auth_id').'/Call/', [
-                    'from' => $this->fromNumber(),
+                    'from' => $this->leadCallerId(),
                     'to' => $agentNumber,
                     'answer_url' => $this->webhookUrl('answer_url', 'api/plivo/answer').'?'.$query,
                     'answer_method' => 'POST',
@@ -106,7 +107,7 @@ class PlivoController extends Controller
         $xml = '<?xml version="1.0" encoding="UTF-8"?>'
             .'<Response>'
             .'<Record startOnDialAnswer="true" redirect="false" maxLength="'.self::RECORDING_MAX_LENGTH_SECONDS.'" finishOnKey="none" action="'.e($recordingUrl).'" method="POST" callbackUrl="'.e($recordingUrl).'" callbackMethod="POST" />'
-            .'<Dial callerId="'.e($this->fromNumber()).'" callbackUrl="'.e($statusUrl).'" callbackMethod="POST">'
+            .'<Dial callerId="'.e($callLog->lead_id ? $this->leadCallerId() : $this->fromNumber()).'" callbackUrl="'.e($statusUrl).'" callbackMethod="POST">'
             .'<Number>'.e($customerNumber).'</Number>'
             .'</Dial>'
             .'</Response>';
@@ -179,6 +180,11 @@ class PlivoController extends Controller
             $updates['recording_url'] = $recordingUrl;
             $updates['recording_id'] = $this->recordingIdFromRequest($request);
             $updates['status'] = 1;
+        }
+
+        // Inbound lead callbacks have no answer_url step, so record the agent pickup here.
+        if (in_array(strtolower((string) $status), ['answer', 'answered', 'in-progress'], true) && ! $callLog->answered_at) {
+            $updates['answered_at'] = now();
         }
 
         if (in_array(strtolower((string) $status), ['completed', 'hangup', 'failed', 'busy', 'no-answer', 'timeout', 'cancel'], true)) {
@@ -319,6 +325,22 @@ class PlivoController extends Controller
                 'Plivo webhook URLs must use a public HTTPS domain.'
             );
         }
+    }
+
+    /**
+     * Lead calls show the Client Calling inbound number so customers can call
+     * back and be routed to the lead's assigned agent.
+     */
+    private function leadCallerId(): ?string
+    {
+        $service = app(ClientCallingService::class);
+        if (config('services.client_calling.enabled') && $service->configuredNumber()) {
+            return $service->configuredNumber();
+        }
+
+        Log::warning('Client Calling number is not configured; lead call is using the legacy Plivo caller ID.');
+
+        return $this->fromNumber();
     }
 
     private function fromNumber(): ?string
