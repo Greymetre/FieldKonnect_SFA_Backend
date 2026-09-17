@@ -1180,18 +1180,24 @@
         width: 30% !important;
     }
 
+        .lead-detail-page .lead-meta li.lead-viewall-li {
+            padding: 0;
+            border-color: var(--fk-list-border-strong);
+        }
+
         .lead-detail-page .lead-viewall-btn {
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            height: 30px;
-            padding: 0 12px;
-            border: 1px solid var(--fk-list-border-strong);
-            border-radius: 8px;
-            background: var(--fk-list-control);
-            color: var(--fk-list-accent);
-            font-size: 13px;
+            padding: 5px 10px 5px 14px;
+            border: 0;
+            border-radius: 999px;
+            background: transparent;
             cursor: pointer;
+        }
+
+        .lead-detail-page .lead-meta .lead-viewall-btn span {
+            color: var(--fk-list-accent) !important;
         }
 
         .lead-detail-page .lead-viewall-btn i {
@@ -1338,7 +1344,6 @@
                 <div class="lead-title-row">
                     <h3>{{ $lead->company_name ?? '' }}</h3>
                     <a href="{{ route('leads.edit', [$lead->id]) }}" class="lead-edit-link" title="Edit Lead"><i class="material-icons">edit</i></a>
-                    <button type="button" class="lead-viewall-btn" id="leadViewAllBtn" onclick="toggleLeadAllInfo()">View All <i class="material-icons">expand_more</i></button>
                     <select name="status" id="status" class="form-control selectpicker">
                         <option value="0" {{$lead->status == 0 ? 'selected' : ''}}>Pending</option>
                         @if($status->count() > 0)
@@ -1368,6 +1373,9 @@
                     @if($lead->lead_source)
                     <li><i class="material-icons">campaign</i> <span>{{ $lead->lead_source }}</span></li>
                     @endif
+                    <li class="lead-viewall-li">
+                        <button type="button" class="lead-viewall-btn" id="leadViewAllBtn" onclick="toggleLeadAllInfo()"><span>View All</span> <i class="material-icons">expand_more</i></button>
+                    </li>
                 </ul>
             </div>
         </div>
