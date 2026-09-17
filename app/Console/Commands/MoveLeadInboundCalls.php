@@ -103,18 +103,14 @@ class MoveLeadInboundCalls extends Command
 
         if (! $lead || ! $call->call_management_entry_id) return $lead;
 
-        // The number is also a Client Calling entry: only move the call when a
-        // lead call reached this customer more recently than a Client Calling call.
+        // The number is also a Client Calling entry: move the call only when the
+        // lead had been called before it, matching the live routing rule.
         $before = $call->started_at ?: $call->created_at;
-        $lastLeadCall = CallLog::whereNotNull('lead_id')->whereNull('call_management_entry_id')
+        $leadWasCalled = CallLog::whereNotNull('lead_id')->whereNull('call_management_entry_id')
             ->where('direction', 'outbound')
             ->whereRaw($normalized('number'), [$national])
-            ->where('started_at', '<=', $before)->max('started_at');
-        if (! $lastLeadCall) return null;
+            ->where('started_at', '<=', $before)->exists();
 
-        $lastClientCall = ClientCallLog::where('call_management_entry_id', $call->call_management_entry_id)
-            ->where('direction', 'outbound')->where('started_at', '<=', $before)->max('started_at');
-
-        return ! $lastClientCall || strtotime($lastLeadCall) >= strtotime($lastClientCall) ? $lead : null;
+        return $leadWasCalled ? $lead : null;
     }
 }
