@@ -415,6 +415,37 @@ class LeadController extends Controller
                 'lead_source' => $lead->lead_source,
                 'assign_user_id' => $lead->assign_user ? $lead->assign_user->id : null,
                 'assign_user_name' => $lead->assign_user ? $lead->assign_user->name : null,
+                'designation' => $lead->contacts->first()->title ?? null,
+                'alternate_number' => $lead->alternate_number,
+                'revenue_rs_cr' => $lead->revenue_rs_cr,
+                'address1' => $lead->address?->address1 ?? null,
+                'address2' => $lead->address?->address2 ?? null,
+                'other_details' => collect($lead->others ? (json_decode($lead->others, true) ?: []) : [])
+                    ->map(fn ($value, $key) => [
+                        'label' => $key === 'others' ? 'Other' : ucwords(str_replace('_', ' ', $key)),
+                        'value' => is_scalar($value) ? $value : json_encode($value),
+                    ])
+                    ->values()
+                    ->merge(collect(range(1, 5))->map(fn ($index) => [
+                        'label' => 'Others ' . $index,
+                        'value' => $lead->{'others_' . $index},
+                    ]))
+                    ->values(),
+                'contacts' => $lead->contacts->map(fn ($contact) => [
+                    'id' => $contact->id,
+                    'name' => $contact->name,
+                    'title' => $contact->title,
+                    'phone_number' => $contact->phone_number,
+                    'email' => $contact->email,
+                    'url' => $contact->url,
+                ])->values(),
+                'files' => $lead->getMedia('lead_file')->map(fn ($media) => [
+                    'id' => $media->id,
+                    'file_name' => $media->file_name,
+                    'mime_type' => $media->mime_type,
+                    'size' => $media->size,
+                    'url' => $media->getFullUrl(),
+                ])->values(),
                 'note' => ($note = optional($lead->notes()->latest()->first())->note) ? strip_tags($note) : null,
                 'lead_generation_date' => (
                     !empty($lead->lead_generation_date) && $lead->lead_generation_date != '0000-00-00'
