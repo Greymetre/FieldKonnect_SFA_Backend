@@ -524,8 +524,52 @@ class LeadController extends Controller
                 $item->createdby = $item->user ? $item->user : '';
             });
 
-            $combined = $lead_notes->merge($lead_tasks)->merge($lead_logs)->merge($opportunities)->merge($call_logs)->sortByDesc('created_at')->values();
-            // $combined = $lead_notes->merge($lead_tasks)->merge($lead_logs)->sortByDesc('created_at')->values();
+            $visits = LeadCheckIn::with('users:id,name')->where('lead_id', $lead->id)->get();
+            $visitTimestamp = function ($date, $time) {
+                return !empty($date) && $date !== '0000-00-00' ? date('Y-m-d H:i:s', strtotime($date.' '.($time ?: '00:00:00'))) : null;
+            };
+            $visit_logs = collect();
+            foreach ($visits as $visit) {
+                $user = $visit->users ? ['id' => $visit->users->id, 'name' => $visit->users->name] : null;
+                if ($checkinAt = $visitTimestamp($visit->checkin_date, $visit->checkin_time)) {
+                    $visit_logs->push((object) [
+                        'id' => $visit->id,
+                        'type' => 'checkin',
+                        'message' => $visit->checkin_address ?: 'Checked in at the lead location.',
+                        'address' => $visit->checkin_address,
+                        'user' => $user,
+                        'created_at' => $checkinAt,
+                        'created_at_formatted' => date('d M Y', strtotime($checkinAt)),
+                    ]);
+                }
+                if ($checkoutAt = $visitTimestamp($visit->checkout_date, $visit->checkout_time)) {
+                    $visit_logs->push((object) [
+                        'id' => $visit->id,
+                        'type' => 'checkout',
+                        'message' => $visit->checkout_note ? strip_tags($visit->checkout_note) : 'Checked out.',
+                        'note' => $visit->checkout_note ? strip_tags($visit->checkout_note) : null,
+                        'address' => $visit->checkout_address,
+                        'duration' => $visit->time_interval,
+                        'user' => $user,
+                        'created_at' => $checkoutAt,
+                        'created_at_formatted' => date('d M Y', strtotime($checkoutAt)),
+                    ]);
+                }
+            }
+
+            // Check-out also saves its note as a lead note; show it once, on the check-out entry.
+            $checkoutNotes = $visit_logs->where('type', 'checkout')->filter(fn ($item) => $item->note);
+            $lead_notes = $lead_notes->reject(function ($note) use ($checkoutNotes) {
+                return $checkoutNotes->contains(fn ($visit) => trim($visit->note) === trim((string) $note->note)
+                    && abs(strtotime((string) $note->created_at) - strtotime($visit->created_at)) <= 120);
+            });
+
+            // Base collections: an Eloquent merge keys by ID, so a note and a task with the same ID would overwrite each other.
+            $combined = collect()
+                ->merge($lead_notes->all())->merge($lead_tasks->all())->merge($lead_logs->all())
+                ->merge($opportunities->all())->merge($call_logs->all())->merge($visit_logs->all())
+                ->sortByDesc(fn ($item) => strtotime((string) data_get($item, 'created_at')))
+                ->values();
 
             $notification_count = LeadNotification::where(['user_id' => $request->user()->id, 'read' => 0])->count();
             return response()->json(['status' => 'success', 'message' => 'Data retrieved successfully.', 'data' => $data, 'notes_tasks' => $combined, 'notification_count' => $notification_count], 200);
