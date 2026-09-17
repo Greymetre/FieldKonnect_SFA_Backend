@@ -21,6 +21,7 @@ class PlivoController extends Controller
     {
         $validated = $request->validate([
             'lead_id' => ['required', 'integer', 'exists:leads,id'],
+            'to' => ['nullable', 'string', 'max:20'],
         ]);
 
         $user = $request->user();
@@ -28,6 +29,20 @@ class PlivoController extends Controller
         $lead = Lead::with('contacts')->findOrFail($validated['lead_id']);
         $agentNumber = $this->e164($user->mobile);
         $customerNumber = $this->e164(optional($lead->contacts->first())->phone_number);
+        // The app may choose the lead's alternate number (or another contact's
+        // number). Only numbers saved on this lead can be dialled.
+        if (!empty($validated['to'])) {
+            $requested = $this->e164($validated['to']);
+            $leadNumbers = $lead->contacts->pluck('phone_number')->push($lead->alternate_number)
+                ->map(fn ($number) => $this->e164($number))->filter()->unique();
+            if (!$requested || !$leadNumbers->contains($requested)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'The selected number does not belong to this lead.',
+                ], 422);
+            }
+            $customerNumber = $requested;
+        }
 
         if (!$agentNumber || !$customerNumber) {
             return response()->json([

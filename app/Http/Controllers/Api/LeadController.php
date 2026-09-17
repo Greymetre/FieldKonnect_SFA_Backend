@@ -100,6 +100,7 @@ class LeadController extends Controller
                 'address' => $lead->address ? $lead->address->full_address : '',
                 'location_address' => $lead->location_address ? $lead->location_address : 'N/A',
                 'city' => $lead->address ? $lead->address?->cityname?->city_name : '',
+                'alternate_number' => $lead->alternate_number,
                 'lead_source_lead' => $lead->lead_source,
                 'status' => [
                     'id' => $lead->status_is ? $lead->status_is->id : 0,
