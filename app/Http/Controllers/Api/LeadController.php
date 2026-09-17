@@ -249,30 +249,44 @@ class LeadController extends Controller
         $user = $request->user();
         if (isset($request->lead_id) && !empty($request->lead_id)) {
             $lead = Lead::find($request->lead_id);
-            $old_status = Status::where('id', $lead->status)->first();
-            $new_status = Status::where('id', $request->status)->first();
-            $msg = 'Lead move from ' . $old_status->display_name . ' to ' . $new_status->display_name .
-                ' by ' . $user->name;
-            // SendPushNotification($lead->created_by, $msg);
-            // StoreLeadNotification($lead->id, 'Status Changed', $msg, $lead->created_by, 'lead');
-            LeadLog::create([
-                'lead_id' => $lead->id,
-                'message' => $msg,
-                'created_by' => $user->id,
-            ]);
+            if (!$lead) {
+                return response()->json(['status' => 'error', 'message' => 'Lead not found.'], 404);
+            }
+            if ((string) $lead->status !== (string) $request->status) {
+                $old_status = Status::where('id', $lead->status)->first();
+                $new_status = Status::where('id', $request->status)->first();
+                $msg = 'Lead move from ' . ($old_status->display_name ?? 'Pending') . ' to ' . ($new_status->display_name ?? 'Pending') .
+                    ' by ' . $user->name;
+                // SendPushNotification($lead->created_by, $msg);
+                // StoreLeadNotification($lead->id, 'Status Changed', $msg, $lead->created_by, 'lead');
+                LeadLog::create([
+                    'lead_id' => $lead->id,
+                    'message' => $msg,
+                    'created_by' => $user->id,
+                ]);
+            }
             if ($lead->assign_to != $request->assign_to) {
                 SendPushNotification($request->assign_to, '🟢 You have been assigned 1 new lead.', 'lead');
                 StoreLeadNotification($lead->id, 'Assigned Lead', '🟢 You have been assigned 1 new lead.', $request->assign_to);
             }
-            $lead->update([
+            $leadData = [
                 'company_name' => $request->company_name,
                 'company_url' => $request->website,
                 'status' => $request->status ?? 0,
                 'lead_generation_date' => date('Y-m-d'),
                 'lead_source' => $request->lead_source,
                 'assign_to' => $request->assign_to,
-                'others' => $otherData,
-            ]);
+            ];
+            // Older app builds do not send these fields, so only overwrite what was submitted.
+            if ($request->has('other')) {
+                $leadData['others'] = $otherData;
+            }
+            foreach (['alternate_number', 'revenue_rs_cr', 'others_1', 'others_2', 'others_3', 'others_4', 'others_5'] as $field) {
+                if ($request->has($field)) {
+                    $leadData[$field] = $request->input($field);
+                }
+            }
+            $lead->update($leadData);
             Address::where('model_type', 'App\Models\Lead')->where('model_id', $lead->id)->update([
                 'address1' => $request->address ?? 'N/A',
                 'country_id' => 1,
@@ -280,7 +294,7 @@ class LeadController extends Controller
                 'state_id' => $request->state_id ?? null,
                 'city_id' => $request->city_id ?? null,
                 'district_id' => $request->district_id ?? null,
-            ]);
+            ] + ($request->has('place') ? ['address2' => $request->place] : []));
 
             $firstContact = LeadContact::where('lead_id', $lead->id)->first();
             if ($firstContact) {
@@ -290,7 +304,7 @@ class LeadController extends Controller
                     'email' => $request->email,
                     'url' => $request->url,
                     'lead_source' => $request->lead_source,
-                ]);
+                ] + ($request->has('designation') ? ['title' => $request->designation] : []));
             }
 
             $latestNote = LeadNote::where('lead_id', $lead->id)->latest()->first();
@@ -418,6 +432,12 @@ class LeadController extends Controller
                 'designation' => $lead->contacts->first()->title ?? null,
                 'alternate_number' => $lead->alternate_number,
                 'revenue_rs_cr' => $lead->revenue_rs_cr,
+                'other' => collect($lead->others ? (json_decode($lead->others, true) ?: []) : [])->first(),
+                'others_1' => $lead->others_1,
+                'others_2' => $lead->others_2,
+                'others_3' => $lead->others_3,
+                'others_4' => $lead->others_4,
+                'others_5' => $lead->others_5,
                 'address1' => $lead->address?->address1 ?? null,
                 'address2' => $lead->address?->address2 ?? null,
                 'other_details' => collect($lead->others ? (json_decode($lead->others, true) ?: []) : [])
