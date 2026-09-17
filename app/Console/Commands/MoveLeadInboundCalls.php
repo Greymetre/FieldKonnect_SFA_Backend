@@ -17,13 +17,17 @@ use Illuminate\Support\Str;
  */
 class MoveLeadInboundCalls extends Command
 {
-    protected $signature = 'calls:move-lead-inbound {--force : Move the calls. Without it the command only lists them.}';
+    protected $signature = 'calls:move-lead-inbound
+        {--id=* : Only these Client Calling record IDs (repeat the option for several)}
+        {--force : Move the calls. Without it the command only lists them.}';
 
     protected $description = 'Move inbound lead callbacks from Client Calling history to lead call history';
 
     public function handle(): int
     {
-        $candidates = ClientCallLog::where('direction', 'inbound')->orderBy('id')->get()
+        $candidates = ClientCallLog::where('direction', 'inbound')
+            ->when($this->option('id'), fn ($query, $ids) => $query->whereIn('id', $ids))
+            ->orderBy('id')->get()
             ->map(fn (ClientCallLog $call) => [$call, $this->leadFor($call)])
             ->filter(fn ($pair) => $pair[1] !== null);
 
