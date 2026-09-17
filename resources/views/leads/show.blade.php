@@ -1180,6 +1180,94 @@
         width: 30% !important;
     }
 
+        .lead-detail-page .lead-viewall-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            height: 30px;
+            padding: 0 12px;
+            border: 1px solid var(--fk-list-border-strong);
+            border-radius: 8px;
+            background: var(--fk-list-control);
+            color: var(--fk-list-accent);
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .lead-detail-page .lead-viewall-btn i {
+            font-size: 18px;
+            transition: transform .2s;
+        }
+
+        .lead-detail-page .lead-viewall-btn.open i {
+            transform: rotate(180deg);
+        }
+
+        .lead-detail-page .lead-all-info {
+            display: none;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--fk-list-border);
+        }
+
+        .lead-detail-page .lead-all-info.open {
+            display: block;
+        }
+
+        .lead-detail-page .lead-info-section {
+            margin-bottom: 10px;
+            border: 1px solid var(--fk-list-border);
+            border-radius: 10px;
+            background: var(--fk-list-control);
+        }
+
+        .lead-detail-page .lead-info-section-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 10px 14px;
+            border: 0;
+            background: transparent;
+            color: var(--fk-list-heading);
+            font-size: 14px;
+            font-weight: 600;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .lead-detail-page .lead-info-section-head i {
+            transition: transform .2s;
+        }
+
+        .lead-detail-page .lead-info-section.collapsed .lead-info-section-head i {
+            transform: rotate(-90deg);
+        }
+
+        .lead-detail-page .lead-info-section.collapsed .lead-info-grid {
+            display: none;
+        }
+
+        .lead-detail-page .lead-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 12px 20px;
+            padding: 4px 14px 14px;
+        }
+
+        .lead-detail-page .lead-info-item label {
+            display: block;
+            margin: 0 0 2px;
+            color: var(--fk-list-muted);
+            font-size: 12px;
+        }
+
+        .lead-detail-page .lead-info-item div {
+            color: var(--fk-list-text);
+            font-size: 14px;
+            word-break: break-word;
+        }
+
     </style>
     <div class="row lead-detail-page">
         <div class="col-md-12">
@@ -1250,6 +1338,7 @@
                 <div class="lead-title-row">
                     <h3>{{ $lead->company_name ?? '' }}</h3>
                     <a href="{{ route('leads.edit', [$lead->id]) }}" class="lead-edit-link" title="Edit Lead"><i class="material-icons">edit</i></a>
+                    <button type="button" class="lead-viewall-btn" id="leadViewAllBtn" onclick="toggleLeadAllInfo()">View All <i class="material-icons">expand_more</i></button>
                     <select name="status" id="status" class="form-control selectpicker">
                         <option value="0" {{$lead->status == 0 ? 'selected' : ''}}>Pending</option>
                         @if($status->count() > 0)
@@ -1289,7 +1378,75 @@
             @endif
         </div>
     </div>
+
+    @php
+        $firstContact = $lead_contacts[0] ?? null;
+        $statusName = $lead->status == 0 ? 'Pending' : ($status->firstWhere('id', $lead->status)->display_name ?? '');
+        $extraOthers = $lead->others ? (json_decode($lead->others, true) ?: []) : [];
+        $infoSections = [
+            'Lead Details' => [
+                'Lead Type' => $statusName,
+                'Firm Name' => $lead->company_name,
+                'Lead Source' => $lead->lead_source,
+                'Assigned To' => $lead->assign_user->name ?? '',
+                'Website' => $lead->company_url,
+                'Lead Generation Date' => $lead->lead_generation_date ? \Carbon\Carbon::parse($lead->lead_generation_date)->format('M j, Y') : '',
+                'Revenue (Rs Cr)' => $lead->revenue_rs_cr,
+            ],
+            'Contact Details' => [
+                'Customer Name' => $firstContact->name ?? '',
+                'Designation' => $firstContact->title ?? '',
+                'Mobile Number' => $firstContact->phone_number ?? '',
+                'Alternate Number' => $lead->alternate_number,
+                'Email Id' => $firstContact->email ?? '',
+            ],
+            'Address Details' => [
+                'Address' => $address->address1 ?? '',
+                'Place' => $address->address2 ?? '',
+                'State' => $address->statename->state_name ?? '',
+                'District' => $address->districtname->district_name ?? '',
+                'City' => $address->cityname->city_name ?? '',
+                'Pincode' => $address->pincodename->pincode ?? '',
+            ],
+            'Other Details' => collect($extraOthers)
+                ->mapWithKeys(fn ($value, $key) => [($key === 'others' ? 'Other' : ucwords(str_replace('_', ' ', $key))) => is_scalar($value) ? $value : json_encode($value)])
+                ->merge([
+                    'Others 1' => $lead->others_1,
+                    'Others 2' => $lead->others_2,
+                    'Others 3' => $lead->others_3,
+                    'Others 4' => $lead->others_4,
+                    'Others 5' => $lead->others_5,
+                ])->all(),
+            'Note' => [
+                'Note' => trim(html_entity_decode(strip_tags($lead->notes->first()?->note ?? ''))),
+            ],
+        ];
+    @endphp
+    <div class="lead-all-info" id="leadAllInfo">
+        @foreach($infoSections as $sectionTitle => $fields)
+        <div class="lead-info-section">
+            <button type="button" class="lead-info-section-head" onclick="this.parentElement.classList.toggle('collapsed')">
+                {{ $sectionTitle }} <i class="material-icons">expand_more</i>
+            </button>
+            <div class="lead-info-grid">
+                @foreach($fields as $fieldLabel => $fieldValue)
+                <div class="lead-info-item">
+                    <label>{{ $fieldLabel }}</label>
+                    <div>{{ ($fieldValue !== null && $fieldValue !== '' && strtoupper((string) $fieldValue) !== 'N/A') ? $fieldValue : '-' }}</div>
+                </div>
+                @endforeach
+            </div>
+        </div>
+        @endforeach
+    </div>
 </div>
+
+<script>
+    function toggleLeadAllInfo() {
+        document.getElementById('leadAllInfo').classList.toggle('open');
+        document.getElementById('leadViewAllBtn').classList.toggle('open');
+    }
+</script>
 
 <!-- Main Content -->
 <div class="row">
