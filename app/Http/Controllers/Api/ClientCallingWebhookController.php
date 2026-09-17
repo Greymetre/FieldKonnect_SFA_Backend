@@ -27,8 +27,11 @@ class ClientCallingWebhookController extends Controller
         abort_unless($providerUuid, 422, 'CallUUID is required.');
 
         // Lead click-to-call uses this number as caller ID, so a callback from a
-        // lead contact goes to the agent that lead is assigned to.
-        if (! $entry && $lead = $this->leadForCustomer($customerNumber)) {
+        // lead contact goes to the agent that lead is assigned to. When the number
+        // is both a lead contact and a Client Calling entry, the side that called
+        // the customer most recently receives the callback.
+        $lead = $this->leadForCustomer($customerNumber);
+        if ($lead && (! $entry || $this->leadCalledMoreRecently($customerNumber, $entry))) {
             return $this->routeLeadCallback($service, $lead, $customerNumber, $providerUuid);
         }
 
@@ -155,6 +158,20 @@ class ClientCallingWebhookController extends Controller
             ->where('calling_type', CallManagementEntry::TYPE_CLIENT_CALLING)
             ->whereRaw("RIGHT(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(mobile_number, '+', ''), ' ', ''), '-', ''), '(', ''), ')', ''), 10) = ?", [$national])
             ->latest('updated_at')->first();
+    }
+
+    private function leadCalledMoreRecently(string $number, CallManagementEntry $entry): bool
+    {
+        $national = substr(preg_replace('/\D+/', '', $number), -10);
+        $lastLeadCall = CallLog::whereNotNull('lead_id')
+            ->whereNull('call_management_entry_id')
+            ->whereRaw("RIGHT(REPLACE(REPLACE(REPLACE(number, '+', ''), ' ', ''), '-', ''), 10) = ?", [$national])
+            ->max('started_at');
+        if (! $lastLeadCall) return false;
+
+        $lastClientCall = ClientCallLog::where('call_management_entry_id', $entry->id)->max('started_at');
+
+        return ! $lastClientCall || strtotime($lastLeadCall) >= strtotime($lastClientCall);
     }
 
     private function leadForCustomer(string $number): ?Lead
