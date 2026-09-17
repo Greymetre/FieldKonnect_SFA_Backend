@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\CallLog;
+use App\Models\Lead;
 use App\Models\LeadLog;
 use App\Models\Status;
 use App\Models\User;
 use App\Services\CallTranscriptionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\URL;
@@ -17,18 +19,23 @@ use Throwable;
 
 class CallLogController extends Controller
 {
+    /**
+     * Statuses offered after a lead call: the lead statuses themselves, so the
+     * agent updates the lead's status while recording the call outcome.
+     */
     public function feedbackStatuses()
     {
         $statuses = Status::query()
-            ->where('module', Status::MODULE_LEAD_CALL_FEEDBACK)
+            ->where('module', 'LeadStatus')
             ->where('active', 'Y')
             ->select('id', 'status_name', 'display_name', 'status_message')
             ->orderBy('id')
             ->get();
+        $pending = ['id' => 0, 'status_name' => 'pending', 'display_name' => 'Pending', 'status_message' => null];
 
         return response()->json([
             'success' => true,
-            'data' => $statuses,
+            'data' => collect([$pending])->merge($statuses->toArray())->values(),
         ]);
     }
 
@@ -37,32 +44,48 @@ class CallLogController extends Controller
         $user = $request->user('users');
         $validated = $request->validate([
             'call_log_id' => ['required', 'integer'],
-            'feedback_status_id' => ['required', 'integer'],
+            'feedback_status_id' => ['required', 'integer', 'min:0'],
             'message' => ['required', 'string', 'max:1000'],
         ]);
-
-        $status = Status::query()
-            ->whereKey($validated['feedback_status_id'])
-            ->where('module', Status::MODULE_LEAD_CALL_FEEDBACK)
-            ->where('active', 'Y')
-            ->firstOrFail();
 
         $callLog = CallLog::query()
             ->whereKey($validated['call_log_id'])
             ->where('user_id', $user->id)
             ->firstOrFail();
 
-        $callLog->update([
-            'feedback_status_id' => $status->id,
-            'remark' => trim($validated['message']),
-        ]);
+        $statusId = (int) $validated['feedback_status_id'];
+        $status = $statusId === 0 ? null : Status::query()
+            ->whereKey($statusId)
+            ->whereIn('module', ['LeadStatus', Status::MODULE_LEAD_CALL_FEEDBACK])
+            ->where('active', 'Y')
+            ->firstOrFail();
+        // App builds released before this change still send call feedback statuses.
+        $isLeadStatus = $statusId === 0 || $status->module === 'LeadStatus';
+
+        DB::transaction(function () use ($callLog, $status, $statusId, $isLeadStatus, $validated, $user) {
+            $callLog->update([
+                'feedback_status_id' => $status?->id,
+                'remark' => trim($validated['message']),
+            ]);
+
+            $lead = $isLeadStatus && $callLog->lead_id ? Lead::find($callLog->lead_id) : null;
+            if ($lead && (int) $lead->status !== $statusId) {
+                $oldStatus = Status::find($lead->status);
+                LeadLog::create([
+                    'lead_id' => $lead->id,
+                    'message' => 'Lead move from '.($oldStatus->display_name ?? 'Pending').' to '.($status->display_name ?? 'Pending').' by '.$user->name,
+                    'created_by' => $user->id,
+                ]);
+                $lead->update(['status' => $statusId]);
+            }
+        });
 
         return response()->json([
             'success' => true,
             'message' => 'Call feedback saved successfully.',
             'data' => [
                 'call_log_id' => $callLog->id,
-                'feedback_status' => $status->only(['id', 'status_name', 'display_name']),
+                'feedback_status' => $status ? $status->only(['id', 'status_name', 'display_name']) : ['id' => 0, 'status_name' => 'pending', 'display_name' => 'Pending'],
                 'message' => $callLog->remark,
             ],
         ]);
@@ -77,7 +100,7 @@ class CallLogController extends Controller
     {
         $user = $request->user('users');
 
-        $callLog = CallLog::with(['lead:id,company_name', 'lead.contacts:id,lead_id,name'])
+        $callLog = CallLog::with(['lead:id,company_name,status', 'lead.contacts:id,lead_id,name'])
             ->where('user_id', $user->id)
             ->whereNotNull('lead_id')
             ->whereNull('call_management_entry_id')
@@ -93,6 +116,7 @@ class CallLogController extends Controller
             'data' => $callLog ? [
                 'call_log_id' => $callLog->id,
                 'lead_id' => $callLog->lead_id,
+                'lead_status_id' => (int) ($callLog->lead?->status ?? 0),
                 'direction' => $callLog->direction,
                 'customer_name' => $callLog->lead?->contacts->first()?->name ?: $callLog->lead?->company_name ?: 'Customer',
                 'number' => $callLog->number,
