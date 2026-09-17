@@ -789,6 +789,10 @@ class LeadController extends Controller
         if ($request->user_id != -1 && !empty($request->user_id)) {
             $all_opportunities->where('assigned_to', $request->user_id);
         }
+        // Opened from a lead activity entry.
+        if (!empty($request->opportunity_id)) {
+            $all_opportunities->where('id', $request->opportunity_id);
+        }
         foreach ($opportunity_statuses as $key => $opportunity_status) {
             $status_opportunities = LeadOpportunity::with('lead:id,company_name', 'assignUser:id,name');
             if (!$request->user()->hasRole('superadmin')) {
@@ -1080,6 +1084,10 @@ class LeadController extends Controller
                 if ($request->status_id && !empty($request->status_id)) {
                     $tasks->where('status', $request->status_id);
                 }
+                // Opened from a lead activity entry.
+                if (!empty($request->task_id)) {
+                    $tasks->where('id', $request->task_id);
+                }
                 $tasks = $tasks->latest()->paginate($request->pageSize ?? 30);
             } else {
                 $lead_ids = [];
@@ -1105,6 +1113,10 @@ class LeadController extends Controller
                 }
                 if ($request->status_id && !empty($request->status_id)) {
                     $tasks->where('status', $request->status_id);
+                }
+                // Opened from a lead activity entry.
+                if (!empty($request->task_id)) {
+                    $tasks->where('id', $request->task_id);
                 }
                 $tasks = $tasks->latest()
                     ->paginate($request->pageSize ?? 30);

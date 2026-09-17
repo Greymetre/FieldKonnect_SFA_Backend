@@ -101,6 +101,55 @@ class CallLogController extends Controller
         ]);
     }
 
+    /** One lead call in the same shape as the mobile call history, for opening Call Details directly. */
+    public function showMobileCall(Request $request, CallLog $callLog)
+    {
+        $this->authorizeMobileCall($request, $callLog);
+        $callLog->load(['lead:id,company_name', 'lead.contacts:id,lead_id,name,phone_number', 'feedbackStatus:id,status_name,display_name']);
+
+        return response()->json(['success' => true, 'data' => $this->mobileCallItem($callLog)]);
+    }
+
+    private function mobileCallItem(CallLog $log): array
+    {
+        // A call log can remain after its lead/contact has been deleted.
+        // Do not let an orphaned log fail the complete mobile listing.
+        $contact = $log->lead ? $log->lead->contacts->first() : null;
+        $connected = !empty($log->recording_url);
+
+        $recordingPlayUrl = null;
+        if ($connected) {
+            try {
+                $recordingPlayUrl = URL::temporarySignedRoute(
+                    'api.call-recordings.play',
+                    now()->addHour(),
+                    ['callLog' => $log->id]
+                );
+            } catch (Throwable $exception) {
+                Log::warning('Could not generate call recording URL.', [
+                    'call_log_id' => $log->id,
+                    'exception' => $exception->getMessage(),
+                ]);
+            }
+        }
+
+        return [
+            'id' => $log->id,
+            'lead_id' => $log->lead_id,
+            'direction' => $log->direction ?: 'outbound',
+            'customer_name' => $contact?->name ?: $log->lead?->company_name ?: 'Unknown customer',
+            'company_name' => $log->lead?->company_name,
+            'number' => $log->number,
+            'started_at' => optional($log->started_at)->toIso8601String(),
+            'duration' => (int) $log->duration,
+            'recording_duration' => $log->recording_duration,
+            'connected' => $connected,
+            'remark' => $log->remark,
+            'feedback_status' => $log->feedbackStatus,
+            'recording_play_url' => $recordingPlayUrl,
+        ];
+    }
+
     /** Transcript for one lead call; checks a running job once per request. */
     public function transcript(Request $request, CallLog $callLog, CallTranscriptionService $transcription)
     {
@@ -242,44 +291,7 @@ class CallLogController extends Controller
         $pageSize = min(100, max(1, (int) $request->input('page_size', 30)));
         $logs = $query->latest('started_at')->paginate($pageSize);
 
-        $items = $logs->getCollection()->map(function (CallLog $log) {
-            // A call log can remain after its lead/contact has been deleted.
-            // Do not let an orphaned log fail the complete mobile listing.
-            $contact = $log->lead ? $log->lead->contacts->first() : null;
-            $connected = !empty($log->recording_url);
-
-            $recordingPlayUrl = null;
-            if ($connected) {
-                try {
-                    $recordingPlayUrl = URL::temporarySignedRoute(
-                        'api.call-recordings.play',
-                        now()->addHour(),
-                        ['callLog' => $log->id]
-                    );
-                } catch (Throwable $exception) {
-                    Log::warning('Could not generate call recording URL.', [
-                        'call_log_id' => $log->id,
-                        'exception' => $exception->getMessage(),
-                    ]);
-                }
-            }
-
-            return [
-                'id' => $log->id,
-                'lead_id' => $log->lead_id,
-                'direction' => $log->direction ?: 'outbound',
-                'customer_name' => $contact?->name ?: $log->lead?->company_name ?: 'Unknown customer',
-                'company_name' => $log->lead?->company_name,
-                'number' => $log->number,
-                'started_at' => optional($log->started_at)->toIso8601String(),
-                'duration' => (int) $log->duration,
-                'recording_duration' => $log->recording_duration,
-                'connected' => $connected,
-                'remark' => $log->remark,
-                'feedback_status' => $log->feedbackStatus,
-                'recording_play_url' => $recordingPlayUrl,
-            ];
-        })->values();
+        $items = $logs->getCollection()->map(fn (CallLog $log) => $this->mobileCallItem($log))->values();
 
         return response()->json([
             'success' => true,
