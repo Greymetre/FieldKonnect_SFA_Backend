@@ -54,6 +54,12 @@ class Kernel extends ConsoleKernel
             ->dailyAt('20:00')
             ->withoutOverlapping();
         $schedule->command('tasks:send-pending-today')->everyMinute();
+        // Shared hosting has no supervisor, so the scheduler starts a worker for
+        // queued jobs (Sarvam call transcripts). It exits once the queue is empty.
+        $schedule->command('queue:work --stop-when-empty --tries=1 --timeout=630 --max-time=3000')
+            ->everyMinute()
+            ->withoutOverlapping(60)
+            ->runInBackground();
     }
 
     /**
