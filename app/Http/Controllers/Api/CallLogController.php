@@ -279,6 +279,7 @@ class CallLogController extends Controller
             ], 403);
         }
 
+        // "all" (no date limit) is used by the current app; older builds send today/weekly/monthly.
         $period = $request->input('period', 'weekly');
         $query = CallLog::with(['lead:id,company_name', 'lead.contacts:id,lead_id,name,phone_number', 'feedbackStatus:id,status_name,display_name'])
             ->where('user_id', $user->id);
@@ -287,7 +288,7 @@ class CallLogController extends Controller
             $query->whereDate('started_at', today());
         } elseif ($period === 'monthly') {
             $query->where('started_at', '>=', now()->startOfMonth());
-        } else {
+        } elseif ($period !== 'all') {
             $query->where('started_at', '>=', now()->startOfWeek());
         }
 
@@ -309,11 +310,18 @@ class CallLogController extends Controller
         }
 
         $summaryQuery = clone $query;
+        // Connection filter is applied after the summary so the cards keep counting all calls.
+        $listQuery = clone $query;
+        if ($request->input('status') === 'connected') {
+            $listQuery->whereNotNull('recording_url')->where('recording_url', '!=', '');
+        } elseif ($request->input('status') === 'not_connected') {
+            $listQuery->where(fn ($statusQuery) => $statusQuery->whereNull('recording_url')->orWhere('recording_url', ''));
+        }
         $attempts = (clone $summaryQuery)->count();
         $connected = (clone $summaryQuery)->whereNotNull('recording_url')->where('recording_url', '!=', '')->count();
         $duration = (clone $summaryQuery)->whereNotNull('recording_url')->where('recording_url', '!=', '')->sum('duration');
         $pageSize = min(100, max(1, (int) $request->input('page_size', 30)));
-        $logs = $query->latest('started_at')->paginate($pageSize);
+        $logs = $listQuery->latest('started_at')->latest('id')->paginate($pageSize);
 
         $items = $logs->getCollection()->map(fn (CallLog $log) => $this->mobileCallItem($log))->values();
 
