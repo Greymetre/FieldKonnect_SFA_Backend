@@ -129,6 +129,8 @@ Route::middleware('auth:users')->group(function () {
     Route::get('call-feedback-statuses', [CallLogController::class, 'feedbackStatuses']);
     Route::post('call-feedback', [CallLogController::class, 'submitFeedback']);
     Route::get('pending-call-feedback', [CallLogController::class, 'pendingFeedback']);
+    Route::get('call-transcript/{callLog}', [CallLogController::class, 'transcript']);
+    Route::post('call-transcript/{callLog}', [CallLogController::class, 'generateTranscript']);
     // POST is supported so search text can be sent in JSON when a hosting WAF
     // rejects particular query-string values before Laravel is reached.
     Route::match(['get', 'post'], 'my-call-history', [CallLogController::class, 'mobileHistory']);

@@ -96,6 +96,33 @@ class CallTranscriptionService
         return $callLog->transcription_status;
     }
 
+    /**
+     * Speaker-grouped transcript lines. Speaker IDs may arrive as 0/1, "1" or
+     * "SPEAKER_01"; they are numbered 1, 2, ... in order of first appearance and
+     * consecutive lines from the same speaker are merged.
+     */
+    public function conversation(CallLog $callLog): array
+    {
+        $speakerNumbers = [];
+        $groups = [];
+        foreach (data_get($callLog->diarized_transcript, 'entries', []) as $line) {
+            $text = trim((string) data_get($line, 'transcript', ''));
+            if ($text === '') continue;
+            $rawSpeaker = (string) data_get($line, 'speaker_id', '0');
+            $key = preg_match('/\d+/', $rawSpeaker, $digits) ? (int) $digits[0] : $rawSpeaker;
+            $speakerNumbers[$key] ??= count($speakerNumbers) + 1;
+            $speaker = $speakerNumbers[$key];
+            $last = count($groups) - 1;
+            if ($last >= 0 && $groups[$last]['speaker'] === $speaker) {
+                $groups[$last]['text'] .= ' '.$text;
+            } else {
+                $groups[] = ['speaker' => $speaker, 'text' => $text, 'start' => data_get($line, 'start_time_seconds')];
+            }
+        }
+
+        return $groups;
+    }
+
     private function client()
     {
         $apiKey = config('services.sarvam.api_key');

@@ -7,6 +7,7 @@ use App\Models\CallLog;
 use App\Models\LeadLog;
 use App\Models\Status;
 use App\Models\User;
+use App\Services\CallTranscriptionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -98,6 +99,57 @@ class CallLogController extends Controller
                 'duration' => (int) $callLog->duration,
             ] : null,
         ]);
+    }
+
+    /** Transcript for one lead call; checks a running job once per request. */
+    public function transcript(Request $request, CallLog $callLog, CallTranscriptionService $transcription)
+    {
+        $this->authorizeMobileCall($request, $callLog);
+        $transcription->sync($callLog);
+
+        return response()->json(['success' => true, 'data' => $this->transcriptPayload($callLog, $transcription)]);
+    }
+
+    public function generateTranscript(Request $request, CallLog $callLog, CallTranscriptionService $transcription)
+    {
+        $this->authorizeMobileCall($request, $callLog);
+        if (empty($callLog->recording_url)) {
+            return response()->json(['success' => false, 'message' => 'Recording is not available for this call.'], 422);
+        }
+
+        $running = $callLog->transcription_status === 'processing' && $callLog->sarvam_job_id
+            && $callLog->updated_at?->gt(now()->subMinutes(15));
+        if (! $running && ($callLog->transcription_status !== 'completed' || $request->boolean('regenerate'))) {
+            $transcription->start($callLog);
+        }
+
+        return response()->json([
+            'success' => $callLog->transcription_status !== 'failed',
+            'message' => $callLog->transcription_status === 'failed' ? 'Transcript could not be generated. Please try again.' : 'Generating transcript.',
+            'data' => $this->transcriptPayload($callLog, $transcription),
+        ]);
+    }
+
+    private function authorizeMobileCall(Request $request, CallLog $callLog): void
+    {
+        $user = $request->user('users');
+        abort_unless($callLog->lead_id && ! $callLog->call_management_entry_id, 404);
+        abort_unless((int) $callLog->user_id === (int) $user->id || $user->hasRole('superadmin'), 403, 'You cannot access this call.');
+    }
+
+    private function transcriptPayload(CallLog $callLog, CallTranscriptionService $transcription): array
+    {
+        $status = $callLog->transcription_status;
+        if ($status === 'processing' && ! ($callLog->sarvam_job_id && $callLog->updated_at?->gt(now()->subMinutes(15)))) {
+            $status = 'failed';
+        }
+
+        return [
+            'status' => $status ?: 'not_requested',
+            'recording_available' => ! empty($callLog->recording_url),
+            'conversation' => $status === 'completed' ? $transcription->conversation($callLog) : [],
+            'transcript' => $status === 'completed' ? $callLog->transcript : null,
+        ];
     }
 
     public function mobileHistory(Request $request)

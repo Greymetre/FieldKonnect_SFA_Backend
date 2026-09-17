@@ -7,25 +7,7 @@
     $formatDuration = static fn ($seconds) => sprintf('%02d:%02d:%02d', intdiv($seconds, 3600), intdiv($seconds % 3600, 60), $seconds % 60);
     $transcriptInProgress = $callLog->transcription_status === 'processing' && $callLog->sarvam_job_id
       && $callLog->updated_at?->gt(now()->subMinutes(15));
-    // Speaker IDs may arrive as 0/1, "1", or "SPEAKER_01". They are numbered
-    // 1, 2, ... in order of first appearance, and consecutive lines from the
-    // same speaker are merged into one bubble.
-    $speakerNumbers = [];
-    $conversation = collect(data_get($callLog->diarized_transcript, 'entries', []))->reduce(function ($groups, $line) use (&$speakerNumbers) {
-      $text = trim((string) data_get($line, 'transcript', ''));
-      if ($text === '') return $groups;
-      $rawSpeaker = (string) data_get($line, 'speaker_id', '0');
-      $key = preg_match('/\d+/', $rawSpeaker, $digits) ? (int) $digits[0] : $rawSpeaker;
-      $speakerNumbers[$key] ??= count($speakerNumbers) + 1;
-      $speaker = $speakerNumbers[$key];
-      $last = count($groups) - 1;
-      if ($last >= 0 && $groups[$last]['speaker'] === $speaker) {
-        $groups[$last]['text'] .= ' '.$text;
-      } else {
-        $groups[] = ['speaker' => $speaker, 'text' => $text, 'start' => data_get($line, 'start_time_seconds')];
-      }
-      return $groups;
-    }, []);
+    $conversation = app(\App\Services\CallTranscriptionService::class)->conversation($callLog);
   @endphp
 
   <style>
