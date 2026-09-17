@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Exports\ExcelExport;
 use App\Http\Controllers\Controller;
+use App\Jobs\TranscribeCallRecording;
 use App\Models\CallLog;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -292,6 +293,30 @@ class LeadCallLogController extends Controller
         ]);
 
         return view('call_logs.show', compact('callLog'));
+    }
+
+    public function transcribe(CallLog $callLog)
+    {
+        abort_if(Gate::denies('call_management_transcribe'), 403, '403 Forbidden');
+        $this->authorizeCallLog($callLog);
+        abort_if(empty($callLog->recording_url), 422, 'Recording is not available.');
+
+        if (config('queue.default') === 'sync') {
+            return back()->with('error', 'Queue is not configured. Set QUEUE_CONNECTION=database and start the transcription worker.');
+        }
+        if ($callLog->transcription_status === 'completed') {
+            return back()->with('success', 'Transcript is already available.');
+        }
+        if (in_array($callLog->transcription_status, ['queued', 'processing'], true)
+            && $callLog->updated_at?->gt(now()->subMinutes(15))) {
+            return back()->with('success', 'Transcription is already in progress.');
+        }
+
+        $callLog->update(['transcription_status' => 'queued', 'transcription_error' => null]);
+        // Same Sarvam job and default queue as Customer Calling transcripts.
+        TranscribeCallRecording::dispatch($callLog->id);
+
+        return back()->with('success', 'Recording queued for transcription. The transcript will appear here in a few minutes.');
     }
 
     private function authorizeCallLog(CallLog $callLog): void
