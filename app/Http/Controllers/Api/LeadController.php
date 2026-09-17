@@ -343,12 +343,20 @@ class LeadController extends Controller
                 'lead_source' => $request->lead_source,
                 'assign_to' => $user->id,
                 'others' => $otherData,
+                'alternate_number' => $request->alternate_number,
+                'revenue_rs_cr' => $request->revenue_rs_cr,
+                'others_1' => $request->others_1,
+                'others_2' => $request->others_2,
+                'others_3' => $request->others_3,
+                'others_4' => $request->others_4,
+                'others_5' => $request->others_5,
             ]);
             if ($lead->id) {
                 Address::create([
                     'model_type' => 'App\Models\Lead',
                     'model_id' => $lead->id,
                     'address1' => $request->address ?? 'N/A',
+                    'address2' => $request->place,
                     'country_id' => 1,
                     'pincode_id' => $request->pincode_id ?? null,
                     'state_id' => $request->state_id ?? null,
@@ -364,6 +372,7 @@ class LeadController extends Controller
                 foreach ($phoneNumbers as $index => $phoneNumber) {
                     LeadContact::create([
                         'name' => $request->contact_name,
+                        'title' => $index === 0 ? $request->designation : null,
                         'phone_number' => $phoneNumber,
                         'email' => $index === 0 ? $request->email : null,
                         'lead_source' => $request->lead_source,
