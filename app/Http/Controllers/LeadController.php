@@ -153,8 +153,7 @@ class LeadController extends Controller
 
         return DataTables::of($leads)
             ->editColumn('company_name', function ($lead) {
-                $url = route('leads.show', $lead);
-                return '<a href="' . $url . '">' . ucwords(strtolower($lead->company_name)) . '</a>';
+                return e(ucwords(strtolower($lead->company_name)));
             })
             ->editColumn('assign_to', function ($lead) {
                 return $lead->assign_user ? $lead->assign_user->name : '-';
@@ -197,7 +196,9 @@ class LeadController extends Controller
             })
 
             ->addColumn('action', function ($lead) use ($canEditLead, $canDeleteLead) {
-                $btn = '';
+                $btn = '<a href="' . route('leads.show', $lead) . '" class="btn btn-info btn-just-icon btn-sm" title="View Lead">
+                                <i class="material-icons">visibility</i>
+                            </a>';
                 if ($canEditLead) {
                     $btn .= '<a href="' . route('leads.edit', $lead) . '" class="btn btn-success btn-just-icon btn-sm" title="Edit Lead">
                                 <i class="material-icons">edit</i>
