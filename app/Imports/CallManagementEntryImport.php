@@ -147,7 +147,11 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChu
                     'custom_column_2' => $data['custom_column_2'] ?? null,
                     'custom_column_3' => $data['custom_column_3'] ?? null,
                     'custom_column_4' => $data['custom_column_4'] ?? null,
-                    'status' => $this->importedEntryStatus($data['status'] ?? null),
+                    // Reassigning a completed call (e.g. transferring an agent's
+                    // calls to another agent) must not reopen it in the queue.
+                    'status' => $entry && $entry->status === 'completed'
+                        ? 'completed'
+                        : $this->importedEntryStatus($data['status'] ?? null),
                     'listing_order' => $this->nextListingOrder--,
                 ];
 
