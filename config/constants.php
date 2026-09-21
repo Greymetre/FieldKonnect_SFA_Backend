@@ -25,6 +25,8 @@ return [
         '8' => 'All Workers, Drivers, Peons',
     ],
     'tour_objectives' => [
+        'Office Work',
+        'WFH',
         'Customer Visit',
         'Mechanic Meet',
         'Borer Meet',
@@ -34,8 +36,6 @@ return [
         'Dealer Board',
         'Wall Painting',
         'Dealer Factory Visit',
-        'Office Work',
-        'WFH',
         'Others'
     ],
     'redeem_mode' => [
