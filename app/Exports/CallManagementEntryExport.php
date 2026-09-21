@@ -15,7 +15,9 @@ class CallManagementEntryExport implements FromCollection, WithHeadings, WithMap
         return CallManagementEntry::with([
             'assignedUser:id,name,email',
             'latestCallLog.feedbackStatus:id,status_name,display_name',
-        ])->latest('id')->get();
+        ])->withCount(['callLogs as feedback_call_count' => function ($callLogQuery) {
+            $callLogQuery->whereNotNull('feedback_status_id');
+        }])->latest('id')->get();
     }
 
     public function headings(): array
@@ -26,6 +28,8 @@ class CallManagementEntryExport implements FromCollection, WithHeadings, WithMap
             'Address', 'Pincode', 'City', 'District', 'State', 'Caller Email',
             'Caller Name', 'Point Column 1', 'Point Column 2', 'Point Column 3',
             'Point Column 4', 'Status', 'Customer Calling', 'Client Calling',
+            // Report-only column: the import does not read it.
+            'Agent Call Status',
         ];
     }
 
@@ -53,6 +57,7 @@ class CallManagementEntryExport implements FromCollection, WithHeadings, WithMap
             $this->status($entry),
             $entry->calling_type === CallManagementEntry::TYPE_CLIENT_CALLING ? 'No' : 'Yes',
             $entry->calling_type === CallManagementEntry::TYPE_CLIENT_CALLING ? 'Yes' : 'No',
+            $entry->feedback_call_count > 0 ? 'Called' : 'Not Called',
         ];
     }
 
