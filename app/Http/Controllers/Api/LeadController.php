@@ -86,6 +86,12 @@ class LeadController extends Controller
             $listQuery->where('lead_source', $request->lead_source);
         }
 
+        if ($request->filled('designation')) {
+            $listQuery->whereHas('contacts', function ($query) use ($request) {
+                $query->where('title', $request->designation);
+            });
+        }
+
         if ($request->filled('status')) {
             $listQuery->where('status', (int) $request->status);
         }
@@ -207,10 +213,16 @@ class LeadController extends Controller
                 'value' => 'Self'
             ],
         ];
+        $designations = LeadContact::whereNotNull('title')
+            ->where('title', '!=', '')
+            ->distinct()
+            ->orderBy('title')
+            ->pluck('title');
         $data = [
             'status' => $status,
             'source' => $source,
             'users' => $users,
+            'designations' => $designations,
         ];
         return response()->json(['status' => 'success', 'message' => 'Data retrieved successfully.', 'data' => $data], 200);
     }
