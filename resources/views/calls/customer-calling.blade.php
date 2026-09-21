@@ -118,6 +118,10 @@
         .crm-call-end { display:none;height:36px;margin-left:auto;padding:0 14px;border:1px solid rgba(248,113,113,.5);border-radius:9px;background:rgba(248,113,113,.1);color:#fca5a5;font-size:12px;font-weight:800; }
         .crm-call-end.show { display:inline-flex;align-items:center;gap:6px; }
         .customer-call-status { display:inline-flex;align-items:center;justify-content:center;min-width:90px;min-height:30px;padding:0 12px;border:1px solid rgba(34,211,238,.34);border-radius:999px;background:rgba(34,211,238,.06);color:#45d6ef;font-size:11px;font-weight:800;letter-spacing:.07em;line-height:1;text-transform:uppercase;white-space:nowrap;word-break:keep-all; }
+        .customer-call-status-cell { white-space:nowrap; }
+        .customer-call-count { display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:26px;margin-left:6px;padding:0 7px;border-radius:999px;font-size:12px;font-weight:800;line-height:1;vertical-align:middle; }
+        .customer-call-count.is-low { border:1px solid rgba(34,197,94,.45);background:rgba(34,197,94,.14);color:#4ade80; }
+        .customer-call-count.is-high { border:1px solid rgba(239,68,68,.5);background:rgba(239,68,68,.16);color:#f87171; }
         .customer-note-cell { min-width:190px;max-width:260px; }
         .customer-note-preview { display:block;overflow:hidden;color:#adbee6;line-height:1.45;text-overflow:ellipsis;white-space:nowrap; }
         .customer-note-view { margin-top:4px;padding:0;border:0;background:transparent;color:#35d2ed;font-size:11px;font-weight:800; }
@@ -294,7 +298,12 @@
                                 <td>{{ $entry->customer_type ?: '—' }}</td>
                                 <td>{{ $entry->calling_type === \App\Models\CallManagementEntry::TYPE_CLIENT_CALLING ? 'Client Calling' : 'Customer Calling' }}</td>
                                 <td>{{ $entry->city ?: '—' }}</td><td>{{ $entry->state ?: '—' }}</td>
-                                <td><span class="customer-call-status">{{ optional(optional($entry->latestCallLog)->feedbackStatus)->display_name ?: optional(optional($entry->latestCallLog)->feedbackStatus)->status_name ?: $entry->status }}</span></td>
+                                <td class="customer-call-status-cell">
+                                    <span class="customer-call-status">{{ optional(optional($entry->latestCallLog)->feedbackStatus)->display_name ?: optional(optional($entry->latestCallLog)->feedbackStatus)->status_name ?: $entry->status }}</span>
+                                    @if($followUpStatusIds->contains((int) optional($entry->latestCallLog)->feedback_status_id))
+                                        <span class="customer-call-count {{ $entry->feedback_call_count > 2 ? 'is-high' : 'is-low' }}" title="Called {{ $entry->feedback_call_count }} {{ \Illuminate\Support\Str::plural('time', $entry->feedback_call_count) }}">{{ $entry->feedback_call_count }}</span>
+                                    @endif
+                                </td>
                                 <td>{{ $entry->follow_up_date ? $entry->follow_up_date->format('d M Y') : '—' }}</td>
                                 <td class="customer-note-cell">
                                     @if(optional($entry->latestNotedCallLog)->remark)

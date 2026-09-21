@@ -235,6 +235,9 @@ class CallManagementController extends Controller
                 'latestCallLog.feedbackStatus:id,status_name,display_name',
                 'latestNotedCallLog',
             ])
+            ->withCount(['callLogs as feedback_call_count' => function ($callLogQuery) {
+                $callLogQuery->whereNotNull('feedback_status_id');
+            }])
             ->where('call_management_entries.status', $showCompleted ? 'completed' : 'assigned')
             ->where('call_management_entries.calling_type', $selectedCallingType);
 
@@ -334,7 +337,8 @@ class CallManagementController extends Controller
             'filterAgents',
             'callers',
             'pincodes',
-            'selectedCallingType'
+            'selectedCallingType',
+            'followUpStatusIds'
         ));
     }
 
