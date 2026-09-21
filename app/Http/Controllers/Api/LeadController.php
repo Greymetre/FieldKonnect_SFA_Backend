@@ -102,6 +102,7 @@ class LeadController extends Controller
                 'city' => $lead->address ? $lead->address?->cityname?->city_name : '',
                 'alternate_number' => $lead->alternate_number,
                 'lead_source_lead' => $lead->lead_source,
+                'website' => $lead->company_url,
                 'status' => [
                     'id' => $lead->status_is ? $lead->status_is->id : 0,
                     'display_name' => $lead->status_is ? $lead->status_is->display_name : 'Pending',
@@ -110,6 +111,7 @@ class LeadController extends Controller
                     'name' => $lead->contacts->first()->name ?? null,
                     'phone_number' => $lead->contacts->first()->phone_number ?? null,
                     'email' => $lead->contacts->first()->email ?? null,
+                    'designation' => $lead->contacts->first()->title ?? null,
                     'url' => $lead->contacts->first()->url ?? null,
                     'lead_source' => $lead->contacts->first()->lead_source ?? null,
                 ],
