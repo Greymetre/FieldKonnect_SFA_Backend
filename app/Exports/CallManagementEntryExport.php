@@ -12,7 +12,10 @@ class CallManagementEntryExport implements FromCollection, WithHeadings, WithMap
 {
     public function collection()
     {
-        return CallManagementEntry::with('assignedUser:id,name,email')->latest('id')->get();
+        return CallManagementEntry::with([
+            'assignedUser:id,name,email',
+            'latestCallLog.feedbackStatus:id,status_name,display_name',
+        ])->latest('id')->get();
     }
 
     public function headings(): array
@@ -47,9 +50,23 @@ class CallManagementEntryExport implements FromCollection, WithHeadings, WithMap
             $entry->custom_column_2,
             $entry->custom_column_3,
             $entry->custom_column_4,
-            $entry->status,
+            $this->status($entry),
             $entry->calling_type === CallManagementEntry::TYPE_CLIENT_CALLING ? 'No' : 'Yes',
             $entry->calling_type === CallManagementEntry::TYPE_CLIENT_CALLING ? 'Yes' : 'No',
         ];
+    }
+
+    // Match the Customer Calling listing: open entries show their latest call
+    // feedback (e.g. Follow Up). Completed entries keep "completed" so a
+    // re-import of this file does not reopen them.
+    private function status(CallManagementEntry $entry): ?string
+    {
+        if ($entry->status !== 'assigned') {
+            return $entry->status;
+        }
+
+        $feedbackStatus = optional($entry->latestCallLog)->feedbackStatus;
+
+        return optional($feedbackStatus)->display_name ?: optional($feedbackStatus)->status_name ?: $entry->status;
     }
 }
