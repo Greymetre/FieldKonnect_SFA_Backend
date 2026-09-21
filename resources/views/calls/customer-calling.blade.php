@@ -300,7 +300,7 @@
                                 <td>{{ $entry->city ?: '—' }}</td><td>{{ $entry->state ?: '—' }}</td>
                                 <td class="customer-call-status-cell">
                                     <span class="customer-call-status">{{ optional(optional($entry->latestCallLog)->feedbackStatus)->display_name ?: optional(optional($entry->latestCallLog)->feedbackStatus)->status_name ?: $entry->status }}</span>
-                                    @if($followUpStatusIds->contains((int) optional($entry->latestCallLog)->feedback_status_id))
+                                    @if($callCountStatusIds->contains((int) optional($entry->latestCallLog)->feedback_status_id))
                                         <span class="customer-call-count {{ $entry->feedback_call_count > 2 ? 'is-high' : 'is-low' }}" title="Called {{ $entry->feedback_call_count }} {{ \Illuminate\Support\Str::plural('time', $entry->feedback_call_count) }}">{{ $entry->feedback_call_count }}</span>
                                     @endif
                                 </td>

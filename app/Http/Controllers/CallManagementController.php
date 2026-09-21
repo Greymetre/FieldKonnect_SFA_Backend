@@ -280,6 +280,13 @@ class CallManagementController extends Controller
             ->map(fn ($id) => (int) $id)
             ->values();
 
+        // Statuses whose badge shows how many times the customer has been called.
+        $callCountStatusIds = $feedbackStatuses
+            ->filter(fn (Status $status) => $this->isFollowUpFeedback($status) || $this->isNoResponseFeedback($status))
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->values();
+
         if ($followUpStatusIds->isNotEmpty()) {
             $placeholders = $followUpStatusIds->map(fn () => '?')->implode(',');
             $query->orderByRaw(
@@ -338,7 +345,7 @@ class CallManagementController extends Controller
             'callers',
             'pincodes',
             'selectedCallingType',
-            'followUpStatusIds'
+            'callCountStatusIds'
         ));
     }
 
