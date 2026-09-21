@@ -34,6 +34,8 @@ return [
         'Dealer Board',
         'Wall Painting',
         'Dealer Factory Visit',
+        'Office Work',
+        'WFH',
         'Others'
     ],
     'redeem_mode' => [
