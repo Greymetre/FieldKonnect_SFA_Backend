@@ -950,7 +950,7 @@ class LeadController extends Controller
             'message' => $msg,
             'created_by' => Auth::id(),
         ]);
-        $update = Lead::where('id', $request->lead_id)->update(['status' => $request->status]);
+        $update = Lead::where('id', $request->lead_id)->update(['status' => $request->status, 'status_changed_at' => now()]);
         if ($update) {
             return response()->json(['status' => 'success', 'message' => 'Status updated successfully.']);
         } else {

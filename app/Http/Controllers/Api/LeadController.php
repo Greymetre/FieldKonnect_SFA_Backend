@@ -96,7 +96,13 @@ class LeadController extends Controller
             $listQuery->where('status', (int) $request->status);
         }
 
-        $leads = $listQuery->latest()->paginate($pageSize);
+        // Leads whose status was changed go below the untouched ones, the most recently changed last.
+        $leads = $listQuery
+            ->orderByRaw('status_changed_at IS NOT NULL')
+            ->orderBy('status_changed_at')
+            ->latest()
+            ->orderByDesc('id')
+            ->paginate($pageSize);
 
         // Shape items
         $leads = $leads->map(function ($lead) {
@@ -869,31 +875,52 @@ class LeadController extends Controller
                 'required',
                 Rule::exists('statuses', 'id')->where('module', 'LeadStatus'),
             ],
+            'note' => 'nullable|string|max:1000',
         ]);
         if ($validate->fails()) {
-            return response()->json(['status' => 'error', 'message' => $validate->errors()], 400);
+            return response()->json(['status' => 'error', 'message' => $validate->errors()->first()], 400);
         }
         $lead = Lead::find($request->lead_id);
         if (!$lead) {
             return response()->json(['status' => 'error', 'message' => 'Lead not found.']);
         }
+        $user = $request->user();
         $old_status = Status::where('id', $lead->status)->first();
         $new_status = Status::where('id', $request->status)->first();
-        $msg = 'Lead move from ' . $old_status->display_name . ' to ' . $new_status->display_name .
-            ' by ' . $request->user()->name;
-        // SendPushNotification($lead->created_by, $msg);
-        // StoreLeadNotification($lead->id, 'Status Changed', $msg, $lead->created_by, 'lead');
-        LeadLog::create([
-            'lead_id' => $lead->id,
-            'message' => $msg,
-            'created_by' => $request->user()->id,
+        $note = trim((string) $request->input('note', ''));
+
+        DB::transaction(function () use ($lead, $user, $old_status, $new_status, $note) {
+            if ((int) $lead->status !== (int) $new_status->id) {
+                $msg = 'Lead move from ' . ($old_status->display_name ?? 'Pending') . ' to ' . $new_status->display_name .
+                    ' by ' . $user->name;
+                // SendPushNotification($lead->created_by, $msg);
+                // StoreLeadNotification($lead->id, 'Status Changed', $msg, $lead->created_by, 'lead');
+                LeadLog::create([
+                    'lead_id' => $lead->id,
+                    'message' => $msg,
+                    'created_by' => $user->id,
+                ]);
+                $lead->status = $new_status->id;
+                $lead->save();
+            }
+            if ($note !== '') {
+                LeadNote::create([
+                    'note' => $note,
+                    'lead_id' => $lead->id,
+                    'created_by' => $user->id,
+                ]);
+            }
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Lead status updated successfully.',
+            'data' => [
+                'lead_id' => $lead->id,
+                'status' => ['id' => $new_status->id, 'display_name' => $new_status->display_name],
+                'note' => $note !== '' ? $note : null,
+            ],
         ]);
-        $lead->status = $request->status;
-        if ($lead->save()) {
-            return response()->json(['status' => 'success', 'message' => 'Lead status updated successfully.']);
-        } else {
-            return response()->json(['status' => 'error', 'message' => 'Something went wrong.']);
-        }
     }
 
     public function getCheckin(Request $request)

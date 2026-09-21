@@ -37,7 +37,21 @@ class Lead extends Model implements HasMedia
         'import_row_order',
         'created_by',
     ];
-    
+
+    protected $casts = [
+        'status_changed_at' => 'datetime',
+    ];
+
+    // A lead whose status changes moves to the bottom of the mobile lead list.
+    protected static function booted()
+    {
+        static::updating(function (Lead $lead) {
+            if ($lead->isDirty('status')) {
+                $lead->status_changed_at = now();
+            }
+        });
+    }
+
     public function contacts(){
         return $this->hasMany(LeadContact::class);
     }
