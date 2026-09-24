@@ -23,7 +23,7 @@ class CallManagementEntryExport implements FromCollection, WithHeadings, WithMap
     public function headings(): array
     {
         return [
-            'Project Name', 'Project ID', 'Parent Name', 'Firm Name',
+            'Project Name', 'Campaign ID', 'Parent Name', 'Firm Name',
             'Contact Person Name', 'Mobile Number', 'Customer Type',
             'Address', 'Pincode', 'City', 'District', 'State', 'Caller Email',
             'Caller Name', 'Point Column 1', 'Point Column 2', 'Point Column 3',

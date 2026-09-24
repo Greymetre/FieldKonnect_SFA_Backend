@@ -43,7 +43,12 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChu
             try {
                 $data = $row->toArray();
                 $data['project_name'] = trim((string) ($data['project_name'] ?? '')) ?: null;
-                $data['project_id'] = trim((string) ($data['project_id'] ?? '')) ?: null;
+                // "Campaign ID" is the current heading; "Project ID" keeps
+                // older exported files importable.
+                $data['project_id'] = $this->textFromExcel($this->firstExcelValue($data, [
+                    'campaign_id',
+                    'project_id',
+                ]));
                 $data['parent_name'] = trim((string) ($data['parent_name'] ?? '')) ?: null;
                 $data['mobile_number'] = $this->digitsFromExcel($data['mobile_number'] ?? null);
                 $data['pincode'] = $this->digitsFromExcel($data['pincode'] ?? null);

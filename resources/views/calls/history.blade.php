@@ -108,10 +108,10 @@
         <section class="customer-history-card">
             <div class="customer-history-scroll">
                 <table class="customer-history-table">
-                    <thead><tr><th>Direction</th><th>Agent</th><th>Firm Name</th><th>Contact Person</th><th>Mobile</th><th>Date &amp; Time</th><th>Duration</th><th>Status</th><th>Agent Status</th><th>Notes</th><th>Recording</th></tr></thead>
+                    <thead><tr><th>Call ID</th><th>Campaign ID</th><th>Direction</th><th>Agent</th><th>Firm Name</th><th>Contact Person</th><th>Mobile</th><th>Date &amp; Time</th><th>Duration</th><th>Status</th><th>Agent Status</th><th>Notes</th><th>Recording</th></tr></thead>
                     <tbody>
                         @if($callLogs->isEmpty())
-                            <tr><td class="customer-history-empty" colspan="11">No {{ $isClientHistory ? 'client' : 'customer' }} call history available.</td></tr>
+                            <tr><td class="customer-history-empty" colspan="13">No {{ $isClientHistory ? 'client' : 'customer' }} call history available.</td></tr>
                         @else
                         @foreach($callLogs as $callLog)
                             @php
@@ -124,6 +124,8 @@
                                 $historyNumber = optional($historyEntry)->mobile_number ?: ($isClientHistory ? $callLog->customer_number : $callLog->number);
                             @endphp
                             <tr data-detail-url="{{ $isClientHistory ? route('client-call-history.show', $callLog) : route('customer-call-history.show', $callLog) }}">
+                                <td>{{ $callLog->public_id ?? $callLog->id }}</td>
+                                <td>{{ optional($historyEntry)->project_id ?: '—' }}</td>
                                 <td>{{ $isClientHistory ? ucfirst($callLog->direction) : 'Outbound' }}</td>
                                 <td>{{ optional($historyAgent)->name ?: '—' }}</td>
                                 <td>{{ optional($historyEntry)->firm_name ?: '—' }}</td>

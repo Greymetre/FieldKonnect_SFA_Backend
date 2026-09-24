@@ -556,7 +556,7 @@
                         <h3 class="call-workspace-panel-title"><i class="material-icons">business</i> Customer &amp; Project Details</h3>
                         <div class="call-customer-details">
                             <div class="call-customer-detail"><span>Project Name</span><strong id="feedbackProjectName">—</strong></div>
-                            <div class="call-customer-detail"><span>Project ID</span><strong id="feedbackProjectId">—</strong></div>
+                            <div class="call-customer-detail"><span>Campaign ID</span><strong id="feedbackProjectId">—</strong></div>
                             <div class="call-customer-detail"><span>Parent Name</span><input id="feedbackParentName" name="parent_name" maxlength="255"></div>
                             <div class="call-customer-detail"><span>Firm</span><strong id="feedbackFirmName">—</strong></div>
                             <div class="call-customer-detail"><span>Contact Person</span><strong id="feedbackContactPerson">—</strong></div>
