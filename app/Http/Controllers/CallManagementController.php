@@ -209,7 +209,10 @@ class CallManagementController extends Controller
             ->orderBy('id')
             ->get(['id', 'status_name', 'display_name']);
 
-        $selectedStatus = (string) $request->input('status');
+        // By default agents see only fresh (Assigned) calls; Follow Up, No
+        // Response etc. appear when picked in the status filter ("all" shows
+        // every open call).
+        $selectedStatus = (string) $request->input('status') ?: 'assigned';
         $selectedCallingType = in_array($request->input('calling_type'), [
             CallManagementEntry::TYPE_CUSTOMER_CALLING,
             CallManagementEntry::TYPE_CLIENT_CALLING,
@@ -271,7 +274,7 @@ class CallManagementController extends Controller
             $query->whereNull('latest_call_log.feedback_status_id');
         } elseif ($selectedFeedbackStatus) {
             $query->where('latest_call_log.feedback_status_id', $selectedFeedbackStatus->id);
-        } elseif ($selectedStatus !== '') {
+        } elseif ($selectedStatus !== 'all') {
             $query->whereRaw('1 = 0');
         }
 

@@ -461,8 +461,8 @@
                         <div class="customer-calling-filter-field is-wide">
                             <label for="customerCallingStatus">Status</label>
                             <select class="select2" id="customerCallingStatus" name="status" style="width:100%;">
-                                <option value="">All statuses</option>
-                                <option value="assigned" @selected(request('status') === 'assigned')>Assigned</option>
+                                <option value="assigned" @selected(in_array(request('status'), [null, '', 'assigned'], true))>Assigned</option>
+                                <option value="all" @selected(request('status') === 'all')>All statuses</option>
                                 @foreach($feedbackStatuses as $feedbackStatus)
                                     <option value="feedback:{{ $feedbackStatus->id }}" @selected(request('status') === 'feedback:'.$feedbackStatus->id)>{{ $feedbackStatus->display_name ?: $feedbackStatus->status_name }}</option>
                                 @endforeach
