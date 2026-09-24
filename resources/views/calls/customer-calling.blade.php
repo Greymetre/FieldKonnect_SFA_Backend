@@ -249,6 +249,7 @@
                 </button>
                 @if($canImportExport)
                     <button class="customer-calling-tool" id="openCustomerCallImport" type="button" title="Import Excel" aria-label="Import Excel"><span class="material-icons">cloud_upload</span></button>
+                    <a class="customer-calling-tool" href="{{ route('calls.template') }}" title="Download Import Template" aria-label="Download Import Template"><span class="material-icons">description</span></a>
                     <a class="customer-calling-tool" href="{{ route('calls.export') }}" title="Export Excel" aria-label="Export Excel"><span class="material-icons">cloud_download</span></a>
                 @endif
                 @if($canCreateCall)

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\CallManagementEntryExport;
+use App\Exports\CallManagementEntryTemplate;
 use App\Exports\CustomerCallHistoryExport;
 use App\Imports\CallManagementEntryImport;
 use App\Jobs\TranscribeCallRecording;
@@ -1353,5 +1354,12 @@ class CallManagementController extends Controller
         abort_if(Gate::denies('call_management_import_export'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         return Excel::download(new CallManagementEntryExport, 'call-management-entries.xlsx');
+    }
+
+    public function template()
+    {
+        abort_if(Gate::denies('call_management_import_export'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        return Excel::download(new CallManagementEntryTemplate, 'call-management-import-template.xlsx');
     }
 }

@@ -1402,6 +1402,7 @@ Route::post('ajax/user-cities-by-district', [TourController::class, 'ajaxUserCit
     Route::post('calls', [CallManagementController::class, 'store'])->name('calls.store');
     Route::post('calls/import', [CallManagementController::class, 'import'])->name('calls.import');
     Route::get('calls/export', [CallManagementController::class, 'export'])->name('calls.export');
+    Route::get('calls/template', [CallManagementController::class, 'template'])->name('calls.template');
     Route::put('calls/{callManagementEntry}', [CallManagementController::class, 'update'])->name('calls.update');
     Route::delete('calls/{callManagementEntry}', [CallManagementController::class, 'destroy'])->name('calls.destroy');
     Route::get('customer-calling', [CallManagementController::class, 'customerCalling'])->name('customer-calling.index');
