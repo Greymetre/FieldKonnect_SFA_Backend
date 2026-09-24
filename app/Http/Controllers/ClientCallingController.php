@@ -207,7 +207,7 @@ class ClientCallingController extends Controller
             'status_url' => route('client-calling.status', $call),
             'feedback_url' => route('client-calling.feedback', $call),
             'customer_name' => $entry->contact_person_name ?: $entry->firm_name,
-            'project_name' => $entry->project_name, 'project_id' => $entry->project_id,
+            'project_name' => $entry->project_name, 'caller_id' => $entry->caller_id,
             'parent_name' => $entry->parent_name, 'firm_name' => $entry->firm_name,
             'contact_person' => $entry->contact_person_name, 'mobile' => $entry->mobile_number,
             'customer_type' => $entry->customer_type, 'address' => $entry->address,

@@ -556,7 +556,7 @@
                         <h3 class="call-workspace-panel-title"><i class="material-icons">business</i> Customer &amp; Project Details</h3>
                         <div class="call-customer-details">
                             <div class="call-customer-detail"><span>Project Name</span><strong id="feedbackProjectName">—</strong></div>
-                            <div class="call-customer-detail"><span>Campaign ID</span><strong id="feedbackProjectId">—</strong></div>
+                            <div class="call-customer-detail"><span>Caller ID</span><strong id="feedbackCallerId">—</strong></div>
                             <div class="call-customer-detail"><span>Parent Name</span><input id="feedbackParentName" name="parent_name" maxlength="255"></div>
                             <div class="call-customer-detail"><span>Firm</span><strong id="feedbackFirmName">—</strong></div>
                             <div class="call-customer-detail"><span>Contact Person</span><strong id="feedbackContactPerson">—</strong></div>
@@ -1085,7 +1085,7 @@
                 setFeedbackText('endedCustomerName', call.customer_name);
                 setFeedbackText('endedCallDuration', formatDuration(duration));
                 setFeedbackText('feedbackProjectName', call.project_name);
-                setFeedbackText('feedbackProjectId', call.project_id);
+                setFeedbackText('feedbackCallerId', call.caller_id);
                 setFeedbackValue('feedbackParentName', call.parent_name);
                 setFeedbackText('feedbackFirmName', call.firm_name);
                 setFeedbackText('feedbackContactPerson', call.contact_person);

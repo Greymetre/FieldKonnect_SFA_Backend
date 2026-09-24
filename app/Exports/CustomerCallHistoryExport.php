@@ -23,7 +23,7 @@ class CustomerCallHistoryExport implements FromCollection, WithHeadings, WithMap
     public function headings(): array
     {
         return [
-            'Call ID', 'Project Name', 'Campaign ID', 'Parent Name', 'Firm Name',
+            'Call ID', 'Project Name', 'Caller ID', 'Parent Name', 'Firm Name',
             'Contact Person Name', 'Mobile Number', 'Customer Type',
             'Address', 'Pincode', 'City', 'District', 'State',
             'Point Column 1', 'Point Column 2', 'Point Column 3',
@@ -47,7 +47,7 @@ class CustomerCallHistoryExport implements FromCollection, WithHeadings, WithMap
         return [
             $callLog->public_id ?? $callLog->id,
             optional($entry)->project_name,
-            optional($entry)->project_id,
+            optional($entry)->caller_id,
             optional($entry)->parent_name,
             optional($entry)->firm_name,
             optional($entry)->contact_person_name,

@@ -43,12 +43,7 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChu
             try {
                 $data = $row->toArray();
                 $data['project_name'] = trim((string) ($data['project_name'] ?? '')) ?: null;
-                // "Campaign ID" is the current heading; "Project ID" keeps
-                // older exported files importable.
-                $data['project_id'] = $this->textFromExcel($this->firstExcelValue($data, [
-                    'campaign_id',
-                    'project_id',
-                ]));
+                $data['caller_id'] = strtoupper((string) $this->textFromExcel($data['caller_id'] ?? null));
                 $data['parent_name'] = trim((string) ($data['parent_name'] ?? '')) ?: null;
                 $data['mobile_number'] = $this->digitsFromExcel($data['mobile_number'] ?? null);
                 $data['pincode'] = $this->digitsFromExcel($data['pincode'] ?? null);
@@ -67,7 +62,6 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChu
 
                 $validator = Validator::make($data, [
                     'project_name' => ['nullable', 'string', 'max:255'],
-                    'project_id' => ['nullable', 'string', 'max:100'],
                     'parent_name' => ['nullable', 'string', 'max:255'],
                     'firm_name' => ['required', 'string', 'max:200'],
                     'contact_person_name' => ['required', 'string', 'max:200'],
@@ -90,13 +84,23 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChu
                     ]);
                 }
 
-                // An export may legitimately contain the same mobile for
-                // different firms/contacts. Match the complete lead identity
-                // so importing that export does not overwrite another row.
-                $entry = CallManagementEntry::where('mobile_number', $data['mobile_number'])
-                    ->where('firm_name', $data['firm_name'])
-                    ->where('contact_person_name', $data['contact_person_name'])
-                    ->first();
+                // Caller ID is system-generated: a filled Caller ID updates
+                // that entry, a blank one means a new entry.
+                if ($data['caller_id'] !== '') {
+                    $entry = CallManagementEntry::where('caller_id', $data['caller_id'])->first();
+
+                    if (! $entry) {
+                        throw ValidationException::withMessages(['import_file' => 'Row '.($index + 2).': Caller ID '.$data['caller_id'].' not found. Leave Caller ID blank to create a new entry.']);
+                    }
+                } else {
+                    // Without a Caller ID, fall back to the complete lead
+                    // identity (the same mobile may belong to different
+                    // firms/contacts) so a re-import does not duplicate rows.
+                    $entry = CallManagementEntry::where('mobile_number', $data['mobile_number'])
+                        ->where('firm_name', $data['firm_name'])
+                        ->where('contact_person_name', $data['contact_person_name'])
+                        ->first();
+                }
 
                 $pincode = Pincode::with(['cityname.districtname.statename', 'cityname.statename'])
                     ->where('active', 'Y')
@@ -134,7 +138,6 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChu
 
                 $values = [
                     'project_name' => $data['project_name'] ?? null,
-                    'project_id' => $data['project_id'] ?? null,
                     'parent_name' => $data['parent_name'] ?? null,
                     'firm_name' => $data['firm_name'],
                     'contact_person_name' => $data['contact_person_name'],

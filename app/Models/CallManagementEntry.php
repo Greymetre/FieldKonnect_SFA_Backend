@@ -15,6 +15,7 @@ class CallManagementEntry extends Model
     protected $fillable = [
         'project_name',
         'project_id',
+        'caller_id',
         'parent_name',
         'firm_name',
         'contact_person_name',
@@ -49,6 +50,20 @@ class CallManagementEntry extends Model
                 $entry->listing_order = ((int) static::max('listing_order')) + 1;
             }
         });
+
+        // Caller ID is derived from the primary key, so it can only be
+        // assigned once the row exists.
+        static::created(function (CallManagementEntry $entry) {
+            if (empty($entry->caller_id)) {
+                $entry->caller_id = static::callerIdFor($entry->id);
+                $entry->saveQuietly();
+            }
+        });
+    }
+
+    public static function callerIdFor(int $id): string
+    {
+        return 'CID'.str_pad((string) $id, 6, '0', STR_PAD_LEFT);
     }
 
     public function assignedUser()
