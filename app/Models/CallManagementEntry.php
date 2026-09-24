@@ -66,6 +66,18 @@ class CallManagementEntry extends Model
         return 'CID'.str_pad((string) $id, 6, '0', STR_PAD_LEFT);
     }
 
+    /**
+     * IDs of every entry for the same customer (mobile + firm), including this
+     * one. A re-import creates a fresh entry, so notes are shared across them.
+     */
+    public function sameCustomerEntryIds(): array
+    {
+        return static::where('mobile_number', $this->mobile_number)
+            ->where('firm_name', $this->firm_name)
+            ->pluck('id')
+            ->all();
+    }
+
     public function assignedUser()
     {
         return $this->belongsTo(User::class, 'assigned_user_id');

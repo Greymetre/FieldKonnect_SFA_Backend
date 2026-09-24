@@ -85,21 +85,15 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChu
                 }
 
                 // Caller ID is system-generated: a filled Caller ID updates
-                // that entry, a blank one means a new entry.
+                // that entry, a blank one always creates a fresh assigned call
+                // (earlier notes for the same mobile + firm stay visible on it).
+                $entry = null;
                 if ($data['caller_id'] !== '') {
                     $entry = CallManagementEntry::where('caller_id', $data['caller_id'])->first();
 
                     if (! $entry) {
                         throw ValidationException::withMessages(['import_file' => 'Row '.($index + 2).': Caller ID '.$data['caller_id'].' not found. Leave Caller ID blank to create a new entry.']);
                     }
-                } else {
-                    // Without a Caller ID, fall back to the complete lead
-                    // identity (the same mobile may belong to different
-                    // firms/contacts) so a re-import does not duplicate rows.
-                    $entry = CallManagementEntry::where('mobile_number', $data['mobile_number'])
-                        ->where('firm_name', $data['firm_name'])
-                        ->where('contact_person_name', $data['contact_person_name'])
-                        ->first();
                 }
 
                 $pincode = Pincode::with(['cityname.districtname.statename', 'cityname.statename'])
@@ -155,11 +149,14 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChu
                     'custom_column_2' => $data['custom_column_2'] ?? null,
                     'custom_column_3' => $data['custom_column_3'] ?? null,
                     'custom_column_4' => $data['custom_column_4'] ?? null,
-                    // Reassigning a completed call (e.g. transferring an agent's
-                    // calls to another agent) must not reopen it in the queue.
-                    'status' => $entry && $entry->status === 'completed'
-                        ? 'completed'
-                        : $this->importedEntryStatus($data['status'] ?? null),
+                    // A new entry is always a fresh assigned call. Reassigning a
+                    // completed call (e.g. transferring an agent's calls to
+                    // another agent) must not reopen it in the queue.
+                    'status' => ! $entry
+                        ? 'assigned'
+                        : ($entry->status === 'completed'
+                            ? 'completed'
+                            : $this->importedEntryStatus($data['status'] ?? null)),
                     'listing_order' => $this->nextListingOrder--,
                 ];
 

@@ -237,7 +237,6 @@ class CallManagementController extends Controller
             ->with([
                 'assignedUser:id,name',
                 'latestCallLog.feedbackStatus:id,status_name,display_name',
-                'latestNotedCallLog',
             ])
             ->withCount(['callLogs as feedback_call_count' => function ($callLogQuery) {
                 $callLogQuery->whereNotNull('feedback_status_id');
@@ -311,6 +310,7 @@ class CallManagementController extends Controller
             ->orderByDesc('call_management_entries.id')
             ->paginate(10)
             ->withQueryString();
+        $this->loadSameCustomerLatestNotes($entries->getCollection());
         $feedbackStatuses->each(function (Status $status) {
             $status->setAttribute('is_follow_up', $this->isFollowUpFeedback($status));
         });
@@ -675,7 +675,7 @@ class CallManagementController extends Controller
             $previousNotes = collect();
             try {
                 $previousNotes = CallLog::with('feedbackStatus:id,status_name,display_name')
-                    ->where('call_management_entry_id', $callManagementEntry->id)
+                    ->whereIn('call_management_entry_id', $callManagementEntry->sameCustomerEntryIds())
                     ->where('id', '!=', $callLog->id)
                     ->whereNotNull('remark')
                     ->where('remark', '!=', '')
@@ -903,7 +903,7 @@ class CallManagementController extends Controller
         );
 
         $notes = CallLog::with('feedbackStatus:id,status_name,display_name')
-            ->where('call_management_entry_id', $callManagementEntry->id)
+            ->whereIn('call_management_entry_id', $callManagementEntry->sameCustomerEntryIds())
             ->whereNotNull('remark')
             ->where('remark', '!=', '')
             ->latest('started_at')
@@ -1129,10 +1129,37 @@ class CallManagementController extends Controller
         return $user->plivo_endpoint_username;
     }
 
+    /**
+     * Show each entry's latest note from any entry of the same customer
+     * (mobile + firm), so a freshly imported call keeps earlier notes.
+     */
+    private function loadSameCustomerLatestNotes($entries): void
+    {
+        if ($entries->isEmpty()) {
+            return;
+        }
+
+        $latestNotes = CallLog::query()
+            ->select('call_logs.*', 'call_management_entries.mobile_number as entry_mobile', 'call_management_entries.firm_name as entry_firm')
+            ->join('call_management_entries', 'call_management_entries.id', '=', 'call_logs.call_management_entry_id')
+            ->whereIn('call_management_entries.mobile_number', $entries->pluck('mobile_number')->unique()->values())
+            ->whereNotNull('call_logs.remark')
+            ->where('call_logs.remark', '!=', '')
+            ->orderByDesc('call_logs.started_at')
+            ->orderByDesc('call_logs.id')
+            ->get()
+            ->unique(fn (CallLog $callLog) => $callLog->entry_mobile.'|'.$callLog->entry_firm)
+            ->keyBy(fn (CallLog $callLog) => $callLog->entry_mobile.'|'.$callLog->entry_firm);
+
+        $entries->each(function (CallManagementEntry $entry) use ($latestNotes) {
+            $entry->setRelation('latestNotedCallLog', $latestNotes->get($entry->mobile_number.'|'.$entry->firm_name));
+        });
+    }
+
     private function customerCallData(CallManagementEntry $entry, CallLog $callLog, User $user): array
     {
         $previousNotes = CallLog::with('feedbackStatus:id,status_name,display_name')
-            ->where('call_management_entry_id', $entry->id)
+            ->whereIn('call_management_entry_id', $entry->sameCustomerEntryIds())
             ->where('id', '!=', $callLog->id)
             ->whereNotNull('remark')
             ->where('remark', '!=', '')
