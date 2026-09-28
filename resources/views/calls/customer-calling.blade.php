@@ -693,14 +693,25 @@
 
             feedbackStatus.addEventListener('change', updateFollowUpDateVisibility);
 
-            changeFeedbackPincode.addEventListener('click', function () {
+            function showFeedbackPincodeEditor(openPicker) {
                 feedbackPincodeRead.hidden = true;
                 feedbackPincodeEditor.hidden = false;
+                if (!openPicker) return;
                 if (window.jQuery && jQuery.fn.select2) {
                     jQuery(feedbackPincode).select2('open');
                 } else {
                     feedbackPincode.focus();
                 }
+            }
+
+            changeFeedbackPincode.addEventListener('click', function () {
+                showFeedbackPincodeEditor(true);
+            });
+
+            feedbackPincode.addEventListener('invalid', function () {
+                showFeedbackPincodeEditor(true);
+                feedbackError.textContent = 'Please select a pincode before saving the call record.';
+                feedbackError.style.display = 'block';
             });
 
             feedbackPincode.addEventListener('change', async function () {
@@ -1119,6 +1130,9 @@
                 if (window.jQuery && jQuery.fn.select2) {
                     jQuery(feedbackPincode).val(String(popupPincodeId)).trigger('change.select2');
                 }
+                // Manual calls have no pincode yet; show the picker so the
+                // required field is visible instead of silently blocking submit.
+                if (!popupPincodeId) showFeedbackPincodeEditor(false);
                 setFeedbackValue('feedbackCity', call.city);
                 setFeedbackValue('feedbackDistrict', call.district);
                 setFeedbackValue('feedbackState', call.state);
@@ -1472,8 +1486,11 @@
                         headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token },
                         body: JSON.stringify(Object.fromEntries(new FormData(feedbackForm).entries()))
                     });
-                    const result = await response.json();
-                    if (!response.ok || !result.success) throw new Error(result.message || 'Unable to save call record.');
+                    const result = await readJsonResponse(response, 'Unable to save call record.');
+                    if (!response.ok || !result.success) {
+                        const validationMessage = result.errors ? Object.values(result.errors).flat()[0] : null;
+                        throw new Error(validationMessage || result.message || 'Unable to save call record.');
+                    }
                     setFeedbackModalOpen(false);
                     showMessage(result.message, false);
 
