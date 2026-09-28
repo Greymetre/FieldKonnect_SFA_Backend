@@ -568,7 +568,7 @@
                             <div class="call-customer-detail">
                                 <span>Pincode</span>
                                 <div class="call-pincode-read" id="feedbackPincodeRead"><strong id="feedbackPincodeText">—</strong><button class="call-pincode-change" id="changeFeedbackPincode" type="button">Change</button></div>
-                                <div class="call-pincode-editor" id="feedbackPincodeEditor" hidden><select id="feedbackPincode" name="pincode_id" required><option value="">Select pincode</option>@foreach($pincodes as $pincode)<option value="{{ $pincode->id }}">{{ $pincode->pincode }}</option>@endforeach</select></div>
+                                <div class="call-pincode-editor" id="feedbackPincodeEditor" hidden><select id="feedbackPincode" name="pincode_id"><option value="">Select pincode</option>@foreach($pincodes as $pincode)<option value="{{ $pincode->id }}">{{ $pincode->pincode }}</option>@endforeach</select></div>
                             </div>
                             <div class="call-customer-detail"><span>City</span><input id="feedbackCity" name="city" maxlength="150"></div>
                             <div class="call-customer-detail"><span>District</span><input id="feedbackDistrict" name="district" maxlength="150"></div>
@@ -708,11 +708,6 @@
                 showFeedbackPincodeEditor(true);
             });
 
-            feedbackPincode.addEventListener('invalid', function () {
-                showFeedbackPincodeEditor(true);
-                feedbackError.textContent = 'Please select a pincode before saving the call record.';
-                feedbackError.style.display = 'block';
-            });
 
             feedbackPincode.addEventListener('change', async function () {
                 if (!feedbackPincode.value) {
@@ -1131,7 +1126,7 @@
                     jQuery(feedbackPincode).val(String(popupPincodeId)).trigger('change.select2');
                 }
                 // Manual calls have no pincode yet; show the picker so the
-                // required field is visible instead of silently blocking submit.
+                // agent can optionally fill it in.
                 if (!popupPincodeId) showFeedbackPincodeEditor(false);
                 setFeedbackValue('feedbackCity', call.city);
                 setFeedbackValue('feedbackDistrict', call.district);

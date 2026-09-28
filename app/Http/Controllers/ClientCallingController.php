@@ -90,7 +90,7 @@ class ClientCallingController extends Controller
             'follow_up_date' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:today'],
             'parent_name' => ['nullable', 'string', 'max:255'],
             'address' => ['nullable', 'string', 'max:1000'],
-            'pincode_id' => ['required', 'string', 'max:20'],
+            'pincode_id' => ['nullable', 'string', 'max:20'],
             'city' => ['nullable', 'string', 'max:150'],
             'district' => ['nullable', 'string', 'max:150'],
             'state' => ['nullable', 'string', 'max:150'],
@@ -102,9 +102,14 @@ class ClientCallingController extends Controller
         if ($isFollowUp && empty($validated['follow_up_date'])) {
             throw ValidationException::withMessages(['follow_up_date' => 'Please select a follow-up date.']);
         }
-        $pincode = Pincode::where('active', 'Y')->where('pincode', trim($validated['pincode_id']))->first();
-        if (! $pincode && ctype_digit((string) $validated['pincode_id'])) $pincode = Pincode::where('active', 'Y')->find((int) $validated['pincode_id']);
-        if (! $pincode) throw ValidationException::withMessages(['pincode_id' => 'Please select a valid pincode.']);
+        // Pincode is optional so manual calls without customer details can be saved.
+        $pincode = null;
+        $pincodeInput = trim((string) ($validated['pincode_id'] ?? ''));
+        if ($pincodeInput !== '') {
+            $pincode = Pincode::where('active', 'Y')->where('pincode', $pincodeInput)->first();
+            if (! $pincode && ctype_digit($pincodeInput)) $pincode = Pincode::where('active', 'Y')->find((int) $pincodeInput);
+            if (! $pincode) throw ValidationException::withMessages(['pincode_id' => 'Please select a valid pincode.']);
+        }
 
         DB::transaction(function () use ($clientCallLog, $validated, $status, $pincode, $feedbackOutcome, $isFollowUp) {
             // Feedback is submitted from the post-call workspace. Treat it as a
@@ -120,10 +125,13 @@ class ClientCallingController extends Controller
                 'follow_up_date' => $isFollowUp ? $validated['follow_up_date'] : null,
                 'parent_name' => $validated['parent_name'] ?? null,
                 'address' => $validated['address'] ?? null,
-                'pincode_id' => $pincode->id, 'pincode' => $pincode->pincode,
                 'city' => $validated['city'] ?? null, 'district' => $validated['district'] ?? null,
                 'state' => $validated['state'] ?? null,
             ];
+            if ($pincode) {
+                $entryUpdates['pincode_id'] = $pincode->id;
+                $entryUpdates['pincode'] = $pincode->pincode;
+            }
             if ($feedbackOutcome) $entryUpdates['status'] = $feedbackOutcome;
             CallManagementEntry::whereKey($clientCallLog->call_management_entry_id)->update($entryUpdates);
         });
