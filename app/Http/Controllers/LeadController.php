@@ -636,7 +636,7 @@ class LeadController extends Controller
                 'model_type' => 'App\Models\Lead',
                 'model_id' => $lead->id,
                 'address1' => $request->address ?? 'N/A',
-                'address2' => $request->place,
+                'address2' => $request->place ?? '',
                 'country_id' => 1,
                 'pincode_id' => $request->pincode_id ?? null,
                 'state_id' => $request->state_id ?? null,
@@ -868,7 +868,7 @@ class LeadController extends Controller
         ]);
         Address::where('model_type', 'App\Models\Lead')->where('model_id', $lead->id)->update([
             'address1' => $request->address ?? 'N/A',
-            'address2' => $request->place,
+            'address2' => $request->place ?? '',
             'country_id' => 1,
             'pincode_id' => $request->pincode_id ?? null,
             'state_id' => $request->state_id ?? null,

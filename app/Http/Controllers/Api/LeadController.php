@@ -315,7 +315,7 @@ class LeadController extends Controller
                 'state_id' => $request->state_id ?? null,
                 'city_id' => $request->city_id ?? null,
                 'district_id' => $request->district_id ?? null,
-            ] + ($request->has('place') ? ['address2' => $request->place] : []));
+            ] + ($request->has('place') ? ['address2' => $request->place ?? ''] : []));
 
             $firstContact = LeadContact::where('lead_id', $lead->id)->first();
             if ($firstContact) {
@@ -377,7 +377,7 @@ class LeadController extends Controller
                     'model_type' => 'App\Models\Lead',
                     'model_id' => $lead->id,
                     'address1' => $request->address ?? 'N/A',
-                    'address2' => $request->place,
+                    'address2' => $request->place ?? '',
                     'country_id' => 1,
                     'pincode_id' => $request->pincode_id ?? null,
                     'state_id' => $request->state_id ?? null,
