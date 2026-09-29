@@ -42,7 +42,33 @@ class LeadContactsController extends Controller
                 ->pluck('id');
             $lead_contacts->whereIn('lead_id', $lead_ids);
         }
+        if ($request->filled('search_text')) {
+            $search = $request->search_text;
+            $lead_contacts->where(function ($query) use ($search) {
+                $query->where('name', 'like', "%{$search}%")
+                    ->orWhere('phone_number', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+        if ($request->filled('company_name')) {
+            $company_name = $request->company_name;
+            $lead_contacts->whereHas('lead', function ($query) use ($company_name) {
+                $query->where('company_name', 'like', "%{$company_name}%");
+            });
+        }
+        if ($request->filled('title')) {
+            $lead_contacts->where('title', 'like', '%' . $request->title . '%');
+        }
+        if ($request->filled('start_date')) {
+            $lead_contacts->whereDate('created_at', '>=', $request->start_date);
+        }
+        if ($request->filled('end_date')) {
+            $lead_contacts->whereDate('created_at', '<=', $request->end_date);
+        }
         $lead_contacts = $lead_contacts->select(\DB::raw(with(new LeadContact)->getTable().'.*'))->groupBy('id');
+        if (empty($request->input('order'))) {
+            $lead_contacts->orderBy('id', 'desc');
+        }
         return DataTables::of($lead_contacts)
             ->editColumn('lead.company_name', function ($lead_contact) {
                     return $lead_contact->lead->company_name??'';

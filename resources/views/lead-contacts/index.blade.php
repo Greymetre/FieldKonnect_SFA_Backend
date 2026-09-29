@@ -20,7 +20,7 @@
 
                 <div class="both_btn">
 
-                <div class="well mb-3 float-right" id="checkbox_option" style="display: none;" >
+                <div class="well mb-3 float-right fk-preserve-list-action" id="checkbox_option" style="display: none;" >
                 {!! Form::open(['method' => 'POST','route' => ['lead-contacts.checkboxAction'], 'class' => 'form-inline', 'id' => 'frmAction']) !!}
                 <div class="form-group mr-sm-2 mb-2">
                         <input type="hidden" name="lead_ids"  id="lead_ids">                
@@ -100,50 +100,27 @@
           </div>
           @endif
 
-          <!--new div--->
-
-            <div class="well">
-            <div class="dd">
-            <div class="sort_btn">
-              <div class="btn-group">
-                <button class="btn sort_btns  dropdown-toggle" 
-                        type="button" 
-                        id="dropdownMenuButton" 
-                        data-toggle="dropdown" 
-                        aria-haspopup="true" 
-                        aria-expanded="false">
-                 <img src="https://expertfromindia.in/bediya/public/assets/img/sort.png">  Sort
-                </button>
-                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                  <a class="dropdown-item" href="#"> Range</a>
-                  <a class="dropdown-item" href="#"> limit</a>
-                 
+          <div class="well">
+            <div class="collapse" id="filterSection">
+              <div class="d-flex flex-wrap flex-row">
+                <div class="p-2" style="width:220px;">
+                  <input type="text" class="form-control contact-filter" name="search_text" id="search_text" placeholder="Name / Phone / Email" title="Name / Phone / Email">
+                </div>
+                <div class="p-2" style="width:200px;">
+                  <input type="text" class="form-control contact-filter" name="company_name" id="filter_company_name" placeholder="Company Name" title="Company Name">
+                </div>
+                <div class="p-2" style="width:180px;">
+                  <input type="text" class="form-control contact-filter" name="title" id="filter_title" placeholder="Title" title="Title">
+                </div>
+                <div class="p-2" style="width:180px;">
+                  <input type="date" class="form-control contact-filter" name="start_date" id="start_date" title="From Date">
+                </div>
+                <div class="p-2" style="width:180px;">
+                  <input type="date" class="form-control contact-filter" name="end_date" id="end_date" title="To Date">
                 </div>
               </div>
             </div>
-           
           </div>
-
-            <div class="sort_btn">
-              <div class="btn-group">
-                <button class="btn sort_btns filter_btn  dropdown-toggle" 
-                        type="button" 
-                        id="dropdownMenuButton" 
-                        data-toggle="dropdown" 
-                        aria-haspopup="true" 
-                        aria-expanded="false">
-                 <img src="https://expertfromindia.in/bediya/public/assets/img/filter_ss.png">  Filter
-                </button>
-                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                  <a class="dropdown-item" href="#"> id</a>
-                  <a class="dropdown-item" href="#">range </a>
-                  <a class="dropdown-item" href="#">class </a>
-                </div>
-              </div>
-            </div>
-            </div>
-
-          <!--end div--->
 
           <div class="alert " style="display: none;">
             <button type="button" class="close" data-dismiss="alert" aria-label="Close">
@@ -263,6 +240,14 @@ $('#company_name, #contact_name').on('keyup', function () {
  
 
 
+var contactFilterTimer;
+jQuery(document).on('change keyup', '.contact-filter', function () {
+    clearTimeout(contactFilterTimer);
+    contactFilterTimer = setTimeout(function () {
+        jQuery('#getLeadContacts').DataTable().draw();
+    }, 400);
+});
+
 function getLeadContacts(){
     jQuery('#getLeadContacts').dataTable().fnDestroy();
     jQuery('#getLeadContacts tbody').empty();
@@ -272,17 +257,24 @@ function getLeadContacts(){
         searching: false,
         ajax: {
             url: "{{ route('lead-contacts.getLeadContacts') }}",
-            method: 'POST'
+            method: 'POST',
+            data: function (d) {
+                d.search_text = jQuery('#search_text').val();
+                d.company_name = jQuery('#filter_company_name').val();
+                d.title = jQuery('#filter_title').val();
+                d.start_date = jQuery('#start_date').val();
+                d.end_date = jQuery('#end_date').val();
+            }
         },
         columns: [
-            {data: 'checkbox', name: 'checkbox'},
+            {data: 'checkbox', name: 'checkbox', orderable: false, searchable: false},
             {data: 'name', name: 'name'},
             {data: 'title', name: 'title'},
             {data: 'phone_number', name: 'phone_number'},
             {data: 'email', name: 'email'},
             {data: 'lead.company_name', name: 'lead.company_name'}
         ],
-        order: [[0, 'desc']],
+        order: [],
         dom: 't<"bottom"lip>',
     });
 }
