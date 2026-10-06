@@ -5,9 +5,16 @@
         .customer-calling-breadcrumb { margin-bottom: 8px; color: #7185bd; font-size: 11px; font-weight: 800; letter-spacing: .22em; text-transform: uppercase; }
         .customer-calling-breadcrumb span { margin-left: 8px; color: #35ccef; }
         .customer-calling-heading { display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:18px; }
-        .customer-calling-heading-main { display:flex;align-items:center;gap:12px; }
+        .customer-calling-heading-main { display:flex;align-items:center;gap:12px;flex-wrap:wrap; }
         .customer-calling-title { margin: 0; color: #f7f9ff; font-size: 26px; font-weight: 800;line-height:1.15; }
         .customer-calling-count { display: inline-flex; align-items: center; min-height: 31px; padding: 0 16px; border: 1px solid rgba(34, 211, 238, .48); border-radius: 999px; background: rgba(34, 211, 238, .08); color: #28d7f4; font-size: 13px; font-weight: 800; }
+        .customer-calling-summary { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .customer-calling-summary > span { display: inline-flex; align-items: center; gap: 6px; min-height: 31px; padding: 0 14px; border: 1px solid rgba(148, 170, 220, .32); border-radius: 999px; background: rgba(148, 170, 220, .06); color: #b9c8e9; font-size: 13px; font-weight: 700; }
+        .customer-calling-summary strong { color: #fff; font-weight: 800; }
+        .customer-calling-summary .is-completed { border-color: rgba(52, 211, 153, .45); background: rgba(52, 211, 153, .08); color: #34d399; }
+        .customer-calling-summary .is-completed strong { color: #6ee7b7; }
+        .customer-calling-summary .is-pending { border-color: rgba(251, 191, 36, .45); background: rgba(251, 191, 36, .08); color: #fbbf24; }
+        .customer-calling-summary .is-pending strong { color: #fcd34d; }
         .customer-calling-filter-trigger { display:inline-flex;align-items:center;justify-content:center;gap:9px;min-width:148px;height:44px;padding:0 20px;border:1px solid rgba(85,126,218,.38);border-radius:12px;background:rgba(7,20,49,.62);color:#c7d5f5;font-size:14px;font-weight:700; }
         .customer-calling-filter-trigger .material-icons { font-size:20px; }
         .customer-calling-filter-trigger.is-active::after { content:'';width:7px;height:7px;border-radius:50%;background:#2dd4ee;box-shadow:0 0 10px rgba(45,212,238,.8); }
@@ -241,6 +248,11 @@
             <div class="customer-calling-heading-main">
                 <h1 class="customer-calling-title">{{ $selectedCallingType === 'client_calling' ? 'Client Calling' : 'Customer Calling' }}</h1>
                 <span class="customer-calling-count">{{ $totalRecords }} {{ $totalRecords === 1 ? 'record' : 'records' }}</span>
+                <span class="customer-calling-summary" title="All calls in this queue, regardless of list filters">
+                    <span>Total <strong>{{ (int) $callSummary->total }}</strong></span>
+                    <span class="is-completed">Completed <strong>{{ (int) $callSummary->completed }}</strong></span>
+                    <span class="is-pending">Pending <strong>{{ (int) $callSummary->pending }}</strong></span>
+                </span>
             </div>
             <div class="customer-calling-heading-actions">
                 <button class="customer-calling-manual" id="openManualCall" type="button">

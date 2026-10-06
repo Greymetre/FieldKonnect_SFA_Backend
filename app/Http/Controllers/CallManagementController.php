@@ -250,6 +250,20 @@ class CallManagementController extends Controller
             $query->where('call_management_entries.assigned_user_id', $request->integer('agent_id'));
         }
 
+        // Overall progress for the selected calling type and agent scope,
+        // independent of the status/search/date filters applied to the list.
+        $callSummary = CallManagementEntry::query()
+            ->where('calling_type', $selectedCallingType)
+            ->when(! $canViewAllAgents, fn ($summaryQuery) => $summaryQuery->where('assigned_user_id', auth()->id()))
+            ->when(
+                $canViewAllAgents && $request->filled('agent_id') && $filterAgents->contains('id', $request->integer('agent_id')),
+                fn ($summaryQuery) => $summaryQuery->where('assigned_user_id', $request->integer('agent_id'))
+            )
+            ->selectRaw('COUNT(*) as total')
+            ->selectRaw("SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed")
+            ->selectRaw("SUM(CASE WHEN status = 'assigned' THEN 1 ELSE 0 END) as pending")
+            ->first();
+
         if ($search = trim((string) $request->input('search'))) {
             $query->where(function ($searchQuery) use ($search) {
                 $searchQuery->where('call_management_entries.firm_name', 'like', '%'.$search.'%')
@@ -349,7 +363,8 @@ class CallManagementController extends Controller
             'callers',
             'pincodes',
             'selectedCallingType',
-            'callCountStatusIds'
+            'callCountStatusIds',
+            'callSummary'
         ));
     }
 
