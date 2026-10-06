@@ -904,10 +904,10 @@
                             document.getElementById('createCallingType').value = row.dataset.callingType || 'customer_calling';
                             document.getElementById('createAddress').value = row.dataset.address || '';
                             document.getElementById('createCaller').value = row.dataset.callerId || '';
-                            document.getElementById('createCustomColumn1').value = row.dataset.customColumn1 || '';
-                            document.getElementById('createCustomColumn2').value = row.dataset.customColumn2 || '';
-                            document.getElementById('createCustomColumn3').value = row.dataset.customColumn3 || '';
-                            document.getElementById('createCustomColumn4').value = row.dataset.customColumn4 || '';
+                            document.getElementById('createCustomColumn1').value = row.getAttribute('data-custom-column-1') || '';
+                            document.getElementById('createCustomColumn2').value = row.getAttribute('data-custom-column-2') || '';
+                            document.getElementById('createCustomColumn3').value = row.getAttribute('data-custom-column-3') || '';
+                            document.getElementById('createCustomColumn4').value = row.getAttribute('data-custom-column-4') || '';
                             let selectedPincode = Array.from(createPincode.options).find(function (option) { return option.value === (row.dataset.pincodeId || ''); });
                             if (!selectedPincode && row.dataset.pincodeId) {
                                 selectedPincode = new Option(row.dataset.pincode || '', row.dataset.pincodeId, true, true);
