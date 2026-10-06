@@ -50,14 +50,9 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChu
                 $data['caller_email'] = trim((string) ($data['caller_email'] ?? ''));
                 $data['caller_name'] = trim((string) ($data['caller_name'] ?? ''));
                 $data['calling_type'] = $this->callingType($data, $index + 2);
+                $customColumns = $this->customColumnValues($data);
                 foreach ([1, 2, 3, 4] as $columnNumber) {
-                    $customColumn = 'custom_column_'.$columnNumber;
-                    $data[$customColumn] = $this->textFromExcel($this->firstExcelValue($data, [
-                        'point_column_'.$columnNumber,
-                        $customColumn,
-                        'column_'.$columnNumber,
-                        'point_'.$columnNumber,
-                    ]));
+                    $data['custom_column_'.$columnNumber] = $this->textFromExcel($customColumns[$columnNumber] ?? null);
                 }
 
                 $validator = Validator::make($data, [
@@ -246,15 +241,39 @@ class CallManagementEntryImport implements ToCollection, WithHeadingRow, WithChu
         return null;
     }
 
-    private function firstExcelValue(array $data, array $keys)
+    // Point Column 1-4 headings are matched loosely ("Point Column 1",
+    // "Point Column1", "Column 1", "Custom Column 1", "Point 1"). Headings the
+    // import does not otherwise know (e.g. a Point Column renamed to a real
+    // label) fill the remaining point columns in sheet order.
+    private function customColumnValues(array $data): array
     {
-        foreach ($keys as $key) {
-            if (array_key_exists($key, $data) && $data[$key] !== null && $data[$key] !== '') {
-                return $data[$key];
+        $knownKeys = [
+            'projectname', 'callerid', 'parentname', 'firmname', 'contactpersonname',
+            'mobilenumber', 'customertype', 'address', 'pincode', 'city', 'district',
+            'state', 'calleremail', 'callername', 'status', 'customercalling',
+            'clientcalling', 'agentcallstatus', 'callingtype',
+        ];
+        $values = [];
+        $unknownColumns = [];
+
+        foreach ($data as $key => $value) {
+            $normalized = preg_replace('/[^a-z0-9]+/', '', strtolower((string) $key));
+
+            if (preg_match('/^(?:point|custom)?(?:column|col)?([1-4])$/', $normalized, $match)
+                && $normalized !== $match[1]) {
+                $values[(int) $match[1]] = $value;
+            } elseif ($normalized !== '' && ! is_numeric($normalized) && ! in_array($normalized, $knownKeys, true)) {
+                $unknownColumns[] = $value;
             }
         }
 
-        return null;
+        foreach ([1, 2, 3, 4] as $columnNumber) {
+            if (! array_key_exists($columnNumber, $values) && $unknownColumns) {
+                $values[$columnNumber] = array_shift($unknownColumns);
+            }
+        }
+
+        return $values;
     }
 
     public function updatedCount(): int

@@ -123,6 +123,8 @@
         .customer-call-count.is-low { border:1px solid rgba(34,197,94,.45);background:rgba(34,197,94,.14);color:#4ade80; }
         .customer-call-count.is-high { border:1px solid rgba(239,68,68,.5);background:rgba(239,68,68,.16);color:#f87171; }
         .customer-note-cell { min-width:190px;max-width:260px; }
+        .customer-point-cell { min-width:140px;max-width:220px;white-space:normal; }
+        .customer-point-cell small { opacity:.65; }
         .customer-note-preview { display:block;overflow:hidden;color:#adbee6;line-height:1.45;text-overflow:ellipsis;white-space:nowrap; }
         .customer-note-view { margin-top:4px;padding:0;border:0;background:transparent;color:#35d2ed;font-size:11px;font-weight:800; }
         .customer-calling-empty { padding: 38px 20px !important; color: #7d8fbd !important; text-align: center; }
@@ -274,7 +276,7 @@
             </div>
             <div class="customer-calling-scroll">
                 <table class="customer-calling-table">
-                    <thead><tr><th>Call</th><th>Firm Name</th><th>Contact Person</th><th>Mobile</th><th>Customer Type</th><th>Calling Type</th><th>City</th><th>State</th><th>Status</th><th>Follow-up Date</th><th>Latest Note</th>@if($canViewAllAgents)<th>Assigned To</th>@endif</tr></thead>
+                    <thead><tr><th>Call</th><th>Firm Name</th><th>Contact Person</th><th>Mobile</th><th>Customer Type</th><th>Calling Type</th><th>City</th><th>State</th><th>Status</th><th>Follow-up Date</th><th>Point Columns</th><th>Latest Note</th>@if($canViewAllAgents)<th>Assigned To</th>@endif</tr></thead>
                     <tbody>
                         @forelse($entries as $entry)
                             <tr data-entry-id="{{ $entry->id }}" data-update-url="{{ route('calls.update', $entry) }}" data-firm="{{ $entry->firm_name }}" data-contact="{{ $entry->contact_person_name }}" data-mobile="{{ $entry->mobile_number }}" data-customer-type="{{ $entry->customer_type }}" data-calling-type="{{ $entry->calling_type }}" data-address="{{ $entry->address }}" data-pincode-id="{{ $entry->pincode_id }}" data-pincode="{{ $entry->pincode }}" data-city="{{ $entry->city }}" data-district="{{ $entry->district }}" data-state="{{ $entry->state }}" data-caller-id="{{ $entry->assigned_user_id }}" data-custom-column-1="{{ $entry->custom_column_1 }}" data-custom-column-2="{{ $entry->custom_column_2 }}" data-custom-column-3="{{ $entry->custom_column_3 }}" data-custom-column-4="{{ $entry->custom_column_4 }}">
@@ -306,6 +308,14 @@
                                     @endif
                                 </td>
                                 <td>{{ $entry->follow_up_date ? $entry->follow_up_date->format('d M Y') : '—' }}</td>
+                                <td class="customer-point-cell">
+                                    @php($pointColumns = collect([1, 2, 3, 4])->mapWithKeys(fn ($n) => [$n => $entry->{"custom_column_$n"}])->filter(fn ($value) => filled($value)))
+                                    @forelse($pointColumns as $n => $value)
+                                        <div><small>P{{ $n }}:</small> {{ $value }}</div>
+                                    @empty
+                                        —
+                                    @endforelse
+                                </td>
                                 <td class="customer-note-cell">
                                     @if(optional($entry->latestNotedCallLog)->remark)
                                         <span class="customer-note-preview">{{ $entry->latestNotedCallLog->remark }}</span>
@@ -317,7 +327,7 @@
                                 @if($canViewAllAgents)<td>{{ optional($entry->assignedUser)->name ?: '—' }}</td>@endif
                             </tr>
                         @empty
-                            <tr><td class="customer-calling-empty" colspan="{{ $canViewAllAgents ? 12 : 11 }}">No matching assigned calls found.</td></tr>
+                            <tr><td class="customer-calling-empty" colspan="{{ $canViewAllAgents ? 13 : 12 }}">No matching assigned calls found.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
