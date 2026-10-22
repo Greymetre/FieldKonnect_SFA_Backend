@@ -42,7 +42,55 @@
         .call-dashboard-agent-track { height:7px;background:rgba(26,62,123,.62); }
         .call-dashboard-agent-bar { box-shadow:0 0 10px rgba(45,212,238,.2); }
         .call-dashboard-trend { margin-top:0; }
-        .call-dashboard-trend .call-dashboard-panel-body { height:260px;padding:12px 18px 14px; }
+        .call-dashboard-trend-head { display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:13px 17px;border-bottom:1px solid rgba(85,126,218,.2); }
+        .call-dashboard-trend-head h2 { padding:0;border:0; }
+        .call-dashboard-trend-legend { display:flex;align-items:center;gap:14px;color:#8295c5;font-size:11px;font-weight:700; }
+        .call-dashboard-trend-legend span { display:inline-flex;align-items:center;gap:6px; }
+        .call-dashboard-trend-legend i { width:8px;height:8px;border-radius:50%;background:#2dd4ee; }
+        .call-dashboard-trend-legend i.talk { background:#a78bfa; }
+        .call-dashboard-trend-legend em { color:#5f73a6;font-style:normal;font-weight:600; }
+        .call-dashboard-trend .call-dashboard-panel-body { position:relative;height:300px;padding:10px 12px 8px; }
+        .call-dashboard-trend-scroll { height:100%;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:rgba(45,212,238,.35) transparent; }
+        .call-dashboard-trend-scroll::-webkit-scrollbar { height:6px; }
+        .call-dashboard-trend-scroll::-webkit-scrollbar-thumb { background:rgba(45,212,238,.35);border-radius:6px; }
+        .call-dashboard-trend-scroll .call-dashboard-chart { display:block;height:calc(100% - 8px);cursor:pointer; }
+        .call-dashboard-trend-tip { position:absolute;z-index:5;width:240px;padding:12px 13px;border:1px solid rgba(45,212,238,.35);border-radius:12px;background:rgba(6,20,52,.97);box-shadow:0 14px 34px rgba(0,0,0,.4);pointer-events:none;opacity:0;transition:opacity .12s; }
+        .call-dashboard-trend-tip.is-visible { opacity:1; }
+        .call-dashboard-trend-tip h4 { margin:0 0 8px;color:#f7f9ff;font-size:13px;font-weight:800; }
+        .call-dashboard-tip-stats { display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:9px; }
+        .call-dashboard-tip-stats div { padding:6px 7px;border-radius:8px;background:rgba(26,62,123,.45); }
+        .call-dashboard-tip-stats small { display:block;color:#7f92c1;font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase; }
+        .call-dashboard-tip-stats b { color:#eef3ff;font-size:13px; }
+        .call-dashboard-tip-stats b.talk { color:#c4b5fd; }
+        .call-dashboard-tip-agent { display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-top:1px solid rgba(85,126,218,.15);color:#aebee4;font-size:12px; }
+        .call-dashboard-tip-agent span { overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+        .call-dashboard-tip-agent b { flex:none;color:#eef3ff; }
+        .call-dashboard-tip-agent b small { color:#a78bfa;font-weight:600; }
+        .call-dashboard-tip-more { margin-top:6px;color:#2dd4ee;font-size:11px;font-weight:700; }
+        .call-dashboard-day { border-top:1px solid rgba(85,126,218,.2);padding:16px 17px 18px; }
+        .call-dashboard-day-head { display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px; }
+        .call-dashboard-day-head h3 { margin:0;color:#e8efff;font-size:15px; }
+        .call-dashboard-day-head h3 small { display:block;margin-bottom:3px;color:#7f92c1;font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase; }
+        .call-dashboard-day-nav { display:flex;gap:6px; }
+        .call-dashboard-day-nav button { width:30px;height:30px;border:1px solid rgba(85,126,218,.35);border-radius:8px;background:rgba(26,62,123,.35);color:#c5d2f3;cursor:pointer; }
+        .call-dashboard-day-nav button:disabled { opacity:.35;cursor:default; }
+        .call-dashboard-day-stats { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px; }
+        .call-dashboard-day-stats div { padding:10px 12px;border:1px solid rgba(85,126,218,.22);border-radius:10px;background:rgba(10,32,74,.55); }
+        .call-dashboard-day-stats small { display:block;color:#7f92c1;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase; }
+        .call-dashboard-day-stats b { display:block;margin-top:4px;color:#f7f9ff;font-size:19px; }
+        .call-dashboard-day-table { width:100%;border-collapse:collapse;font-size:13px; }
+        .call-dashboard-day-table th { padding:8px 10px;color:#7f92c1;font-size:10px;font-weight:800;letter-spacing:.08em;text-align:right;text-transform:uppercase;border-bottom:1px solid rgba(85,126,218,.22); }
+        .call-dashboard-day-table td { padding:9px 10px;color:#dfe8ff;text-align:right;border-bottom:1px solid rgba(85,126,218,.12); }
+        .call-dashboard-day-table th:first-child,.call-dashboard-day-table td:first-child { text-align:left; }
+        .call-dashboard-day-table td.talk { color:#c4b5fd;font-weight:700; }
+        .call-dashboard-day-table td.miss { color:#f58aa8; }
+        .call-dashboard-day-name { display:flex;align-items:center;gap:10px;min-width:160px; }
+        .call-dashboard-day-name .track { flex:1;max-width:160px;height:6px;overflow:hidden;border-radius:6px;background:rgba(26,62,123,.62); }
+        .call-dashboard-day-name .track i { display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,#438ff0,#2dd4ee); }
+        .call-dashboard-day-name span { flex:0 0 140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+        .call-dashboard-day-wrap { overflow-x:auto; }
+        .call-dashboard-day-empty { padding:22px;color:#7184b4;font-size:13px;text-align:center; }
+        @media(max-width:720px){.call-dashboard-day-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.call-dashboard-trend-legend em{display:none}}
         @media(max-width:900px){.call-dashboard-hero{align-items:flex-start;flex-direction:column}.call-dashboard-grid{grid-template-columns:1fr}.call-dashboard-hero-meta{width:100%;justify-content:space-between}}
         @media(max-width:560px){.call-dashboard-hero{padding:18px}.call-dashboard-heading h1{font-size:23px}.call-dashboard-updated{display:none}.call-dashboard-breakdown{gap:18px}.call-dashboard-legend span{min-width:0}.call-dashboard-agent-row{grid-template-columns:95px 1fr 30px}}
     </style>
@@ -74,7 +122,7 @@
         .call-dashboard-donut-label strong { font-size:20px; }
         .call-dashboard-agents { gap:10px;max-height:148px; }
         .call-dashboard-agent-row { padding:2px 0; }
-        .call-dashboard-trend .call-dashboard-panel-body { height:245px; }
+        .call-dashboard-trend .call-dashboard-panel-body { height:300px; }
         @media(max-width:1100px){.call-dashboard-kpis{grid-template-columns:repeat(12,minmax(0,1fr))}.call-dashboard-kpi,.call-dashboard-kpi:nth-child(n+5),.call-dashboard-kpis.is-operations .call-dashboard-kpi{grid-column:span 6}}
         @media(max-width:720px){.call-dashboard-kpis{grid-template-columns:1fr}.call-dashboard-kpi,.call-dashboard-kpi:nth-child(n+5),.call-dashboard-kpis.is-operations .call-dashboard-kpi{grid-column:auto}.call-dashboard-kpi{min-height:88px}}
     </style>
@@ -132,8 +180,15 @@
             </article>
         </section>
         <section class="call-dashboard-panel call-dashboard-trend">
-            <h2>Calls Trend (current month)</h2>
-            <div class="call-dashboard-panel-body"><canvas class="call-dashboard-chart" id="callTrendChart"></canvas></div>
+            <div class="call-dashboard-trend-head">
+                <h2>Calls Trend (last 3 months)</h2>
+                <div class="call-dashboard-trend-legend"><span><i></i>Calls</span><span><i class="talk"></i>Talk time</span><em>Click a day to see agent-wise calls</em></div>
+            </div>
+            <div class="call-dashboard-panel-body">
+                <div class="call-dashboard-trend-scroll" id="callTrendScroll"><canvas class="call-dashboard-chart" id="callTrendChart"></canvas></div>
+                <div class="call-dashboard-trend-tip" id="callTrendTip"></div>
+            </div>
+            <div class="call-dashboard-day" id="callTrendDay"></div>
         </section>
     </div>
     <script>
@@ -147,38 +202,152 @@
                   .catch(() => { plivoBalanceValue.textContent = 'Unavailable'; });
             }
 
+            const trend = @json($trend);
             const canvas = document.getElementById('callTrendChart');
-            const values = @json($trend->pluck('total'));
-            const labels = @json($trend->pluck('label'));
-            const durations = @json($trend->pluck('duration_label'));
-            const durationsFull = @json($trend->pluck('duration_full'));
+            const scroller = document.getElementById('callTrendScroll');
+            const tip = document.getElementById('callTrendTip');
+            const dayPanel = document.getElementById('callTrendDay');
+            const esc = v => String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+            const fmt = n => Number(n).toLocaleString('en-IN');
+            const geo = {left: 46, right: 24, top: 46, bottom: 34, step: 64, points: []};
+            let hovered = -1, selected = trend.length - 1;
+
+            const niceMax = v => { if (v <= 5) return 5; const p = Math.pow(10, Math.floor(Math.log10(v))); return [1, 2, 2.5, 5, 10].map(m => m * p).find(m => m >= v); };
+            const curve = (ctx, pts) => {
+                const n = pts.length, d = [], m = [];
+                for (let i = 0; i < n - 1; i++) d.push((pts[i + 1][1] - pts[i][1]) / (pts[i + 1][0] - pts[i][0]));
+                for (let i = 0; i < n; i++) m.push(i === 0 ? d[0] || 0 : i === n - 1 ? d[n - 2] : (d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2));
+                for (let i = 0; i < n - 1; i++) {
+                    if (d[i] === 0) { m[i] = m[i + 1] = 0; continue; }
+                    const a = m[i] / d[i], b = m[i + 1] / d[i], s = a * a + b * b;
+                    if (s > 9) { const t = 3 / Math.sqrt(s); m[i] = t * a * d[i]; m[i + 1] = t * b * d[i]; }
+                }
+                ctx.moveTo(...pts[0]);
+                for (let i = 0; i < n - 1; i++) {
+                    const dx = (pts[i + 1][0] - pts[i][0]) / 3;
+                    ctx.bezierCurveTo(pts[i][0] + dx, pts[i][1] + m[i] * dx, pts[i + 1][0] - dx, pts[i + 1][1] - m[i + 1] * dx, ...pts[i + 1]);
+                }
+            };
+
             const draw = () => {
+                canvas.style.width = Math.max(scroller.clientWidth, trend.length * 64) + 'px';
                 const ratio = window.devicePixelRatio || 1, box = canvas.getBoundingClientRect();
                 canvas.width = box.width * ratio; canvas.height = box.height * ratio;
                 const ctx = canvas.getContext('2d'); ctx.scale(ratio, ratio);
-                const w = box.width, h = box.height, left = 34, right = 15, top = 36, bottom = 30;
-                const max = Math.max(1, ...values), step = (w - left - right) / Math.max(1, values.length - 1);
-                ctx.strokeStyle = 'rgba(85,126,218,.18)'; ctx.lineWidth = 1;
-                for (let i=0;i<4;i++){const y=top+(h-top-bottom)*i/3;ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(w-right,y);ctx.stroke()}
-                const points = values.map((v,i)=>[left+i*step,top+(h-top-bottom)*(1-v/max)]);
-                const area = ctx.createLinearGradient(0,top,0,h-bottom); area.addColorStop(0,'rgba(45,212,238,.22)');area.addColorStop(1,'rgba(45,212,238,0)');
-                ctx.beginPath();ctx.moveTo(points[0][0],h-bottom);points.forEach(p=>ctx.lineTo(...p));ctx.lineTo(points[points.length-1][0],h-bottom);ctx.closePath();ctx.fillStyle=area;ctx.fill();
-                ctx.beginPath(); points.forEach((p,i)=>i?ctx.lineTo(...p):ctx.moveTo(...p)); ctx.strokeStyle='#2dd4ee';ctx.lineWidth=3;ctx.stroke();
-                ctx.fillStyle='#071b41';points.forEach(p=>{ctx.beginPath();ctx.arc(...p,5,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#2dd4ee';ctx.lineWidth=3;ctx.stroke()});
-                ctx.fillStyle='#7184b4';ctx.font='11px sans-serif';ctx.textAlign='center';labels.forEach((label,i)=>ctx.fillText(label,left+i*step,h-8));
-                values.forEach((value,i)=>{
-                    const x=left+i*step, y=Math.max(26,points[i][1]-10);
-                    ctx.font='11px sans-serif';ctx.fillStyle='#dfe8ff';ctx.fillText(value,x,durations[i]?y-12:y);
-                    if(durations[i]){ctx.font='600 10px sans-serif';ctx.fillStyle='#a78bfa';ctx.fillText(durations[i],x,y)}
+                const w = box.width, h = box.height, {left, right, top, bottom} = geo, base = h - bottom;
+                const max = niceMax(Math.max(1, ...trend.map(d => d.total)));
+                const step = geo.step = (w - left - right) / Math.max(1, trend.length - 1);
+                const pts = geo.points = trend.map((d, i) => [left + i * step, top + (base - top) * (1 - d.total / max)]);
+
+                ctx.font = '10px sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+                for (let i = 0; i <= 4; i++) {
+                    const y = top + (base - top) * i / 4;
+                    ctx.strokeStyle = i === 4 ? 'rgba(85,126,218,.35)' : 'rgba(85,126,218,.13)'; ctx.lineWidth = 1;
+                    ctx.setLineDash(i === 4 ? [] : [4, 5]); ctx.beginPath(); ctx.moveTo(left, y); ctx.lineTo(w - right, y); ctx.stroke();
+                    ctx.fillStyle = '#5f73a6'; ctx.fillText(fmt(Math.round(max * (4 - i) / 4)), left - 10, y);
+                }
+                ctx.setLineDash([]);
+
+                const band = (i, color) => { ctx.fillStyle = color; ctx.fillRect(pts[i][0] - step / 2, top - 30, step, base - top + 30); };
+                trend.forEach((d, i) => { if (new Date(d.date + 'T00:00:00').getDay() === 0) band(i, 'rgba(85,126,218,.05)'); });
+                if (selected >= 0) band(selected, 'rgba(45,212,238,.08)');
+                if (hovered >= 0 && hovered !== selected) band(hovered, 'rgba(45,212,238,.05)');
+
+                ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+                trend.forEach((d, i) => {
+                    if (d.date.slice(8) !== '01') return;
+                    const x = pts[i][0] - step / 2;
+                    if (i > 0) { ctx.strokeStyle = 'rgba(45,212,238,.28)'; ctx.setLineDash([3, 4]); ctx.beginPath(); ctx.moveTo(x, top - 34); ctx.lineTo(x, base); ctx.stroke(); ctx.setLineDash([]); }
+                    ctx.fillStyle = '#35ccef'; ctx.font = '800 10px sans-serif';
+                    ctx.fillText(new Date(d.date + 'T00:00:00').toLocaleString('en-IN', {month: 'long', year: 'numeric'}).toUpperCase(), Math.max(left, x + 8), 12);
                 });
-                canvas._points = points;
+
+                const area = ctx.createLinearGradient(0, top, 0, base);
+                area.addColorStop(0, 'rgba(45,212,238,.28)'); area.addColorStop(1, 'rgba(45,212,238,0)');
+                ctx.beginPath(); curve(ctx, pts); ctx.lineTo(pts[pts.length - 1][0], base); ctx.lineTo(pts[0][0], base); ctx.closePath(); ctx.fillStyle = area; ctx.fill();
+                ctx.beginPath(); curve(ctx, pts); ctx.strokeStyle = '#2dd4ee'; ctx.lineWidth = 2.5; ctx.shadowColor = 'rgba(45,212,238,.45)'; ctx.shadowBlur = 8; ctx.stroke(); ctx.shadowBlur = 0;
+
+                if (hovered >= 0) { ctx.strokeStyle = 'rgba(45,212,238,.5)'; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(pts[hovered][0], top - 20); ctx.lineTo(pts[hovered][0], base); ctx.stroke(); ctx.setLineDash([]); }
+
+                trend.forEach((d, i) => {
+                    const [x, y] = pts[i], active = i === hovered || i === selected;
+                    ctx.beginPath(); ctx.arc(x, y, d.total ? (active ? 7 : 4.5) : 2.5, 0, Math.PI * 2);
+                    ctx.fillStyle = d.total ? (active ? '#2dd4ee' : '#071b41') : 'rgba(95,115,166,.6)'; ctx.fill();
+                    if (d.total) { ctx.strokeStyle = active ? '#e0fbff' : '#2dd4ee'; ctx.lineWidth = active ? 3 : 2.5; ctx.stroke(); }
+                });
+
+                ctx.textAlign = 'center'; ctx.lineJoin = 'round';
+                trend.forEach((d, i) => {
+                    const today = i === trend.length - 1, x = pts[i][0];
+                    ctx.font = (i === selected || today ? '700 ' : '') + '11px sans-serif';
+                    ctx.fillStyle = i === selected ? '#2dd4ee' : today ? '#dfe8ff' : '#6a7eb0';
+                    ctx.fillText(today ? 'Today' : d.label, x, h - 10);
+                    if (!d.total) return;
+                    const y = Math.max(40, pts[i][1] - 12);
+                    ctx.lineWidth = 4; ctx.strokeStyle = '#081b42';
+                    ctx.font = '700 12px sans-serif'; ctx.fillStyle = '#f2f6ff';
+                    ctx.strokeText(fmt(d.total), x, d.duration_label ? y - 13 : y); ctx.fillText(fmt(d.total), x, d.duration_label ? y - 13 : y);
+                    if (d.duration_label) { ctx.font = '600 10px sans-serif'; ctx.fillStyle = '#a78bfa'; ctx.strokeText(d.duration_label, x, y); ctx.fillText(d.duration_label, x, y); }
+                });
             };
-            draw(); window.addEventListener('resize', draw);
-            canvas.addEventListener('mousemove', e => {
-                const box = canvas.getBoundingClientRect(), x = e.clientX - box.left;
-                const i = (canvas._points || []).findIndex(p => Math.abs(p[0] - x) < 10);
-                canvas.title = i >= 0 ? `${labels[i]}: ${values[i]} calls · Talk time ${durationsFull[i]}` : '';
+
+            const agentRows = (agents, limit) => agents.slice(0, limit).map(a =>
+                `<div class="call-dashboard-tip-agent"><span>${esc(a.name)}</span><b>${fmt(a.total)} <small>· ${esc(a.duration_full)}</small></b></div>`).join('');
+
+            const showTip = i => {
+                const d = trend[i];
+                if (i < 0) { tip.classList.remove('is-visible'); return; }
+                tip.innerHTML = `<h4>${esc(d.day)}</h4>
+                    <div class="call-dashboard-tip-stats"><div><small>Calls</small><b>${fmt(d.total)}</b></div><div><small>Connected</small><b>${fmt(d.connected)}</b></div><div><small>Talk</small><b class="talk">${esc(d.duration_label || '0m')}</b></div></div>
+                    ${d.agents.length ? agentRows(d.agents, 5) : '<div class="call-dashboard-tip-agent"><span>No calls on this day</span></div>'}
+                    ${d.agents.length > 5 ? `<div class="call-dashboard-tip-more">+${d.agents.length - 5} more · click for details</div>` : ''}`;
+                const body = tip.parentElement, x = geo.points[i][0] - scroller.scrollLeft + 12;
+                const left = x + 20 + tip.offsetWidth > body.clientWidth ? x - tip.offsetWidth - 20 : x + 20;
+                tip.style.left = Math.max(8, left) + 'px';
+                tip.style.top = Math.min(Math.max(8, geo.points[i][1] - 40), body.clientHeight - tip.offsetHeight - 8) + 'px';
+                tip.classList.add('is-visible');
+            };
+
+            const renderDay = () => {
+                const d = trend[selected], top = Math.max(1, ...d.agents.map(a => a.total));
+                dayPanel.innerHTML = `<div class="call-dashboard-day-head">
+                        <h3><small>Agent-wise calls</small>${esc(d.day)}</h3>
+                        <div class="call-dashboard-day-nav"><button type="button" data-step="-1" ${selected === 0 ? 'disabled' : ''} title="Previous day">&#8249;</button><button type="button" data-step="1" ${selected === trend.length - 1 ? 'disabled' : ''} title="Next day">&#8250;</button></div>
+                    </div>
+                    <div class="call-dashboard-day-stats">
+                        <div><small>Total calls</small><b>${fmt(d.total)}</b></div>
+                        <div><small>Connected</small><b>${fmt(d.connected)}</b></div>
+                        <div><small>Not connected</small><b>${fmt(d.total - d.connected)}</b></div>
+                        <div><small>Talk time</small><b>${esc(d.duration_full)}</b></div>
+                    </div>
+                    ${d.agents.length ? `<div class="call-dashboard-day-wrap"><table class="call-dashboard-day-table">
+                        <thead><tr><th>Agent</th><th>Calls</th><th>Connected</th><th>Not connected</th><th>Talk time</th><th>Avg / call</th></tr></thead>
+                        <tbody>${d.agents.map(a => `<tr>
+                            <td><div class="call-dashboard-day-name"><span title="${esc(a.name)}">${esc(a.name)}</span><div class="track"><i style="width:${a.total / top * 100}%"></i></div></div></td>
+                            <td><b>${fmt(a.total)}</b></td><td>${fmt(a.connected)}</td><td class="miss">${fmt(a.total - a.connected)}</td>
+                            <td class="talk">${esc(a.duration_full)}</td><td>${a.connected ? (s => (s >= 60 ? Math.floor(s / 60) + 'm ' : '') + (s % 60) + 's')(Math.round(a.duration / a.connected)) : '–'}</td></tr>`).join('')}</tbody>
+                    </table></div>` : '<div class="call-dashboard-day-empty">No calls were made on this day.</div>'}`;
+            };
+
+            const indexAt = e => {
+                const x = e.clientX - canvas.getBoundingClientRect().left;
+                const i = Math.round((x - geo.left) / geo.step);
+                return i >= 0 && i < trend.length ? i : -1;
+            };
+            const select = i => { selected = i; draw(); renderDay(); };
+
+            canvas.addEventListener('mousemove', e => { const i = indexAt(e); if (i !== hovered) { hovered = i; draw(); } showTip(i); });
+            canvas.addEventListener('mouseleave', () => { hovered = -1; draw(); showTip(-1); });
+            canvas.addEventListener('click', e => { const i = indexAt(e); if (i >= 0) select(i); });
+            dayPanel.addEventListener('click', e => {
+                const btn = e.target.closest('[data-step]'); if (!btn) return;
+                select(Math.min(trend.length - 1, Math.max(0, selected + Number(btn.dataset.step))));
+                const x = geo.points[selected][0];
+                if (x < scroller.scrollLeft + 40 || x > scroller.scrollLeft + scroller.clientWidth - 40) scroller.scrollLeft = x - scroller.clientWidth / 2;
             });
+            scroller.addEventListener('scroll', () => { if (hovered >= 0) { hovered = -1; draw(); showTip(-1); } });
+            window.addEventListener('resize', draw);
+            draw(); renderDay(); scroller.scrollLeft = scroller.scrollWidth;
 
             const refreshOnCallCount = () => fetch(@json(route('call-management.dashboard.on-call-count')), {
                 headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'}

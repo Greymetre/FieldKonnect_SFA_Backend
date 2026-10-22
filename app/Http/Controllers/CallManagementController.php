@@ -99,25 +99,40 @@ class CallManagementController extends Controller
             return $agent;
         })->sortByDesc('dashboard_calls_count')->values();
 
-        $trendStart = today()->startOfMonth();
+        $trendStart = today()->subMonthsNoOverflow(2)->startOfMonth();
         $trendEnd = today();
-        $trendCounts = (clone $calls)
+        $trendRows = (clone $calls)
             ->whereBetween('started_at', [$trendStart->copy()->startOfDay(), $trendEnd->copy()->endOfDay()])
-            ->selectRaw('DATE(started_at) as call_date, COUNT(*) as total, COALESCE(SUM(CASE WHEN duration > 0 THEN duration ELSE 0 END), 0) as duration')
-            ->groupBy(DB::raw('DATE(started_at)'))
+            ->selectRaw("DATE(started_at) as call_date, user_id, COUNT(*) as total,
+                SUM(CASE WHEN duration > 0 OR status = 1 OR recording_url IS NOT NULL THEN 1 ELSE 0 END) as connected,
+                COALESCE(SUM(CASE WHEN duration > 0 THEN duration ELSE 0 END), 0) as duration")
+            ->groupBy(DB::raw('DATE(started_at)'), 'user_id')
             ->get()
-            ->keyBy('call_date');
-        $trend = collect(range(0, $trendStart->diffInDays($trendEnd)))->map(function ($offset) use ($trendStart, $trendCounts) {
+            ->groupBy('call_date');
+        $trendUserNames = User::query()
+            ->whereIn('id', $trendRows->flatten()->pluck('user_id')->filter()->unique())
+            ->pluck('name', 'id');
+        $trend = collect(range(0, $trendStart->diffInDays($trendEnd)))->map(function ($offset) use ($trendStart, $trendRows, $trendUserNames) {
             $date = $trendStart->copy()->addDays($offset);
-            $day = $trendCounts[$date->toDateString()] ?? null;
-            $duration = (int) ($day->duration ?? 0);
+            $rows = $trendRows[$date->toDateString()] ?? collect();
+            $duration = (int) $rows->sum('duration');
 
             return [
+                'date' => $date->toDateString(),
                 'label' => $date->format('d M'),
-                'total' => (int) ($day->total ?? 0),
+                'day' => $date->format('D, d M Y'),
+                'total' => (int) $rows->sum('total'),
+                'connected' => (int) $rows->sum('connected'),
                 'duration' => $duration,
                 'duration_label' => $duration > 0 ? $this->formatTrendDuration($duration) : '',
                 'duration_full' => $this->formatDashboardDuration($duration),
+                'agents' => $rows->map(fn ($row) => [
+                    'name' => $trendUserNames[$row->user_id] ?? 'Unknown',
+                    'total' => (int) $row->total,
+                    'connected' => (int) $row->connected,
+                    'duration' => (int) $row->duration,
+                    'duration_full' => $this->formatDashboardDuration((int) $row->duration),
+                ])->sortByDesc('total')->values(),
             ];
         });
 
