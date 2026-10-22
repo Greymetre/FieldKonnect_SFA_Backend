@@ -150,11 +150,13 @@
             const canvas = document.getElementById('callTrendChart');
             const values = @json($trend->pluck('total'));
             const labels = @json($trend->pluck('label'));
+            const durations = @json($trend->pluck('duration_label'));
+            const durationsFull = @json($trend->pluck('duration_full'));
             const draw = () => {
                 const ratio = window.devicePixelRatio || 1, box = canvas.getBoundingClientRect();
                 canvas.width = box.width * ratio; canvas.height = box.height * ratio;
                 const ctx = canvas.getContext('2d'); ctx.scale(ratio, ratio);
-                const w = box.width, h = box.height, left = 34, right = 15, top = 22, bottom = 30;
+                const w = box.width, h = box.height, left = 34, right = 15, top = 36, bottom = 30;
                 const max = Math.max(1, ...values), step = (w - left - right) / Math.max(1, values.length - 1);
                 ctx.strokeStyle = 'rgba(85,126,218,.18)'; ctx.lineWidth = 1;
                 for (let i=0;i<4;i++){const y=top+(h-top-bottom)*i/3;ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(w-right,y);ctx.stroke()}
@@ -164,9 +166,19 @@
                 ctx.beginPath(); points.forEach((p,i)=>i?ctx.lineTo(...p):ctx.moveTo(...p)); ctx.strokeStyle='#2dd4ee';ctx.lineWidth=3;ctx.stroke();
                 ctx.fillStyle='#071b41';points.forEach(p=>{ctx.beginPath();ctx.arc(...p,5,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#2dd4ee';ctx.lineWidth=3;ctx.stroke()});
                 ctx.fillStyle='#7184b4';ctx.font='11px sans-serif';ctx.textAlign='center';labels.forEach((label,i)=>ctx.fillText(label,left+i*step,h-8));
-                ctx.fillStyle='#dfe8ff';values.forEach((value,i)=>ctx.fillText(value,left+i*step,Math.max(12,points[i][1]-10)));
+                values.forEach((value,i)=>{
+                    const x=left+i*step, y=Math.max(26,points[i][1]-10);
+                    ctx.font='11px sans-serif';ctx.fillStyle='#dfe8ff';ctx.fillText(value,x,durations[i]?y-12:y);
+                    if(durations[i]){ctx.font='600 10px sans-serif';ctx.fillStyle='#a78bfa';ctx.fillText(durations[i],x,y)}
+                });
+                canvas._points = points;
             };
             draw(); window.addEventListener('resize', draw);
+            canvas.addEventListener('mousemove', e => {
+                const box = canvas.getBoundingClientRect(), x = e.clientX - box.left;
+                const i = (canvas._points || []).findIndex(p => Math.abs(p[0] - x) < 10);
+                canvas.title = i >= 0 ? `${labels[i]}: ${values[i]} calls · Talk time ${durationsFull[i]}` : '';
+            });
 
             const refreshOnCallCount = () => fetch(@json(route('call-management.dashboard.on-call-count')), {
                 headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'}

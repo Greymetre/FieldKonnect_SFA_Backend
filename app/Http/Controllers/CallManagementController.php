@@ -103,13 +103,22 @@ class CallManagementController extends Controller
         $trendEnd = today();
         $trendCounts = (clone $calls)
             ->whereBetween('started_at', [$trendStart->copy()->startOfDay(), $trendEnd->copy()->endOfDay()])
-            ->selectRaw('DATE(started_at) as call_date, COUNT(*) as total')
+            ->selectRaw('DATE(started_at) as call_date, COUNT(*) as total, COALESCE(SUM(CASE WHEN duration > 0 THEN duration ELSE 0 END), 0) as duration')
             ->groupBy(DB::raw('DATE(started_at)'))
-            ->pluck('total', 'call_date');
+            ->get()
+            ->keyBy('call_date');
         $trend = collect(range(0, $trendStart->diffInDays($trendEnd)))->map(function ($offset) use ($trendStart, $trendCounts) {
             $date = $trendStart->copy()->addDays($offset);
+            $day = $trendCounts[$date->toDateString()] ?? null;
+            $duration = (int) ($day->duration ?? 0);
 
-            return ['label' => $date->format('d M'), 'total' => (int) ($trendCounts[$date->toDateString()] ?? 0)];
+            return [
+                'label' => $date->format('d M'),
+                'total' => (int) ($day->total ?? 0),
+                'duration' => $duration,
+                'duration_label' => $duration > 0 ? $this->formatTrendDuration($duration) : '',
+                'duration_full' => $this->formatDashboardDuration($duration),
+            ];
         });
 
         return view('calls.dashboard', [
@@ -604,6 +613,15 @@ class CallManagementController extends Controller
         }
 
         abort_unless((int) $callLog->user_id === (int) auth()->id(), Response::HTTP_FORBIDDEN, '403 Forbidden');
+    }
+
+    private function formatTrendDuration(int $seconds): string
+    {
+        if ($seconds >= 3600) {
+            return sprintf('%dh %02dm', intdiv($seconds, 3600), intdiv($seconds % 3600, 60));
+        }
+
+        return $seconds >= 60 ? sprintf('%dm', intdiv($seconds, 60)) : sprintf('%ds', $seconds);
     }
 
     private function formatDashboardDuration(int $seconds): string
