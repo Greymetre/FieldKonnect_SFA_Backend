@@ -9,6 +9,7 @@ use App\Models\ClientCallEvent;
 use App\Models\ClientCallLog;
 use App\Models\Lead;
 use App\Services\ClientCallingService;
+use App\Services\LeadCallService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -209,6 +210,7 @@ class ClientCallingWebhookController extends Controller
             ['plivo_call_uuid' => $providerUuid],
             [
                 'lead_id' => $lead->id,
+                'lead_contact_id' => app(LeadCallService::class)->contactForNumber($lead, $customerNumber)?->id,
                 'direction' => 'inbound',
                 'user_id' => $agent?->id,
                 'number' => $customerNumber,

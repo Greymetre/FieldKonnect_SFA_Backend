@@ -11,6 +11,7 @@ class CallLog extends Model
 
     protected $fillable = [
         'lead_id',
+        'lead_contact_id',
         'direction',
         'call_management_entry_id',
         'number',
@@ -18,6 +19,7 @@ class CallLog extends Model
         'duration',
         'recording_duration',
         'user_id',
+        'initiated_by',
         'status',
         'feedback_status_id',
         'remark',
@@ -54,6 +56,16 @@ class CallLog extends Model
     public function lead()
     {
         return $this->belongsTo(Lead::class, 'lead_id', 'id');
+    }
+
+    public function contact()
+    {
+        return $this->belongsTo(LeadContact::class, 'lead_contact_id');
+    }
+
+    public function initiatedBy()
+    {
+        return $this->belongsTo(User::class, 'initiated_by');
     }
 
     public function user()

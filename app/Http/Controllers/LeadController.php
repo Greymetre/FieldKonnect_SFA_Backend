@@ -26,6 +26,7 @@ use App\Models\Country;
 use App\Models\Address;
 use App\Models\Branch;
 use App\Models\CallLog;
+use App\Services\LeadCallService;
 use App\Models\Customers;
 use App\Models\Division;
 use App\Models\EmployeeDetail;
@@ -779,10 +780,26 @@ class LeadController extends Controller
         $combined = $lead_notes->merge($lead_tasks)->merge($lead_logs)->merge($opportunities)->merge($call_logs)->sortByDesc('created_at')->values();
         // $combined = $lead_notes->merge($lead_tasks)->merge($lead_logs)->sortByDesc('created_at')->values();
 
+        $lead_call_history = CallLog::with([
+            'user:id,name',
+            'initiatedBy:id,name',
+            'contact:id,name,title,phone_number',
+            'feedbackStatus:id,display_name,status_name',
+        ])->where('lead_id', $lead->id)
+            ->orderByDesc('started_at')->orderByDesc('id')
+            ->get();
+        // Older/inbound calls have no lead_contact_id: match them by number.
+        $contactsByNumber = $lead_contacts->keyBy(fn ($contact) => substr(preg_replace('/\D+/', '', (string) $contact->phone_number), -10));
+        $lead_call_history->each(function ($call) use ($contactsByNumber) {
+            $call->matched_contact = $call->contact
+                ?? $contactsByNumber->get(substr(preg_replace('/\D+/', '', (string) $call->number), -10));
+        });
+        $canViewCallRecordings = Gate::allows('call_management_access');
+
         $media_items = $lead->getMedia('lead_file');
         $status = Status::where('module', 'LeadStatus')->where('active', 'Y')->get();
         $opportunity_status = OpportunitieStatus::orderBy('ordering', 'asc')->pluck('status_name', 'id')->toArray();
-        return view('leads.show', compact('lead', 'lead_contacts', 'lead_notes', 'users', 'lead_tasks', 'lead_opportunities', 'countries', 'pincodes', 'address', 'address_data', 'media_items', 'combined', 'status', 'opportunity_status'));
+        return view('leads.show', compact('lead', 'lead_contacts', 'lead_notes', 'users', 'lead_tasks', 'lead_opportunities', 'countries', 'pincodes', 'address', 'address_data', 'media_items', 'combined', 'status', 'opportunity_status', 'lead_call_history', 'canViewCallRecordings'));
     }
 
     /**
@@ -956,6 +973,53 @@ class LeadController extends Controller
         } else {
             return response()->json(['status' => 'error', 'message' => 'Something went wrong.']);
         }
+    }
+
+    /**
+     * Click-to-call a lead contact from the lead page. The lead's assigned
+     * user is rung first, then the contact, from the inbound caller ID.
+     */
+    public function callContact(Lead $lead, LeadContact $contact, LeadCallService $calls)
+    {
+        abort_unless($this->canAccessLead($lead), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        abort_unless((int) $contact->lead_id === (int) $lead->id, Response::HTTP_NOT_FOUND);
+
+        $agent = $lead->assign_user;
+        if (! $agent) {
+            return response()->json(['success' => false, 'message' => 'Assign this lead to a user before calling.'], 422);
+        }
+        if ($agent->active !== 'Y' || ! $agent->call_management) {
+            return response()->json(['success' => false, 'message' => 'Calling is not enabled for '.$agent->name.'.'], 422);
+        }
+
+        $customerNumber = $calls->e164($contact->phone_number);
+        if (! $customerNumber) {
+            return response()->json(['success' => false, 'message' => 'This contact does not have a valid phone number.'], 422);
+        }
+
+        $callLog = $calls->initiate($lead, $agent, $customerNumber, $contact, Auth::id());
+
+        return response()->json([
+            'success' => true,
+            'message' => $agent->name.'\'s phone will ring first, then '.($contact->name ?: 'the contact').' will be connected.',
+            'data' => [
+                'call_log_id' => $callLog->id,
+                'status_url' => route('leads.calls.status', [$lead, $callLog]),
+            ],
+        ], 201);
+    }
+
+    public function callStatus(Lead $lead, CallLog $callLog)
+    {
+        abort_unless($this->canAccessLead($lead), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        abort_unless((int) $callLog->lead_id === (int) $lead->id, Response::HTTP_NOT_FOUND);
+
+        return response()->json(['success' => true, 'data' => [
+            'status' => $callLog->plivo_status,
+            'answered' => (bool) $callLog->answered_at,
+            'completed' => (bool) $callLog->completed_at,
+            'duration' => (int) $callLog->duration,
+        ]]);
     }
 
     public function upload(Request $request)

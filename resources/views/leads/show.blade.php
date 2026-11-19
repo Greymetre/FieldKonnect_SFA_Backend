@@ -1274,6 +1274,226 @@
             word-break: break-word;
         }
 
+        /* Contacts list */
+        .lead-detail-page ul.cn-list li.lead-contact-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .lead-detail-page .lead-contact-avatar {
+            flex: 0 0 38px;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--fk-list-accent);
+            background: var(--fk-list-control);
+            border: 1px solid var(--fk-list-border-strong);
+        }
+
+        .lead-detail-page .lead-contact-item .contact-person {
+            flex: 1 1 auto;
+            width: auto;
+            min-width: 0;
+        }
+
+        .lead-detail-page .lead-contact-item .contact-person h5 {
+            line-height: 1.3;
+            overflow-wrap: anywhere;
+        }
+
+        .lead-detail-page .lead-contact-item .contact-person p {
+            line-height: 1.4 !important;
+        }
+
+        .lead-detail-page .lead-contact-phone {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 2px;
+            font-size: 12px;
+            color: var(--fk-list-text);
+        }
+
+        .lead-detail-page .lead-contact-phone i {
+            font-size: 13px;
+            color: var(--fk-list-muted);
+        }
+
+        .lead-detail-page .lead-contact-item .contac-link {
+            flex: 0 0 auto;
+            margin: 0;
+        }
+
+        .lead-detail-page .lead-contact-item .editdelte {
+            flex: 0 0 auto;
+            width: auto;
+            gap: 6px;
+        }
+
+        .lead-detail-page button.contact-icon-btn {
+            padding: 0;
+            cursor: pointer;
+        }
+
+        .lead-detail-page .contact-icon-btn:hover {
+            border-color: var(--fk-list-accent);
+        }
+
+        .lead-detail-page .contact-call-btn.is-calling {
+            opacity: .6;
+            pointer-events: none;
+        }
+
+        /* Call history */
+        .lead-detail-page .call-history-count {
+            display: inline-block;
+            min-width: 20px;
+            margin-left: 6px;
+            padding: 1px 6px;
+            border-radius: 10px;
+            font-size: 11px;
+            line-height: 16px;
+            text-align: center;
+            color: var(--fk-list-accent);
+            background: var(--fk-list-control);
+        }
+
+        .lead-detail-page .call-history-sub {
+            font-size: 12px;
+            color: var(--fk-list-muted);
+        }
+
+        .lead-detail-page .call-history-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .lead-detail-page .call-history-item {
+            display: flex;
+            gap: 12px;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--fk-list-border);
+        }
+
+        .lead-detail-page .call-history-item:last-child {
+            border-bottom: 0;
+        }
+
+        .lead-detail-page .call-history-icon {
+            flex: 0 0 36px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--fk-list-control);
+            border: 1px solid var(--fk-list-border-strong);
+            color: var(--fk-list-accent);
+        }
+
+        .lead-detail-page .call-history-icon.in {
+            color: #34d399;
+        }
+
+        .lead-detail-page .call-history-icon i {
+            font-size: 18px;
+        }
+
+        .lead-detail-page .call-history-main {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .lead-detail-page .call-history-top {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .lead-detail-page .call-history-top strong {
+            font-size: 14px;
+            color: var(--fk-list-heading);
+        }
+
+        .lead-detail-page .call-history-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px 14px;
+            font-size: 12px;
+            color: var(--fk-list-muted);
+        }
+
+        .lead-detail-page .call-history-meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .lead-detail-page .call-history-meta i {
+            font-size: 14px;
+        }
+
+        .lead-detail-page .call-history-remark {
+            margin-top: 6px;
+            font-size: 13px;
+            color: var(--fk-list-text);
+        }
+
+        .lead-detail-page .call-history-audio {
+            display: block;
+            width: 100%;
+            max-width: 340px;
+            height: 32px;
+            margin-top: 8px;
+        }
+
+        .lead-detail-page .call-history-time {
+            flex: 0 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            font-size: 12px;
+            color: var(--fk-list-muted);
+            white-space: nowrap;
+        }
+
+        .lead-detail-page .call-badge {
+            display: inline-block;
+            padding: 1px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            line-height: 18px;
+        }
+
+        .lead-detail-page .call-badge.ok { color: #10b981; background: rgba(16, 185, 129, .14); }
+        .lead-detail-page .call-badge.warn { color: #f59e0b; background: rgba(245, 158, 11, .14); }
+        .lead-detail-page .call-badge.bad { color: #ef4444; background: rgba(239, 68, 68, .14); }
+        .lead-detail-page .call-badge.live { color: var(--fk-list-accent); background: var(--fk-list-control); }
+        .lead-detail-page .call-badge.neutral { color: var(--fk-list-text); background: var(--fk-list-control); margin-right: 6px; }
+
+        @media (max-width: 575px) {
+            .lead-detail-page .call-history-item {
+                flex-wrap: wrap;
+            }
+
+            .lead-detail-page .call-history-time {
+                flex-direction: row;
+                gap: 6px;
+                width: 100%;
+                padding-left: 48px;
+            }
+        }
     </style>
     <div class="row lead-detail-page">
         <div class="col-md-12">
@@ -1698,17 +1918,25 @@ action="{{ route('lead-contacts.store') }}" class="form-horizontal contact-task-
 <!--  -->
 <ul class="list-group list-group-flush list-task cn-list">
     @foreach($lead_contacts as $lead_contact)
-    <li>
+    <li class="lead-contact-item">
+        <div class="lead-contact-avatar">{{ strtoupper(collect(preg_split('/\s+/', trim($lead_contact->name ?? '')))->filter()->take(2)->map(fn ($part) => mb_substr($part, 0, 1))->implode('')) ?: '?' }}</div>
         <div class="contact-person">
             <h5>{{$lead_contact->name??''}}</h5>
             <p>{{$lead_contact->title??''}}</p>
+            @if($lead_contact->phone_number)
+            <span class="lead-contact-phone"><i class="material-icons">phone</i>{{ $lead_contact->phone_number }}</span>
+            @endif
         </div>
         <div class="contac-link">
             @if($lead_contact->email)
             <a href="mailto:{{ $lead_contact->email }}" class="contact-icon-btn" title="{{ $lead_contact->email }}" data-toggle="tooltip"><i class="material-icons">mail</i></a>
             @endif
             @if($lead_contact->phone_number)
-            <a href="tel:{{ $lead_contact->phone_number }}" class="contact-icon-btn" title="{{ $lead_contact->phone_number }}" data-toggle="tooltip"><i class="material-icons">call</i></a>
+            <button type="button" class="contact-icon-btn contact-call-btn"
+                data-call-url="{{ route('leads.contacts.call', [$lead->id, $lead_contact->id]) }}"
+                data-contact-name="{{ $lead_contact->name }}"
+                data-contact-phone="{{ $lead_contact->phone_number }}"
+                title="Call {{ $lead_contact->phone_number }}" data-toggle="tooltip"><i class="material-icons">call</i></button>
             @endif
         </div>
     <div class="editdelte d-flex flex-row ">
@@ -1916,6 +2144,9 @@ action="{{ route('lead-opportunities.store') }}" class="form-horizontal taskform
         <a class="nav-link active" id="activities-tab" data-toggle="tab" href="#activities" role="tab">Activities</a>
     </li>
     <li class="nav-item">
+        <a class="nav-link" id="call-history-tab" data-toggle="tab" href="#call-history" role="tab">Call History @if($lead_call_history->count())<span class="call-history-count">{{ $lead_call_history->count() }}</span>@endif</a>
+    </li>
+    <li class="nav-item">
         <a class="nav-link" id="notes-tab" data-toggle="tab" href="#notes" role="tab">Notes</a>
     </li>
     <li class="nav-item">
@@ -2058,6 +2289,76 @@ action="{{ route('lead-opportunities.store') }}" class="form-horizontal taskform
 @endforeach
 </div>
 </div>
+<div class="tab-pane fade" id="call-history" role="tabpanel">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <p class="hed m-0">Call History</p>
+        <span class="call-history-sub">{{ $lead->assign_user ? 'Calls ring '.$lead->assign_user->name.' first' : 'Assign this lead to enable calling' }}</span>
+    </div>
+    <div class="card-body" id="lead-call-history-body">
+        @if($lead_call_history->isEmpty())
+        <p class="lead-empty">No calls yet. Use the call icon on a contact to start one.</p>
+        @else
+        <ul class="call-history-list">
+            @foreach($lead_call_history as $call)
+            @php
+                $callStatus = strtolower((string) $call->plivo_status);
+                $isLive = ! $call->completed_at && ! in_array($callStatus, ['failed', 'completed', 'hangup', 'busy', 'no-answer', 'timeout', 'cancel', 'agent-unavailable'], true);
+                if ($isLive) {
+                    [$badgeClass, $badgeText] = ['live', 'In progress'];
+                } elseif ($call->answered_at && (int) $call->duration > 0) {
+                    [$badgeClass, $badgeText] = ['ok', 'Connected'];
+                } elseif (in_array($callStatus, ['failed', 'agent-unavailable'], true)) {
+                    [$badgeClass, $badgeText] = ['bad', 'Failed'];
+                } else {
+                    [$badgeClass, $badgeText] = ['warn', $callStatus === 'busy' ? 'Busy' : 'Not answered'];
+                }
+                $durationSeconds = (int) $call->duration;
+                $durationText = $durationSeconds > 0 ? sprintf('%d:%02d', intdiv($durationSeconds, 60), $durationSeconds % 60) : '-';
+                $callContact = $call->matched_contact;
+                $isInbound = $call->direction === 'inbound';
+                $callTime = $call->started_at ?? $call->created_at;
+            @endphp
+            <li class="call-history-item">
+                <div class="call-history-icon {{ $isInbound ? 'in' : 'out' }}" title="{{ $isInbound ? 'Incoming call' : 'Outgoing call' }}">
+                    <i class="material-icons">{{ $isInbound ? 'call_received' : 'call_made' }}</i>
+                </div>
+                <div class="call-history-main">
+                    <div class="call-history-top">
+                        <strong>{{ $callContact->name ?? 'Unknown contact' }}</strong>
+                        <span class="call-badge {{ $badgeClass }}">{{ $badgeText }}</span>
+                    </div>
+                    <div class="call-history-meta">
+                        <span><i class="material-icons">phone</i>{{ $call->number }}</span>
+                        @if($callContact && $callContact->title)<span>{{ $callContact->title }}</span>@endif
+                    </div>
+                    <div class="call-history-meta">
+                        <span><i class="material-icons">support_agent</i>{{ $isInbound ? 'Received by' : 'Called by' }} {{ $call->user->name ?? '-' }}</span>
+                        @if($call->initiatedBy && (int) $call->initiated_by !== (int) $call->user_id)
+                        <span><i class="material-icons">touch_app</i>Started by {{ $call->initiatedBy->name }}</span>
+                        @endif
+                        <span><i class="material-icons">timer</i>{{ $durationText }}</span>
+                    </div>
+                    @if($call->feedbackStatus || $call->remark)
+                    <div class="call-history-remark">
+                        @if($call->feedbackStatus)<span class="call-badge neutral">{{ $call->feedbackStatus->display_name ?: $call->feedbackStatus->status_name }}</span>@endif
+                        {{ $call->remark }}
+                    </div>
+                    @endif
+                    @if($canViewCallRecordings && $call->recording_url)
+                    <audio class="call-history-audio" controls preload="none" src="{{ route('call-management.recording', $call->id) }}"></audio>
+                    @endif
+                </div>
+                <div class="call-history-time">
+                    <span>{{ $callTime ? $callTime->format('d M Y') : '' }}</span>
+                    <span>{{ $callTime ? $callTime->format('h:i A') : '' }}</span>
+                </div>
+            </li>
+            @endforeach
+        </ul>
+        @endif
+    </div>
+</div>
+
 <div class="tab-pane fade" id="notes" role="tabpanel">
     <div class="card-header">
         <p class="hed m-0">Notes</p>
@@ -2826,6 +3127,67 @@ function activateNotesTab() {
         $('#notes-tab').tab('show');
     }
 
+    // Click-to-call: confirm, ring the assigned user first, then the contact.
+    var leadCallRingNote = @json($lead->assign_user ? $lead->assign_user->name."'s phone will ring first, then the contact." : '');
+    $(document).on('click', '.contact-call-btn', function () {
+        var $btn = $(this);
+        var name = $btn.data('contact-name') || 'this contact';
+        var phone = $btn.data('contact-phone') || '';
+        Swal.fire({
+            title: 'Do you really want to call this contact?',
+            html: '<strong>' + $('<div>').text(name).html() + '</strong><br>' + $('<div>').text(phone).html()
+                + '<br><small>' + $('<div>').text(leadCallRingNote).html() + '</small>',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, call',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#0891b2',
+            cancelButtonColor: '#d33'
+        }).then(function (result) {
+            if (!result.value) return;
+            $btn.addClass('is-calling');
+            $.ajax({
+                url: $btn.data('call-url'),
+                method: 'POST',
+                data: { _token: '{{ csrf_token() }}' },
+                success: function (res) {
+                    Swal.fire({ icon: 'success', title: 'Call started', text: res.message, timer: 4000 });
+                    refreshLeadCallHistory();
+                    pollLeadCall(res.data.status_url, $btn, 0);
+                },
+                error: function (xhr) {
+                    $btn.removeClass('is-calling');
+                    var message = (xhr.responseJSON && xhr.responseJSON.message) || 'Unable to start the call.';
+                    Swal.fire({ icon: 'error', title: 'Call failed', text: message });
+                }
+            });
+        });
+    });
+
+    function refreshLeadCallHistory() {
+        $.get(window.location.href, function (html) {
+            var $page = $('<div>').append($.parseHTML(html));
+            var body = $page.find('#lead-call-history-body').html();
+            if (body !== undefined) $('#lead-call-history-body').html(body);
+            var tab = $page.find('#call-history-tab').html();
+            if (tab !== undefined) $('#call-history-tab').html(tab);
+        });
+    }
+
+    // Poll every 5s (max ~15 min) so the history updates when the call ends.
+    function pollLeadCall(statusUrl, $btn, attempt) {
+        if (attempt > 180) { $btn.removeClass('is-calling'); return; }
+        setTimeout(function () {
+            $.get(statusUrl, function (res) {
+                if (res.data && res.data.completed) {
+                    $btn.removeClass('is-calling');
+                    refreshLeadCallHistory();
+                } else {
+                    pollLeadCall(statusUrl, $btn, attempt + 1);
+                }
+            }).fail(function () { $btn.removeClass('is-calling'); });
+        }, 5000);
+    }
 
 </script>
 </x-app-layout>
