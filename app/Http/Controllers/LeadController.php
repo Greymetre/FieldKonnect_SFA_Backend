@@ -387,6 +387,11 @@ class LeadController extends Controller
                     $latestTask,
                     // latest 5 notes:
                     ...$noteCols,
+                    $item->others_1 ?? '',
+                    $item->others_2 ?? '',
+                    $item->others_3 ?? '',
+                    $item->others_4 ?? '',
+                    $item->others_5 ?? '',
                 ];
 
                 // Add ordered others consistently
@@ -433,6 +438,11 @@ class LeadController extends Controller
             'Note 4 Date',
             'Note 5',
             'Note 5 Date',
+            'Others - 1',
+            'Others - 2',
+            'Others - 3',
+            'Others - 4',
+            'Others - 5',
         ];
 
         // Append dynamic "others" headers in the same order
