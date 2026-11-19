@@ -6,7 +6,6 @@ use App\Exports\ExcelExport;
 use App\Http\Controllers\Controller;
 use App\Services\CallTranscriptionService;
 use App\Models\CallLog;
-use App\Models\ClientCallLog;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -36,8 +35,8 @@ class LeadCallLogController extends Controller
             return view('call_logs.index', compact('users'));
         }
 
-        // Summary cards and agent table ignore the status filter so the cards
-        // always show the full split for the selected agent/date/direction.
+        // Summary cards ignore the status filter so they always show the
+        // full split for the selected agent/date/direction.
         $baseQuery = $this->filteredQuery($request, false);
         $summary = $this->summary(clone $baseQuery);
 
@@ -89,59 +88,6 @@ class LeadCallLogController extends Controller
             'recordsFiltered' => $recordsFiltered,
             'data' => $data,
             'summary' => $summary,
-        ]);
-    }
-
-    /**
-     * Agents currently on (or being connected to) a call, for the live panel.
-     */
-    public function live()
-    {
-        abort_if(Gate::denies('call_management_access'), 403, '403 Forbidden');
-        $userIds = $this->isAdmin() ? null : getUsersReportingToAuth();
-
-        $calls = CallLog::with(['user:id,name', 'lead:id,company_name', 'lead.contacts:id,lead_id,name,phone_number', 'contact:id,name', 'callManagementEntry:id,firm_name,contact_person_name'])
-            ->whereNull('completed_at')
-            ->where('started_at', '>=', now()->subHours(2))
-            ->whereNotIn('plivo_status', self::TERMINAL_STATUSES)
-            ->when($userIds, fn ($query) => $query->whereIn('user_id', $userIds))
-            ->orderByDesc('started_at')
-            ->get()
-            ->map(function (CallLog $call) {
-                $contact = $call->lead_id ? $this->contactFor($call) : null;
-
-                return [
-                    'agent' => $call->user?->name ?: 'Unassigned',
-                    'customer' => $contact?->name ?: ($call->callManagementEntry?->contact_person_name ?: $call->callManagementEntry?->firm_name ?: $call->number),
-                    'company' => $call->lead?->company_name ?: ($call->callManagementEntry?->firm_name ?: ''),
-                    'type' => $call->lead_id ? 'Lead' : 'Customer Calling',
-                    'direction' => $call->direction === 'inbound' ? 'inbound' : 'outbound',
-                    'stage' => $this->liveStage((string) $call->plivo_status, (bool) $call->answered_at),
-                    'since' => ($call->answered_at ?: $call->started_at)?->timestamp,
-                ];
-            });
-
-        $clientCalls = ClientCallLog::with(['assignedAgent:id,name', 'entry:id,firm_name,contact_person_name'])
-            ->whereNull('completed_at')
-            ->where('started_at', '>=', now()->subHours(2))
-            ->whereNotIn('status', array_merge(self::TERMINAL_STATUSES, ['missed', 'unknown_missed', 'unassigned_missed', 'agent_unavailable']))
-            ->when($userIds, fn ($query) => $query->whereIn('assigned_user_id', $userIds))
-            ->orderByDesc('started_at')
-            ->get()
-            ->map(fn (ClientCallLog $call) => [
-                'agent' => $call->assignedAgent?->name ?: 'Unassigned',
-                'customer' => $call->entry?->contact_person_name ?: ($call->entry?->firm_name ?: $call->customer_number),
-                'company' => $call->entry?->firm_name ?: '',
-                'type' => 'Client Calling',
-                'direction' => $call->direction === 'inbound' ? 'inbound' : 'outbound',
-                'stage' => $this->liveStage((string) $call->status, (bool) $call->answered_at),
-                'since' => ($call->answered_at ?: $call->started_at)?->timestamp,
-            ]);
-
-        return response()->json([
-            'success' => true,
-            'server_time' => now()->timestamp,
-            'data' => $calls->concat($clientCalls)->values(),
         ]);
     }
 
@@ -218,16 +164,6 @@ class LeadCallLogController extends Controller
         $connected = (clone $connectedQuery)->count();
         $talkSeconds = (int) (clone $connectedQuery)->sum('duration');
 
-        $agents = (clone $query)->setEagerLoads([])
-            ->selectRaw('user_id, COUNT(*) as total_calls')
-            ->selectRaw("SUM(CASE WHEN status = 1 AND recording_url IS NOT NULL AND recording_url <> '' THEN 1 ELSE 0 END) as connected_calls")
-            ->selectRaw("SUM(CASE WHEN status = 1 AND recording_url IS NOT NULL AND recording_url <> '' THEN duration ELSE 0 END) as talk_seconds")
-            ->groupBy('user_id')
-            ->orderByDesc('total_calls')
-            ->limit(10)
-            ->get();
-        $agentNames = User::whereIn('id', $agents->pluck('user_id')->filter())->pluck('name', 'id');
-
         return [
             'total' => $total,
             'connected' => $connected,
@@ -235,13 +171,6 @@ class LeadCallLogController extends Controller
             'connect_rate' => $total > 0 ? round($connected * 100 / $total) : 0,
             'total_duration' => $this->formatDuration($talkSeconds),
             'avg_duration' => $this->formatDuration($connected > 0 ? intdiv($talkSeconds, $connected) : 0),
-            'agents' => $agents->map(fn ($row) => [
-                'name' => $agentNames[$row->user_id] ?? 'Unassigned',
-                'total' => (int) $row->total_calls,
-                'connected' => (int) $row->connected_calls,
-                'rate' => $row->total_calls > 0 ? round($row->connected_calls * 100 / $row->total_calls) : 0,
-                'talk_time' => $this->formatDuration((int) $row->talk_seconds),
-            ])->values(),
         ];
     }
 
@@ -262,19 +191,6 @@ class LeadCallLogController extends Controller
         return ! $call->completed_at
             && $call->started_at?->gt(now()->subHours(2))
             && ! in_array(strtolower((string) $call->plivo_status), self::TERMINAL_STATUSES, true);
-    }
-
-    private function liveStage(string $status, bool $agentAnswered): string
-    {
-        $status = strtolower($status);
-        if (in_array($status, ['answer', 'answered', 'in-progress', 'in_progress'], true)) {
-            return 'On call';
-        }
-        if ($agentAnswered || in_array($status, ['agent-answered', 'agent_answered', 'browser-connected'], true)) {
-            return 'Connecting customer';
-        }
-
-        return 'Ringing agent';
     }
 
     /** The dialled contact, falling back to a number match, then the first contact. */

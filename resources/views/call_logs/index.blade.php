@@ -121,48 +121,6 @@
     .lch-meter { height: 4px; margin-top: 10px; border-radius: 4px; background: var(--fk-list-border); overflow: hidden; }
     .lch-meter span { display: block; height: 100%; width: 0; background: var(--lch-ok); transition: width .4s ease; }
 
-    /* Live + agents row */
-    .lch-grid {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      gap: 18px;
-      margin-bottom: 18px;
-    }
-
-    .lch-panel-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 14px 18px;
-      border-bottom: 1px solid var(--fk-list-border);
-    }
-
-    .lch-panel-head h3 { margin: 0; font-size: 15px; font-weight: 600; color: var(--fk-list-heading); display: flex; align-items: center; gap: 8px; }
-    .lch-panel-head small { font-size: 12px; color: var(--fk-list-muted); }
-    .lch-panel-body { padding: 6px 18px 12px; max-height: 300px; overflow-y: auto; }
-
-    .lch-pulse { width: 9px; height: 9px; border-radius: 50%; background: var(--fk-list-dim); }
-    .lch-pulse.is-live { background: var(--lch-ok); box-shadow: 0 0 0 0 rgba(16, 185, 129, .6); animation: lchPulse 1.6s infinite; }
-
-    @keyframes lchPulse {
-      0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, .55); }
-      70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-    }
-
-    .lch-live-count { padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; background: var(--fk-list-count-bg); border: 1px solid var(--fk-list-count-border); color: var(--fk-list-accent); }
-
-    .lch-live-item, .lch-agent-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 0;
-      border-bottom: 1px solid var(--fk-list-border);
-    }
-
-    .lch-live-item:last-child, .lch-agent-row:last-child { border-bottom: 0; }
-
     .lch-avatar {
       flex: 0 0 34px;
       width: 34px;
@@ -177,24 +135,6 @@
       background: var(--fk-list-control);
       border: 1px solid var(--fk-list-border-strong);
     }
-
-    .lch-live-item .lch-avatar { border-color: var(--lch-ok); color: var(--lch-ok); }
-    .lch-grow { flex: 1 1 auto; min-width: 0; }
-    .lch-grow strong { display: block; font-size: 13px; font-weight: 600; color: var(--fk-list-heading); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .lch-grow span { display: block; font-size: 12px; color: var(--fk-list-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-    .lch-live-meta { flex: 0 0 auto; text-align: right; }
-    .lch-timer { font-size: 14px; font-weight: 600; color: var(--fk-list-heading); font-variant-numeric: tabular-nums; }
-    .lch-stage { display: inline-block; margin-top: 2px; font-size: 11px; color: var(--lch-ok); }
-    .lch-stage.is-pending { color: var(--lch-warn); }
-
-    .lch-empty { padding: 28px 0; text-align: center; font-size: 13px; color: var(--fk-list-muted); }
-    .lch-empty .material-icons { display: block; margin-bottom: 6px; font-size: 26px; color: var(--fk-list-dim); }
-
-    .lch-agent-stats { display: flex; gap: 16px; flex: 0 0 auto; text-align: right; }
-    .lch-agent-stats div { min-width: 52px; }
-    .lch-agent-stats b { display: block; font-size: 13px; color: var(--fk-list-heading); font-variant-numeric: tabular-nums; }
-    .lch-agent-stats small { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--fk-list-dim); }
 
     /* Calls table */
     .lch-table-card .card-body { padding: 0 !important; }
@@ -233,14 +173,8 @@
       .lch-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
 
-    @media (max-width: 991px) {
-      .lch-grid { grid-template-columns: minmax(0, 1fr); }
-    }
-
     @media (max-width: 575px) {
       .lch-filters, .lch-kpis { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-      .lch-agent-stats { gap: 8px; }
-      .lch-agent-stats div { min-width: 40px; }
     }
   </style>
 
@@ -339,27 +273,6 @@
         <div class="lch-kpi-label"><span class="lch-kpi-icon lch-tone-warn"><span class="material-icons">timer</span></span>Avg call</div>
         <div class="lch-kpi-value" id="avg_duration">00:00:00</div>
         <div class="lch-kpi-hint">Per connected call</div>
-      </div>
-    </div>
-
-    <div class="lch-grid">
-      <div class="lch-panel">
-        <div class="lch-panel-head">
-          <h3><span class="lch-pulse" id="lchLivePulse"></span>On call now</h3>
-          <span class="lch-live-count" id="lchLiveCount">0 live</span>
-        </div>
-        <div class="lch-panel-body" id="lchLiveList">
-          <div class="lch-empty"><span class="material-icons">headset_off</span>No agent is on a call right now.</div>
-        </div>
-      </div>
-      <div class="lch-panel">
-        <div class="lch-panel-head">
-          <h3><span class="material-icons lch-tone-accent" style="font-size:18px">leaderboard</span>Agent performance</h3>
-          <small>For the selected filters</small>
-        </div>
-        <div class="lch-panel-body" id="lchAgentList">
-          <div class="lch-empty"><span class="material-icons">groups</span>No calls in this range.</div>
-        </div>
       </div>
     </div>
 
@@ -527,9 +440,6 @@
       });
 
       syncKpiState();
-      loadLiveCalls();
-      setInterval(loadLiveCalls, 10000);
-      setInterval(tickLiveTimers, 1000);
     });
 
     function syncKpiState() {
@@ -547,61 +457,6 @@
       $('#connect_rate_bar').css('width', Math.min(100, summary.connect_rate) + '%');
       $('#call_duration').text(summary.total_duration);
       $('#avg_duration').text(summary.avg_duration);
-
-      var agents = summary.agents || [];
-      if (!agents.length) {
-        $('#lchAgentList').html('<div class="lch-empty"><span class="material-icons">groups</span>No calls in this range.</div>');
-        return;
-      }
-      $('#lchAgentList').html(agents.map(function(agent) {
-        return '<div class="lch-agent-row">'
-          + '<span class="lch-avatar">' + lchInitials(agent.name) + '</span>'
-          + '<div class="lch-grow"><strong>' + lchEsc(agent.name) + '</strong><span>' + lchEsc(agent.talk_time) + ' talk time</span></div>'
-          + '<div class="lch-agent-stats">'
-          + '<div><b>' + agent.total + '</b><small>Calls</small></div>'
-          + '<div><b class="lch-tone-ok">' + agent.connected + '</b><small>Conn.</small></div>'
-          + '<div><b>' + agent.rate + '%</b><small>Rate</small></div>'
-          + '</div></div>';
-      }).join(''));
-    }
-
-    var lchClockOffset = 0;
-
-    function loadLiveCalls() {
-      $.get("{{ route('call-management.live') }}", function(res) {
-        var calls = (res && res.data) || [];
-        lchClockOffset = res.server_time ? res.server_time - Math.floor(Date.now() / 1000) : 0;
-        $('#lchLiveCount').text(calls.length + ' live');
-        $('#lchLivePulse').toggleClass('is-live', calls.length > 0);
-
-        if (!calls.length) {
-          $('#lchLiveList').html('<div class="lch-empty"><span class="material-icons">headset_off</span>No agent is on a call right now.</div>');
-          return;
-        }
-        $('#lchLiveList').html(calls.map(function(call) {
-          var pending = call.stage !== 'On call';
-          var who = call.customer + (call.company && call.company !== call.customer ? ' · ' + call.company : '');
-          return '<div class="lch-live-item">'
-            + '<span class="lch-avatar">' + lchInitials(call.agent) + '</span>'
-            + '<div class="lch-grow"><strong>' + lchEsc(call.agent) + '</strong>'
-            + '<span>' + (call.direction === 'inbound' ? 'From ' : 'To ') + lchEsc(who) + ' · ' + lchEsc(call.type) + '</span></div>'
-            + '<div class="lch-live-meta"><div class="lch-timer" data-since="' + (call.since || '') + '">00:00</div>'
-            + '<span class="lch-stage' + (pending ? ' is-pending' : '') + '">' + lchEsc(call.stage) + '</span></div>'
-            + '</div>';
-        }).join(''));
-        tickLiveTimers();
-      });
-    }
-
-    function tickLiveTimers() {
-      var now = Math.floor(Date.now() / 1000) + lchClockOffset;
-      $('#lchLiveList .lch-timer').each(function() {
-        var since = parseInt($(this).data('since'), 10);
-        if (!since) return;
-        var seconds = Math.max(0, now - since);
-        var minutes = Math.floor(seconds / 60);
-        $(this).text((minutes < 10 ? '0' : '') + minutes + ':' + ((seconds % 60) < 10 ? '0' : '') + (seconds % 60));
-      });
     }
   </script>
 </x-app-layout>
