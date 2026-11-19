@@ -900,17 +900,29 @@ class LeadController extends Controller
             'city_id' => $request->city_id ?? null,
             'district_id' => $request->district_id ?? null,
         ]);
-        LeadContact::where('lead_id', $lead->id)->update([
+        // The edit form only shows the first contact and first note, so only
+        // those are updated; other contacts/notes of the lead stay untouched.
+        $contactData = [
             'name' => $request->contact_name,
             'title' => $request->designation,
             'phone_number' => $request->phone_number,
             'email' => $request->email,
             'url' => $request->url,
             'lead_source' => $request->lead_source,
-        ]);
-        LeadNote::where('lead_id', $lead->id)->update([
-            'note' => $request->note,
-        ]);
+        ];
+        $firstContact = LeadContact::where('lead_id', $lead->id)->orderBy('id')->first();
+        if ($firstContact) {
+            $firstContact->update($contactData);
+        } elseif ($request->filled('contact_name')) {
+            LeadContact::create($contactData + ['lead_id' => $lead->id, 'created_by' => Auth::id()]);
+        }
+
+        $firstNote = LeadNote::where('lead_id', $lead->id)->orderBy('id')->first();
+        if ($firstNote) {
+            $firstNote->update(['note' => $request->note]);
+        } elseif ($request->filled('note')) {
+            LeadNote::create(['lead_id' => $lead->id, 'note' => $request->note, 'created_by' => Auth::id()]);
+        }
         return redirect()->route('leads.show', $lead);
     }
 

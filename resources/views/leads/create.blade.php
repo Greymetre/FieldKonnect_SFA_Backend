@@ -69,7 +69,7 @@
                   {{-- Customer Name --}}
                   <div class="form-group col-6 mb-2">
                     <label for="contact_name">Customer Name <span style="color:red">*</span></label>
-                    <input type="text" name="contact_name" id="contact_name" value="{{ old('contact_name', isset($lead) ? $lead->contacts?->first()->name : '') }}"
+                    <input type="text" name="contact_name" id="contact_name" value="{{ old('contact_name', isset($lead) ? $lead->contacts->sortBy('id')->first()?->name : '') }}"
                       class="form-control form-control-lg" placeholder="Customer Name" required>
                     @error('contact_name') <small class="text-danger d-block mt-1">{{ $message }}</small> @enderror
                   </div>
@@ -77,7 +77,7 @@
                   {{-- Mobile --}}
                   <div class="form-group col-6 mb-2">
                     <label for="phone_number">Mobile Number</label>
-                    <input type="tel" name="phone_number" id="phone_number" value="{{ old('phone_number', isset($lead) ? $lead->contacts?->first()->phone_number : '') }}"
+                    <input type="tel" name="phone_number" id="phone_number" value="{{ old('phone_number', isset($lead) ? $lead->contacts->sortBy('id')->first()?->phone_number : '') }}"
                       class="form-control form-control-lg" placeholder="Mobile Number" maxlength="15">
                     @error('phone_number') <small class="text-danger d-block mt-1">{{ $message }}</small> @enderror
                   </div>
@@ -86,7 +86,7 @@
                   {{-- Designation --}}
                   <div class="form-group col-6 mb-2">
                     <label for="designation">Designation</label>
-                    <input type="text" name="designation" id="designation" value="{{ old('designation', isset($lead) ? $lead->contacts?->first()?->title : '') }}"
+                    <input type="text" name="designation" id="designation" value="{{ old('designation', isset($lead) ? $lead->contacts->sortBy('id')->first()?->title : '') }}"
                       class="form-control form-control-lg" placeholder="Designation">
                     @error('designation') <small class="text-danger d-block mt-1">{{ $message }}</small> @enderror
                   </div>
@@ -103,7 +103,7 @@
                   {{-- Email --}}
                   <div class="form-group col-6 mb-2">
                     <label for="email">Email Id</label>
-                    <input type="email" name="email" id="email" value="{{ old('email', isset($lead) ? $lead->contacts?->first()->email : '') }}"
+                    <input type="email" name="email" id="email" value="{{ old('email', isset($lead) ? $lead->contacts->sortBy('id')->first()?->email : '') }}"
                       class="form-control form-control-lg" placeholder="Email Id">
                     @error('email') <small class="text-danger d-block mt-1">{{ $message }}</small> @enderror
                   </div>
@@ -237,7 +237,7 @@
                 {{-- Note --}}
                 <div class="form-group mb-2">
                   <label for="note">Note</label>
-                  <textarea name="note" id="note note_text" rows="3" class="form-control rounded border ckeditor-init" placeholder="Note">{{ old('note', isset($lead) ? $lead->notes->first()?->note : '') }}</textarea>
+                  <textarea name="note" id="note note_text" rows="3" class="form-control rounded border ckeditor-init" placeholder="Note">{{ old('note', isset($lead) ? $lead->notes->sortBy('id')->first()?->note : '') }}</textarea>
                   @error('note') <small class="text-danger d-block mt-1">{{ $message }}</small> @enderror
                 </div>
               </div>
