@@ -1330,12 +1330,6 @@
             margin: 0;
         }
 
-        .lead-detail-page .lead-contact-item .editdelte {
-            flex: 0 0 auto;
-            width: auto;
-            gap: 6px;
-        }
-
         .lead-detail-page button.contact-icon-btn {
             padding: 0;
             cursor: pointer;
@@ -1493,6 +1487,101 @@
                 width: 100%;
                 padding-left: 48px;
             }
+        }
+        /* Left column: separate, evenly spaced cards instead of one joined panel */
+        .lead-detail-page .new-task {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow: visible;
+            border: 0 !important;
+            background: transparent !important;
+        }
+
+        .lead-detail-page .new-task > .card,
+        .lead-detail-page .new-task > .card:last-child {
+            margin: 0 !important;
+            overflow: hidden;
+            border: 1px solid var(--fk-list-border) !important;
+            border-radius: 14px !important;
+        }
+
+        .lead-detail-page .new-task .forus .card-header {
+            border-top: 0 !important;
+            border-bottom: 1px solid var(--fk-list-border) !important;
+        }
+
+        .lead-detail-page .new-task .card-header strong {
+            font-size: 16px;
+        }
+
+        .lead-detail-page .new-task .card-body {
+            padding: 6px 18px !important;
+        }
+
+        .lead-detail-page .new-task .lead-empty {
+            padding: 22px 0;
+        }
+
+        /* Contact row: avatar | details | actions */
+        .lead-detail-page ul.cn-list li.lead-contact-item {
+            align-items: flex-start;
+            padding: 14px 0;
+        }
+
+        .lead-detail-page .lead-contact-item .contact-person h5 {
+            margin-bottom: 2px;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .lead-detail-page .lead-contact-item .contact-person p {
+            font-size: 12.5px !important;
+        }
+
+        .lead-detail-page .lead-contact-phone {
+            white-space: nowrap;
+            margin-top: 4px;
+        }
+
+        .lead-detail-page .lead-contact-item .contac-link {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 6px;
+            max-width: 72px;
+        }
+
+        .lead-detail-page .lead-contact-item .contact-icon-btn {
+            width: 30px;
+            height: 30px;
+        }
+
+        .lead-detail-page .contact-icon-muted {
+            color: var(--fk-list-muted) !important;
+            opacity: .55;
+            transition: opacity .15s ease, color .15s ease;
+        }
+
+        .lead-detail-page .lead-contact-item:hover .contact-icon-muted {
+            opacity: 1;
+        }
+
+        .lead-detail-page .contact-icon-muted:hover {
+            color: var(--fk-list-accent) !important;
+        }
+
+        .lead-detail-page .contact-icon-danger:hover {
+            color: #ef4444 !important;
+            border-color: #ef4444;
+        }
+
+        /* Tabs: keep the call count badge on the same line */
+        .lead-detail-page .tabsection .nav-tabs .nav-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
         }
     </style>
     <div class="row lead-detail-page">
@@ -1938,20 +2027,13 @@ action="{{ route('lead-contacts.store') }}" class="form-horizontal contact-task-
                 data-contact-phone="{{ $lead_contact->phone_number }}"
                 title="Call {{ $lead_contact->phone_number }}" data-toggle="tooltip"><i class="material-icons">call</i></button>
             @endif
-        </div>
-    <div class="editdelte d-flex flex-row ">
-
-        <div class="contact_edit" onclick="editContact('{{$lead_contact}}')"><img src="{{ url('/').'/'.asset('assets/img/ph_note-pencil-fill.svg') }}"></div>
-        <div class="contact_edit">
-            <form action="{{ route('lead-contacts.destroy', $lead_contact->id) }}" method="POST" style="display: inline-block;" onsubmit="return confirm('Do you really want to delete?')">
+            <button type="button" class="contact-icon-btn contact-icon-muted" onclick="editContact('{{$lead_contact}}')" title="Edit contact" data-toggle="tooltip"><i class="material-icons">edit</i></button>
+            <form action="{{ route('lead-contacts.destroy', $lead_contact->id) }}" method="POST" class="d-inline-flex m-0" onsubmit="return confirm('Do you really want to delete?')">
                 @csrf
                 @method('DELETE')
-                <button type="submit" class="deletebtn">
-                    <img src="{{ url('/').'/'.asset('assets/img/deletbox.svg') }}">
-                </button>
+                <button type="submit" class="contact-icon-btn contact-icon-muted contact-icon-danger" title="Delete contact" data-toggle="tooltip"><i class="material-icons">delete</i></button>
             </form>
         </div>
-    </div>
 </li>
 @endforeach
 </ul>
