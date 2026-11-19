@@ -8,6 +8,7 @@ use App\Models\Lead;
 use App\Models\LeadLog;
 use App\Models\Status;
 use App\Models\User;
+use App\Services\LeadCallService;
 use App\Services\CallTranscriptionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -53,32 +54,7 @@ class CallLogController extends Controller
             ->where('user_id', $user->id)
             ->firstOrFail();
 
-        $statusId = (int) $validated['feedback_status_id'];
-        $status = $statusId === 0 ? null : Status::query()
-            ->whereKey($statusId)
-            ->whereIn('module', ['LeadStatus', Status::MODULE_LEAD_CALL_FEEDBACK])
-            ->where('active', 'Y')
-            ->firstOrFail();
-        // App builds released before this change still send call feedback statuses.
-        $isLeadStatus = $statusId === 0 || $status->module === 'LeadStatus';
-
-        DB::transaction(function () use ($callLog, $status, $statusId, $isLeadStatus, $validated, $user) {
-            $callLog->update([
-                'feedback_status_id' => $status?->id,
-                'remark' => trim($validated['message']),
-            ]);
-
-            $lead = $isLeadStatus && $callLog->lead_id ? Lead::find($callLog->lead_id) : null;
-            if ($lead && (int) $lead->status !== $statusId) {
-                $oldStatus = Status::find($lead->status);
-                LeadLog::create([
-                    'lead_id' => $lead->id,
-                    'message' => 'Lead move from '.($oldStatus->display_name ?? 'Pending').' to '.($status->display_name ?? 'Pending').' by '.$user->name,
-                    'created_by' => $user->id,
-                ]);
-                $lead->update(['status' => $statusId]);
-            }
-        });
+        $status = app(LeadCallService::class)->saveFeedback($callLog, (int) $validated['feedback_status_id'], $validated['message'], $user);
 
         return response()->json([
             'success' => true,

@@ -5,8 +5,11 @@ namespace App\Services;
 use App\Models\CallLog;
 use App\Models\Lead;
 use App\Models\LeadContact;
+use App\Models\LeadLog;
+use App\Models\Status;
 use App\Models\User;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -96,6 +99,41 @@ class LeadCallService
         $callLog->update(['plivo_call_uuid' => $callUuid, 'plivo_status' => 'queued']);
 
         return $callLog;
+    }
+
+    /**
+     * Save the post-call remark and (optionally) move the lead to a new status.
+     * Status 0 means "Pending". Older app builds may still send a lead call
+     * feedback status, which is stored on the call but does not change the lead.
+     */
+    public function saveFeedback(CallLog $callLog, int $statusId, string $message, User $by): ?Status
+    {
+        $status = $statusId === 0 ? null : Status::query()
+            ->whereKey($statusId)
+            ->whereIn('module', ['LeadStatus', Status::MODULE_LEAD_CALL_FEEDBACK])
+            ->where('active', 'Y')
+            ->firstOrFail();
+        $isLeadStatus = $statusId === 0 || $status->module === 'LeadStatus';
+
+        DB::transaction(function () use ($callLog, $status, $statusId, $isLeadStatus, $message, $by) {
+            $callLog->update([
+                'feedback_status_id' => $status?->id,
+                'remark' => trim($message),
+            ]);
+
+            $lead = $isLeadStatus && $callLog->lead_id ? Lead::find($callLog->lead_id) : null;
+            if ($lead && (int) $lead->status !== $statusId) {
+                $oldStatus = Status::find($lead->status);
+                LeadLog::create([
+                    'lead_id' => $lead->id,
+                    'message' => 'Lead move from '.($oldStatus->display_name ?? 'Pending').' to '.($status->display_name ?? 'Pending').' by '.$by->name,
+                    'created_by' => $by->id,
+                ]);
+                $lead->update(['status' => $statusId]);
+            }
+        });
+
+        return $status;
     }
 
     /**

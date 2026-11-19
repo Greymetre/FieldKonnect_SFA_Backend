@@ -231,7 +231,9 @@ Route::group(['middleware' => ['auth', 'resource.permission']], function () {
 
     //Lead Management
     Route::post('leads/{lead}/contacts/{contact}/call', [LeadController::class, 'callContact'])->name('leads.contacts.call');
+    Route::get('leads/{lead}/call-history', [LeadController::class, 'callHistory'])->name('leads.calls.history');
     Route::get('leads/{lead}/calls/{callLog}/status', [LeadController::class, 'callStatus'])->name('leads.calls.status');
+    Route::post('leads/{lead}/calls/{callLog}/feedback', [LeadController::class, 'callFeedback'])->name('leads.calls.feedback');
     Route::resource('leads', LeadController::class);
     Route::post('leads/getLeads', [LeadController::class, 'getLeads'])->name('leads.getLeads');
     Route::post('lead-upload', [LeadController::class, 'upload'])->name('leads.upload');

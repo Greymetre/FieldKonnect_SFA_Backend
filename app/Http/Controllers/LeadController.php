@@ -59,15 +59,8 @@ class LeadController extends Controller
         })->select('id', 'name')->orderBy('id')->get();
         $status = Status::where('module', 'LeadStatus')->where('active', 'Y')->get();
         $lead_sources = config('constants.LEAD_SOURCES');
-        $pincodes = Pincode::where('active', '=', 'Y')
-            ->whereHas('assigncitiesusers', function ($query) use ($userids) {
-                if (!Auth::user()->hasRole('superadmin') && !Auth::user()->hasRole('Admin')) {
-                    $query->whereIn('userid', $userids);
-                }
-            })
-            ->select('id', 'pincode')->orderBy('id', 'desc')->get();
         $states = State::where('active', 'Y')->select('id', 'state_name')->get();
-        return view('leads.index', compact('users', 'status', 'lead_sources', 'pincodes', 'states'));
+        return view('leads.index', compact('users', 'status', 'lead_sources', 'states'));
     }
 
     public function getLeads(Request $request)
@@ -731,13 +724,9 @@ class LeadController extends Controller
         $lead_tasks = LeadTask::where(['lead_id' => $lead->id])->get();
         $lead_opportunities = LeadOpportunity::where(['lead_id' => $lead->id])->get();
 
-        $pincodes = Pincode::where('active', '=', 'Y')
-            // ->whereHas('assigncitiesusers', function ($query) use ($userids) {
-            //     if (!Auth::user()->hasRole('superadmin') && !Auth::user()->hasRole('Admin')) {
-            //         $query->whereIn('userid', $userids);
-            //     }
-            // })
-            ->select('id', 'pincode')->orderBy('id', 'desc')->get();
+        // Only the saved pincode is rendered; the address modal searches the
+        // rest via AJAX. Rendering every pincode froze the page.
+        $pincodes = collect();
         $countries = Country::where('active', '=', 'Y')
             ->whereHas('countrystates', function ($query) use ($userids) {
                 if (!Auth::user()->hasRole('superadmin') && !Auth::user()->hasRole('Admin')) {
@@ -750,6 +739,9 @@ class LeadController extends Controller
             })
             ->select('id', 'country_name')->orderBy('id', 'desc')->get();
         $address = Address::where(['model_type' => 'App\Models\Lead', 'model_id' => $lead->id])->first();
+        if ($address && $address->pincode_id) {
+            $pincodes = Pincode::whereKey($address->pincode_id)->select('id', 'pincode')->get();
+        }
         if (isset($address)) {
             $address1 = $address->address1;
             $address2 = $address->address2;
@@ -788,20 +780,7 @@ class LeadController extends Controller
         $combined = $lead_notes->merge($lead_tasks)->merge($lead_logs)->merge($opportunities)->merge($call_logs)->sortByDesc('created_at')->values();
         // $combined = $lead_notes->merge($lead_tasks)->merge($lead_logs)->sortByDesc('created_at')->values();
 
-        $lead_call_history = CallLog::with([
-            'user:id,name',
-            'initiatedBy:id,name',
-            'contact:id,name,title,phone_number',
-            'feedbackStatus:id,display_name,status_name',
-        ])->where('lead_id', $lead->id)
-            ->orderByDesc('started_at')->orderByDesc('id')
-            ->get();
-        // Older/inbound calls have no lead_contact_id: match them by number.
-        $contactsByNumber = $lead_contacts->keyBy(fn ($contact) => substr(preg_replace('/\D+/', '', (string) $contact->phone_number), -10));
-        $lead_call_history->each(function ($call) use ($contactsByNumber) {
-            $call->matched_contact = $call->contact
-                ?? $contactsByNumber->get(substr(preg_replace('/\D+/', '', (string) $call->number), -10));
-        });
+        $lead_call_history = $this->leadCallHistory($lead, $lead_contacts);
         $canViewCallRecordings = Gate::allows('call_management_access');
 
         $media_items = $lead->getMedia('lead_file');
@@ -1025,8 +1004,69 @@ class LeadController extends Controller
             'data' => [
                 'call_log_id' => $callLog->id,
                 'status_url' => route('leads.calls.status', [$lead, $callLog]),
+                'feedback_url' => route('leads.calls.feedback', [$lead, $callLog]),
             ],
         ], 201);
+    }
+
+    /** Post-call remark + lead status from the lead page (same as the app). */
+    public function callFeedback(Request $request, Lead $lead, CallLog $callLog, LeadCallService $calls)
+    {
+        abort_unless($this->canAccessLead($lead), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        abort_unless((int) $callLog->lead_id === (int) $lead->id, Response::HTTP_NOT_FOUND);
+
+        $validated = $request->validate([
+            'status' => ['required', 'integer', 'min:0'],
+            'remark' => ['required', 'string', 'max:1000'],
+        ]);
+        $statusId = (int) $validated['status'];
+        abort_unless(
+            $statusId === 0 || Status::whereKey($statusId)->where('module', 'LeadStatus')->where('active', 'Y')->exists(),
+            Response::HTTP_UNPROCESSABLE_ENTITY,
+            'Please select a valid lead status.'
+        );
+
+        $calls->saveFeedback($callLog, $statusId, $validated['remark'], Auth::user());
+
+        return response()->json(['success' => true, 'message' => 'Call remark saved.']);
+    }
+
+    /** Call History tab body, so the lead page can refresh it without a full reload. */
+    public function callHistory(Lead $lead)
+    {
+        abort_unless($this->canAccessLead($lead), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $lead_call_history = $this->leadCallHistory($lead, LeadContact::where('lead_id', $lead->id)->get());
+
+        return response()->json([
+            'count' => $lead_call_history->count(),
+            'html' => view('leads.partials.call-history', [
+                'lead' => $lead,
+                'lead_call_history' => $lead_call_history,
+                'canViewCallRecordings' => Gate::allows('call_management_access'),
+            ])->render(),
+        ]);
+    }
+
+    private function leadCallHistory(Lead $lead, $leadContacts)
+    {
+        $history = CallLog::with([
+            'user:id,name',
+            'initiatedBy:id,name',
+            'contact:id,name,title,phone_number',
+            'feedbackStatus:id,display_name,status_name',
+        ])->where('lead_id', $lead->id)
+            ->orderByDesc('started_at')->orderByDesc('id')
+            ->get();
+
+        // Older/inbound calls have no lead_contact_id: match them by number.
+        $contactsByNumber = $leadContacts->keyBy(fn ($contact) => substr(preg_replace('/\D+/', '', (string) $contact->phone_number), -10));
+        $history->each(function ($call) use ($contactsByNumber) {
+            $call->matched_contact = $call->contact
+                ?? $contactsByNumber->get(substr(preg_replace('/\D+/', '', (string) $call->number), -10));
+        });
+
+        return $history;
     }
 
     public function callStatus(Lead $lead, CallLog $callLog)

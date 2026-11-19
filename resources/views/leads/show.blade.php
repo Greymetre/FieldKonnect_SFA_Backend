@@ -1583,6 +1583,79 @@
             justify-content: center;
             white-space: nowrap;
         }
+        /* Call remark */
+        .lead-detail-page .call-remark-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 8px;
+            padding: 4px 12px;
+            border: 1px solid var(--fk-list-accent);
+            border-radius: 16px;
+            background: transparent;
+            color: var(--fk-list-accent);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .lead-detail-page .call-remark-btn i {
+            font-size: 15px;
+        }
+
+        .call-feedback-modal {
+            border: 1px solid var(--fk-list-border-strong) !important;
+            border-radius: 16px !important;
+            background: var(--fk-list-panel, #0b1736) !important;
+            color: var(--fk-list-text) !important;
+            backdrop-filter: blur(12px);
+        }
+
+        .call-feedback-modal .modal-header,
+        .call-feedback-modal .modal-footer {
+            border-color: var(--fk-list-border) !important;
+        }
+
+        .call-feedback-modal .modal-title {
+            font-weight: 600;
+            color: var(--fk-list-heading);
+        }
+
+        .call-feedback-modal .modal-header small,
+        .call-feedback-modal .call-feedback-hint {
+            color: var(--fk-list-muted);
+            font-size: 12px;
+        }
+
+        .call-feedback-modal .close {
+            color: var(--fk-list-text);
+            text-shadow: none;
+        }
+
+        .call-feedback-modal label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--fk-list-muted);
+        }
+
+        .call-feedback-modal .form-control {
+            border: 1px solid var(--fk-list-border-strong) !important;
+            border-radius: 10px !important;
+            background: var(--fk-list-control) !important;
+            color: var(--fk-list-text) !important;
+            padding: 8px 12px;
+        }
+
+        .call-feedback-modal select.form-control {
+            height: 42px;
+        }
+
+        .call-feedback-modal .call-feedback-error {
+            margin: 0;
+            min-height: 18px;
+            font-size: 12px;
+            color: #ef4444;
+        }
     </style>
     <div class="row lead-detail-page">
         <div class="col-md-12">
@@ -2377,67 +2450,7 @@ action="{{ route('lead-opportunities.store') }}" class="form-horizontal taskform
         <span class="call-history-sub">{{ $lead->assign_user ? 'Calls ring '.$lead->assign_user->name.' first' : 'Assign this lead to enable calling' }}</span>
     </div>
     <div class="card-body" id="lead-call-history-body">
-        @if($lead_call_history->isEmpty())
-        <p class="lead-empty">No calls yet. Use the call icon on a contact to start one.</p>
-        @else
-        <ul class="call-history-list">
-            @foreach($lead_call_history as $call)
-            @php
-                $callStatus = strtolower((string) $call->plivo_status);
-                $isLive = ! $call->completed_at && ! in_array($callStatus, ['failed', 'completed', 'hangup', 'busy', 'no-answer', 'timeout', 'cancel', 'agent-unavailable'], true);
-                if ($isLive) {
-                    [$badgeClass, $badgeText] = ['live', 'In progress'];
-                } elseif ($call->answered_at && (int) $call->duration > 0) {
-                    [$badgeClass, $badgeText] = ['ok', 'Connected'];
-                } elseif (in_array($callStatus, ['failed', 'agent-unavailable'], true)) {
-                    [$badgeClass, $badgeText] = ['bad', 'Failed'];
-                } else {
-                    [$badgeClass, $badgeText] = ['warn', $callStatus === 'busy' ? 'Busy' : 'Not answered'];
-                }
-                $durationSeconds = (int) $call->duration;
-                $durationText = $durationSeconds > 0 ? sprintf('%d:%02d', intdiv($durationSeconds, 60), $durationSeconds % 60) : '-';
-                $callContact = $call->matched_contact;
-                $isInbound = $call->direction === 'inbound';
-                $callTime = $call->started_at ?? $call->created_at;
-            @endphp
-            <li class="call-history-item">
-                <div class="call-history-icon {{ $isInbound ? 'in' : 'out' }}" title="{{ $isInbound ? 'Incoming call' : 'Outgoing call' }}">
-                    <i class="material-icons">{{ $isInbound ? 'call_received' : 'call_made' }}</i>
-                </div>
-                <div class="call-history-main">
-                    <div class="call-history-top">
-                        <strong>{{ $callContact->name ?? 'Unknown contact' }}</strong>
-                        <span class="call-badge {{ $badgeClass }}">{{ $badgeText }}</span>
-                    </div>
-                    <div class="call-history-meta">
-                        <span><i class="material-icons">phone</i>{{ $call->number }}</span>
-                        @if($callContact && $callContact->title)<span>{{ $callContact->title }}</span>@endif
-                    </div>
-                    <div class="call-history-meta">
-                        <span><i class="material-icons">support_agent</i>{{ $isInbound ? 'Received by' : 'Called by' }} {{ $call->user->name ?? '-' }}</span>
-                        @if($call->initiatedBy && (int) $call->initiated_by !== (int) $call->user_id)
-                        <span><i class="material-icons">touch_app</i>Started by {{ $call->initiatedBy->name }}</span>
-                        @endif
-                        <span><i class="material-icons">timer</i>{{ $durationText }}</span>
-                    </div>
-                    @if($call->feedbackStatus || $call->remark)
-                    <div class="call-history-remark">
-                        @if($call->feedbackStatus)<span class="call-badge neutral">{{ $call->feedbackStatus->display_name ?: $call->feedbackStatus->status_name }}</span>@endif
-                        {{ $call->remark }}
-                    </div>
-                    @endif
-                    @if($canViewCallRecordings && $call->recording_url)
-                    <audio class="call-history-audio" controls preload="none" src="{{ route('call-management.recording', $call->id) }}"></audio>
-                    @endif
-                </div>
-                <div class="call-history-time">
-                    <span>{{ $callTime ? $callTime->format('d M Y') : '' }}</span>
-                    <span>{{ $callTime ? $callTime->format('h:i A') : '' }}</span>
-                </div>
-            </li>
-            @endforeach
-        </ul>
-        @endif
+        @include('leads.partials.call-history')
     </div>
 </div>
 
@@ -2876,6 +2889,45 @@ action="{{ route('leads.storeAddress') }}" class="form-horizontal" id="frmLeadsA
 <!-- Load jQuery and moment.js -->
 
 <script type="text/javascript" src="{{ url('/').'/'.asset('vendor/ckeditor/js/ckeditor.js') }}"></script>
+
+<div class="modal fade" id="callFeedbackModal" tabindex="-1" role="dialog" aria-labelledby="callFeedbackTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content call-feedback-modal">
+            <form id="callFeedbackForm">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title" id="callFeedbackTitle">Call remark</h5>
+                        <small id="callFeedbackSub"></small>
+                    </div>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="callFeedbackUrl">
+                    <div class="form-group">
+                        <label for="callFeedbackStatus">Lead status</label>
+                        <select class="form-control" id="callFeedbackStatus" name="status">
+                            <option value="0" {{ (int) $lead->status === 0 ? 'selected' : '' }}>Pending</option>
+                            @foreach($status as $stat)
+                            <option value="{{ $stat['id'] }}" {{ (int) $lead->status === (int) $stat['id'] ? 'selected' : '' }}>{{ $stat['display_name'] }}</option>
+                            @endforeach
+                        </select>
+                        <small class="call-feedback-hint">Keep the current status or move the lead to a new one.</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="callFeedbackRemark">Remark <span style="color:red">*</span></label>
+                        <textarea class="form-control" id="callFeedbackRemark" name="remark" rows="4" maxlength="1000" placeholder="What was discussed on the call?" required></textarea>
+                    </div>
+                    <p class="call-feedback-error" id="callFeedbackError"></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-primary" data-dismiss="modal">Later</button>
+                    <button type="submit" class="btn btn-primary" id="callFeedbackSave">Save remark</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 
     jQuery(document).ready(function(){
@@ -3153,8 +3205,23 @@ $('#frmLeadOpportunitiesCreate #o_amount').val(opportunity_data.amount);
         $('#city_id').select2({
             dropdownParent: $('#AddAddressModel')
         });
+        // Search pincodes on demand instead of rendering every pincode.
         $('#pincode_id').select2({
-            dropdownParent: $('#AddAddressModel')
+            dropdownParent: $('#AddAddressModel'),
+            placeholder: 'Search pincode',
+            minimumInputLength: 3,
+            ajax: {
+                url: "{{ url('getPincodeSearch') }}",
+                dataType: 'json',
+                delay: 300,
+                data: function (params) { return { q: params.term, page: params.page || 1 }; },
+                processResults: function (data) {
+                    return {
+                        results: (data.results || []).map(function (item) { return { id: item.id, text: item.pincode }; }),
+                        pagination: { more: data.pagination && data.pagination.more }
+                    };
+                }
+            }
         });
     }
 
@@ -3235,7 +3302,7 @@ function activateNotesTab() {
                 success: function (res) {
                     Swal.fire({ icon: 'success', title: 'Call started', text: res.message, timer: 4000 });
                     refreshLeadCallHistory();
-                    pollLeadCall(res.data.status_url, $btn, 0);
+                    pollLeadCall(res.data.status_url, $btn, 0, res.data.feedback_url, name + (phone ? ' · ' + phone : ''));
                 },
                 error: function (xhr) {
                     $btn.removeClass('is-calling');
@@ -3247,29 +3314,68 @@ function activateNotesTab() {
     });
 
     function refreshLeadCallHistory() {
-        $.get(window.location.href, function (html) {
-            var $page = $('<div>').append($.parseHTML(html));
-            var body = $page.find('#lead-call-history-body').html();
-            if (body !== undefined) $('#lead-call-history-body').html(body);
-            var tab = $page.find('#call-history-tab').html();
-            if (tab !== undefined) $('#call-history-tab').html(tab);
+        $.get("{{ route('leads.calls.history', $lead->id) }}", function (res) {
+            $('#lead-call-history-body').html(res.html);
+            $('#call-history-tab .call-history-count').remove();
+            if (res.count) $('#call-history-tab').append('<span class="call-history-count">' + res.count + '</span>');
         });
     }
 
     // Poll every 5s (max ~15 min) so the history updates when the call ends.
-    function pollLeadCall(statusUrl, $btn, attempt) {
+    function pollLeadCall(statusUrl, $btn, attempt, feedbackUrl, callLabel) {
         if (attempt > 180) { $btn.removeClass('is-calling'); return; }
         setTimeout(function () {
             $.get(statusUrl, function (res) {
                 if (res.data && res.data.completed) {
                     $btn.removeClass('is-calling');
                     refreshLeadCallHistory();
+                    if (feedbackUrl) openCallFeedback(feedbackUrl, callLabel);
                 } else {
-                    pollLeadCall(statusUrl, $btn, attempt + 1);
+                    pollLeadCall(statusUrl, $btn, attempt + 1, feedbackUrl, callLabel);
                 }
             }).fail(function () { $btn.removeClass('is-calling'); });
         }, 5000);
     }
+
+    // Post-call remark + lead status (same as the mobile app).
+    function openCallFeedback(url, label) {
+        $('#callFeedbackUrl').val(url);
+        $('#callFeedbackSub').text(label || '');
+        $('#callFeedbackRemark').val('');
+        $('#callFeedbackError').text('');
+        $('#callFeedbackModal').modal('show');
+        setTimeout(function () { $('#callFeedbackRemark').trigger('focus'); }, 400);
+    }
+
+    $(document).on('click', '.call-remark-btn', function () {
+        openCallFeedback($(this).data('feedback-url'), $(this).data('call-label'));
+    });
+
+    $('#callFeedbackForm').on('submit', function (event) {
+        event.preventDefault();
+        var remark = $.trim($('#callFeedbackRemark').val());
+        if (!remark) {
+            $('#callFeedbackError').text('Please enter a remark.');
+            return;
+        }
+        var $save = $('#callFeedbackSave').prop('disabled', true).text('Saving...');
+        $.ajax({
+            url: $('#callFeedbackUrl').val(),
+            method: 'POST',
+            data: { _token: '{{ csrf_token() }}', status: $('#callFeedbackStatus').val(), remark: remark },
+            success: function () {
+                $('#callFeedbackModal').modal('hide');
+                window.location.reload();
+            },
+            error: function (xhr) {
+                var res = xhr.responseJSON || {};
+                var message = res.message || 'Could not save the remark.';
+                if (res.errors) message = Object.values(res.errors)[0][0];
+                $('#callFeedbackError').text(message);
+            },
+            complete: function () { $save.prop('disabled', false).text('Save remark'); }
+        });
+    });
 
 </script>
 </x-app-layout>
