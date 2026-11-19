@@ -6,6 +6,7 @@ use App\Exports\ExcelExport;
 use App\Http\Controllers\Controller;
 use App\Services\CallTranscriptionService;
 use App\Models\CallLog;
+use App\Models\ClientCallLog;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,233 +17,287 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class LeadCallLogController extends Controller
 {
+    private const TERMINAL_STATUSES = ['failed', 'completed', 'hangup', 'busy', 'no-answer', 'no_answer', 'timeout', 'cancel', 'cancelled', 'rejected', 'agent-unavailable'];
+
     /**
-     * Get call logs (optionally filter by user or lead).
+     * Lead call history dashboard (page + DataTables JSON).
      */
     public function index(Request $request)
     {
         abort_if(Gate::denies('call_management_access'), 403, '403 Forbidden');
-        $user_ids = getUsersReportingToAuth();
-        $users = User::select('id', 'name')->where('active', 'Y');
 
-        if (!Auth::user()->hasRole('superadmin') && !Auth::user()->hasRole('Admin')) {
-            $users = $users->whereIn('id', $user_ids);
+        if (! $request->ajax()) {
+            $users = User::select('id', 'name')->where('active', 'Y');
+            if (! $this->isAdmin()) {
+                $users->whereIn('id', getUsersReportingToAuth());
+            }
+            $users = $users->orderBy('name')->get();
+
+            return view('call_logs.index', compact('users'));
         }
-        $users = $users->get();
 
-        if ($request->ajax()) {
-            // Base query
-            $query = CallLog::with(['user:id,name', 'lead:id,company_name,status', 'lead.contacts:id,lead_id,name,phone_number'])
-                ->whereNotNull('lead_id')
-                ->whereNull('call_management_entry_id');
+        // Summary cards and agent table ignore the status filter so the cards
+        // always show the full split for the selected agent/date/direction.
+        $baseQuery = $this->filteredQuery($request, false);
+        $summary = $this->summary(clone $baseQuery);
 
-            if ($request->has('user_id') && !empty($request->user_id)) {
-                $query->where('user_id', $request->user_id);
-            }
+        $query = $this->filteredQuery($request, true);
+        $recordsTotal = (clone $query)->count();
 
-            if ($request->has('start_date') && !empty($request->start_date)) {
-                $query->whereDate('started_at', '>=', $request->start_date);
-            }
-
-            if ($request->has('end_date') && !empty($request->end_date)) {
-                $query->whereDate('started_at', '<=', $request->end_date);
-            }
-
-            if (!Auth::user()->hasRole('superadmin') && !Auth::user()->hasRole('Admin')) {
-                $query->whereIn('user_id', $user_ids); // ✅ should be user_id not id
-            }
-
-            if ($request->has('lead_id')) {
-                $query->where('lead_id', $request->lead_id);
-            }
-            if (in_array($request->input('direction'), ['inbound', 'outbound'], true)) {
-                $query->where('direction', $request->input('direction'));
-            }
-            $statusSearch = trim((string) $request->input('columns.7.search.value', ''));
-            if ($statusSearch !== '') {
-            
-                // Adjust this according to how your status is stored
-                if (strtolower($statusSearch) === 'connected') {
-                    $query->where('status', 1)
-                        ->whereNotNull('recording_url')
-                        ->where('recording_url', '!=', '');
-                } elseif (in_array(strtolower($statusSearch), ['no response', 'not connected'], true)) {
-                    $query->where(function ($statusQuery) {
-                        $statusQuery->where('status', 0)
-                            ->orWhereNull('recording_url')
-                            ->orWhere('recording_url', '');
+        $search = trim((string) $request->input('search.value', $request->input('search_text', '')));
+        if ($search !== '') {
+            $query->where(function ($searchQuery) use ($search) {
+                $searchQuery->where('number', 'like', "%{$search}%")
+                    ->orWhereHas('user', fn ($userQuery) => $userQuery->where('name', 'like', "%{$search}%"))
+                    ->orWhereHas('lead', function ($leadQuery) use ($search) {
+                        $leadQuery->where('company_name', 'like', "%{$search}%")
+                            ->orWhereHas('contacts', fn ($contactQuery) => $contactQuery->where('name', 'like', "%{$search}%"));
                     });
-                } else {
-                    // Optional: fuzzy match for text
-                    $query->where('status', 'like', "%{$statusSearch}%");
-                }
-            }
-            // Clone query for summary counts before DataTables' text search/pagination.
-            $countsQuery = clone $query;
+            });
+        }
 
-            $totalCalls = $countsQuery->count();
-            $connectedCalls = (clone $countsQuery)->where('status', 1)
-                ->whereNotNull('recording_url')
-                ->where('recording_url', '!=', '')
-                ->count();
-            $noResponseCalls = (clone $countsQuery)->where(function ($statusQuery) {
-                $statusQuery->where('status', 0)
-                    ->orWhereNull('recording_url')
-                    ->orWhere('recording_url', '');
-            })->count();
-            $totalDurationSeconds = (int) (clone $countsQuery)
-                ->whereNotNull('recording_url')
-                ->where('recording_url', '!=', '')
-                ->sum('duration');
+        $recordsFiltered = (clone $query)->count();
+        $start = max(0, (int) $request->input('start', 0));
+        $length = min(100, max(1, (int) $request->input('length', 10)));
+        $callLogs = $query->orderByDesc('started_at')->orderByDesc('id')->skip($start)->take($length)->get();
 
-            // Convert seconds to HH:MM:SS
-            $hours = floor($totalDurationSeconds / 3600);
-            $minutes = floor(($totalDurationSeconds % 3600) / 60);
-            $seconds = $totalDurationSeconds % 60;
-            $formattedDuration = sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
+        $data = $callLogs->map(function (CallLog $row) {
+            $duration = (int) $row->duration;
+            $connected = $this->isConnected($row);
+            $contact = $this->contactFor($row);
 
-            $search = trim((string) $request->input('search.value', ''));
-            if ($search !== '') {
-                $query->where(function ($searchQuery) use ($search) {
-                    $searchQuery->where('number', 'like', "%{$search}%")
-                        ->orWhereHas('user', function ($userQuery) use ($search) {
-                            $userQuery->where('name', 'like', "%{$search}%");
-                        })
-                        ->orWhereHas('lead', function ($leadQuery) use ($search) {
-                            $leadQuery->where('company_name', 'like', "%{$search}%")
-                                ->orWhereHas('contacts', function ($contactQuery) use ($search) {
-                                    $contactQuery->where('name', 'like', "%{$search}%");
-                                });
-                        });
-                });
-            }
+            return [
+                'detail_url' => route('call-management.show', $row),
+                'agent' => $row->user?->name ?: '-',
+                'customer_name' => $contact?->name ?: '-',
+                'company_name' => $row->lead?->company_name ?: '-',
+                'lead_url' => $row->lead ? route('leads.show', $row->lead) : null,
+                'number' => $row->number ?: '-',
+                'direction' => $row->direction === 'inbound' ? 'inbound' : 'outbound',
+                'date' => $row->started_at?->format('d M Y') ?: '-',
+                'time' => $row->started_at?->format('h:i A') ?: '',
+                'duration' => $this->formatDuration($duration),
+                'connected' => $connected,
+                'live' => $this->isLive($row),
+                'recording_url' => ! empty($row->recording_url) ? route('call-management.recording', $row) : null,
+            ];
+        })->values();
 
-            $filteredCalls = (clone $query)->count();
-            $start = max(0, (int) $request->input('start', 0));
-            $length = min(100, max(1, (int) $request->input('length', 10)));
-            $callLogs = $query->orderByDesc('started_at')->skip($start)->take($length)->get();
+        return response()->json([
+            'draw' => (int) $request->input('draw', 0),
+            'recordsTotal' => $recordsTotal,
+            'recordsFiltered' => $recordsFiltered,
+            'data' => $data,
+            'summary' => $summary,
+        ]);
+    }
 
-            $data = $callLogs->map(function (CallLog $row) {
-                $duration = (int) $row->duration;
-                $connected = (int) $row->status === 1 && !empty($row->recording_url);
-                $badge = $connected ? 'badge-success' : 'badge-danger';
-                $label = $connected ? 'Connected' : 'Not Connected';
-                $contact = $row->lead?->contacts->first();
+    /**
+     * Agents currently on (or being connected to) a call, for the live panel.
+     */
+    public function live()
+    {
+        abort_if(Gate::denies('call_management_access'), 403, '403 Forbidden');
+        $userIds = $this->isAdmin() ? null : getUsersReportingToAuth();
 
-                $recording = '<span class="text-muted">Processing / unavailable</span>';
-                if (!empty($row->recording_url)) {
-                    $recording = '<audio controls preload="metadata" style="width:220px;height:36px" src="'
-                        .e(route('call-management.recording', $row)).'">'
-                        .'Your browser does not support audio playback.</audio>';
-                }
+        $calls = CallLog::with(['user:id,name', 'lead:id,company_name', 'lead.contacts:id,lead_id,name,phone_number', 'contact:id,name', 'callManagementEntry:id,firm_name,contact_person_name'])
+            ->whereNull('completed_at')
+            ->where('started_at', '>=', now()->subHours(2))
+            ->whereNotIn('plivo_status', self::TERMINAL_STATUSES)
+            ->when($userIds, fn ($query) => $query->whereIn('user_id', $userIds))
+            ->orderByDesc('started_at')
+            ->get()
+            ->map(function (CallLog $call) {
+                $contact = $call->lead_id ? $this->contactFor($call) : null;
 
                 return [
-                    'detail_url' => route('call-management.show', $row),
-                    'user' => ['name' => $row->user?->name ?: '-'],
-                    'customer_name' => $contact?->name ?: '-',
-                    'lead' => ['company_name' => $row->lead?->company_name ?: '-'],
-                    'number' => $row->number ?: '-',
-                    'direction' => $row->direction === 'inbound'
-                        ? '<span class="badge badge-info">Inbound</span>'
-                        : '<span class="badge badge-primary">Outbound</span>',
-                    'started_at' => $row->started_at?->format('d/m/Y h:i A') ?: '-',
-                    'duration' => sprintf(
-                        '%02d:%02d:%02d',
-                        intdiv($duration, 3600),
-                        intdiv($duration % 3600, 60),
-                        $duration % 60
-                    ),
-                    'status' => '<span class="badge '.$badge.'">'.$label.'</span>',
-                    'recording' => $recording,
+                    'agent' => $call->user?->name ?: 'Unassigned',
+                    'customer' => $contact?->name ?: ($call->callManagementEntry?->contact_person_name ?: $call->callManagementEntry?->firm_name ?: $call->number),
+                    'company' => $call->lead?->company_name ?: ($call->callManagementEntry?->firm_name ?: ''),
+                    'type' => $call->lead_id ? 'Lead' : 'Customer Calling',
+                    'direction' => $call->direction === 'inbound' ? 'inbound' : 'outbound',
+                    'stage' => $this->liveStage((string) $call->plivo_status, (bool) $call->answered_at),
+                    'since' => ($call->answered_at ?: $call->started_at)?->timestamp,
                 ];
-            })->values();
+            });
 
-            return response()->json([
-                'draw' => (int) $request->input('draw', 0),
-                'recordsTotal' => $totalCalls,
-                'recordsFiltered' => $filteredCalls,
-                'data' => $data,
-                'summary' => [
-                    'total' => $totalCalls,
-                    'connected' => $connectedCalls,
-                    'no_response' => $noResponseCalls,
-                    'total_duration' => $formattedDuration,
-                ],
+        $clientCalls = ClientCallLog::with(['assignedAgent:id,name', 'entry:id,firm_name,contact_person_name'])
+            ->whereNull('completed_at')
+            ->where('started_at', '>=', now()->subHours(2))
+            ->whereNotIn('status', array_merge(self::TERMINAL_STATUSES, ['missed', 'unknown_missed', 'unassigned_missed', 'agent_unavailable']))
+            ->when($userIds, fn ($query) => $query->whereIn('assigned_user_id', $userIds))
+            ->orderByDesc('started_at')
+            ->get()
+            ->map(fn (ClientCallLog $call) => [
+                'agent' => $call->assignedAgent?->name ?: 'Unassigned',
+                'customer' => $call->entry?->contact_person_name ?: ($call->entry?->firm_name ?: $call->customer_number),
+                'company' => $call->entry?->firm_name ?: '',
+                'type' => 'Client Calling',
+                'direction' => $call->direction === 'inbound' ? 'inbound' : 'outbound',
+                'stage' => $this->liveStage((string) $call->status, (bool) $call->answered_at),
+                'since' => ($call->answered_at ?: $call->started_at)?->timestamp,
             ]);
-        }
 
-        return view('call_logs.index', compact('users'));
+        return response()->json([
+            'success' => true,
+            'server_time' => now()->timestamp,
+            'data' => $calls->concat($clientCalls)->values(),
+        ]);
     }
 
     public function download(Request $request)
     {
         abort_if(Gate::denies('call_management_access'), 403, '403 Forbidden');
         $filename = 'Call Logs.xlsx';
-        $user_ids = getUsersReportingToAuth();
 
-        $query = CallLog::with(['user:id,name', 'lead:id,company_name,status', 'lead.contacts:id,lead_id,name,phone_number'])
+        $call_logs = $this->filteredQuery($request, true)->orderBy('started_at', 'desc')->get();
+
+        $headers = ['Agent', 'Customer', 'Lead', 'Contact No', 'Direction', 'Date & Time', 'Call Duration', 'Call Status', 'Plivo Status', 'Call UUID', 'Recording URL', 'Cost', 'Remark'];
+        $rows = $call_logs->map(fn (CallLog $call_log) => [
+            $call_log->user?->name ?? 'Not Found',
+            $this->contactFor($call_log)?->name ?: 'Not Found',
+            $call_log->lead ? $call_log->lead->company_name : 'Not Found',
+            $call_log->number,
+            $call_log->direction === 'inbound' ? 'Inbound' : 'Outbound',
+            $call_log->started_at?->format('d/m/Y h:i A'),
+            $this->formatDuration((int) $call_log->duration),
+            $this->isConnected($call_log) ? 'Connected' : 'Not Connected',
+            $call_log->plivo_status,
+            $call_log->plivo_call_uuid,
+            $call_log->recording_url,
+            $call_log->cost,
+            $call_log->remark ?? '',
+        ])->all();
+
+        return Excel::download(new ExcelExport($headers, $rows), $filename);
+    }
+
+    private function filteredQuery(Request $request, bool $withStatus)
+    {
+        $query = CallLog::with(['user:id,name', 'lead:id,company_name,status', 'lead.contacts:id,lead_id,name,phone_number', 'contact:id,name'])
             ->whereNotNull('lead_id')
             ->whereNull('call_management_entry_id');
 
-        if ($request->has('user_id') && !empty($request->user_id)) {
+        if (! $this->isAdmin()) {
+            $query->whereIn('user_id', getUsersReportingToAuth());
+        }
+        if ($request->filled('user_id')) {
             $query->where('user_id', $request->user_id);
         }
-
-        if ($request->has('start_date') && !empty($request->start_date)) {
+        if ($request->filled('start_date')) {
             $query->whereDate('started_at', '>=', $request->start_date);
         }
-
-        if ($request->has('end_date') && !empty($request->end_date)) {
+        if ($request->filled('end_date')) {
             $query->whereDate('started_at', '<=', $request->end_date);
         }
-
-        if (!Auth::user()->hasRole('superadmin') && !Auth::user()->hasRole('Admin')) {
-            $query->whereIn('user_id', $user_ids); // ✅ should be user_id not id
-        }
-
-        if ($request->has('lead_id')) {
+        if ($request->filled('lead_id')) {
             $query->where('lead_id', $request->lead_id);
         }
         if (in_array($request->input('direction'), ['inbound', 'outbound'], true)) {
             $query->where('direction', $request->input('direction'));
         }
 
-        $call_logs = $query->orderBy('started_at', 'desc')->get();
-
-        $rows = [];
-
-        $headers = ['Agent', 'Customer', 'Lead', 'Contact No', 'Direction', 'Date & Time', 'Call Duration', 'Call Status', 'Plivo Status', 'Call UUID', 'Recording URL', 'Cost', 'Remark'];
-
-        foreach ($call_logs as $call_log) {
-            $seconds = (int) $call_log->duration;
-
-            $hours = floor($seconds / 3600);
-            $minutes = floor(($seconds % 3600) / 60);
-            $seconds = $seconds % 60;
-
-            $call_duration = sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
-            $rows[] = [
-                $call_log->user?->name ?? 'Not Found',
-                optional(optional($call_log->lead)->contacts->first())->name ?: 'Not Found',
-                $call_log->lead ? $call_log->lead->company_name : 'Not Found',
-                $call_log->number,
-                $call_log->direction === 'inbound' ? 'Inbound' : 'Outbound',
-                date('d/m/Y h:i A', strtotime($call_log->started_at)),
-                $call_duration,
-                $call_log->status == 0 ? 'No Response' : 'Connected',
-                $call_log->plivo_status,
-                $call_log->plivo_call_uuid,
-                $call_log->recording_url,
-                $call_log->cost,
-                '',
-            ];
+        $status = $withStatus ? $request->input('call_status') : null;
+        if ($status === 'connected') {
+            $this->whereConnected($query);
+        } elseif ($status === 'not_connected') {
+            $query->where(function ($statusQuery) {
+                $statusQuery->where('status', 0)
+                    ->orWhereNull('recording_url')
+                    ->orWhere('recording_url', '');
+            });
         }
 
-        // ✅ Export
-        $export = new ExcelExport($headers, $rows);
-        return Excel::download($export, $filename);
+        return $query;
+    }
 
+    private function summary($query): array
+    {
+        $total = (clone $query)->count();
+        $connectedQuery = $this->whereConnected(clone $query);
+        $connected = (clone $connectedQuery)->count();
+        $talkSeconds = (int) (clone $connectedQuery)->sum('duration');
 
+        $agents = (clone $query)->setEagerLoads([])
+            ->selectRaw('user_id, COUNT(*) as total_calls')
+            ->selectRaw("SUM(CASE WHEN status = 1 AND recording_url IS NOT NULL AND recording_url <> '' THEN 1 ELSE 0 END) as connected_calls")
+            ->selectRaw("SUM(CASE WHEN status = 1 AND recording_url IS NOT NULL AND recording_url <> '' THEN duration ELSE 0 END) as talk_seconds")
+            ->groupBy('user_id')
+            ->orderByDesc('total_calls')
+            ->limit(10)
+            ->get();
+        $agentNames = User::whereIn('id', $agents->pluck('user_id')->filter())->pluck('name', 'id');
+
+        return [
+            'total' => $total,
+            'connected' => $connected,
+            'no_response' => $total - $connected,
+            'connect_rate' => $total > 0 ? round($connected * 100 / $total) : 0,
+            'total_duration' => $this->formatDuration($talkSeconds),
+            'avg_duration' => $this->formatDuration($connected > 0 ? intdiv($talkSeconds, $connected) : 0),
+            'agents' => $agents->map(fn ($row) => [
+                'name' => $agentNames[$row->user_id] ?? 'Unassigned',
+                'total' => (int) $row->total_calls,
+                'connected' => (int) $row->connected_calls,
+                'rate' => $row->total_calls > 0 ? round($row->connected_calls * 100 / $row->total_calls) : 0,
+                'talk_time' => $this->formatDuration((int) $row->talk_seconds),
+            ])->values(),
+        ];
+    }
+
+    private function whereConnected($query)
+    {
+        return $query->where('status', 1)
+            ->whereNotNull('recording_url')
+            ->where('recording_url', '!=', '');
+    }
+
+    private function isConnected(CallLog $call): bool
+    {
+        return (int) $call->status === 1 && ! empty($call->recording_url);
+    }
+
+    private function isLive(CallLog $call): bool
+    {
+        return ! $call->completed_at
+            && $call->started_at?->gt(now()->subHours(2))
+            && ! in_array(strtolower((string) $call->plivo_status), self::TERMINAL_STATUSES, true);
+    }
+
+    private function liveStage(string $status, bool $agentAnswered): string
+    {
+        $status = strtolower($status);
+        if (in_array($status, ['answer', 'answered', 'in-progress', 'in_progress'], true)) {
+            return 'On call';
+        }
+        if ($agentAnswered || in_array($status, ['agent-answered', 'agent_answered', 'browser-connected'], true)) {
+            return 'Connecting customer';
+        }
+
+        return 'Ringing agent';
+    }
+
+    /** The dialled contact, falling back to a number match, then the first contact. */
+    private function contactFor(CallLog $call)
+    {
+        if ($call->contact) {
+            return $call->contact;
+        }
+        $contacts = $call->lead?->contacts ?? collect();
+        $target = substr(preg_replace('/\D+/', '', (string) $call->number), -10);
+
+        return $contacts->first(fn ($contact) => $target !== '' && substr(preg_replace('/\D+/', '', (string) $contact->phone_number), -10) === $target)
+            ?? $contacts->first();
+    }
+
+    private function formatDuration(int $seconds): string
+    {
+        return sprintf('%02d:%02d:%02d', intdiv($seconds, 3600), intdiv($seconds % 3600, 60), $seconds % 60);
+    }
+
+    private function isAdmin(): bool
+    {
+        return Auth::user()->hasRole('superadmin') || Auth::user()->hasRole('Admin');
     }
 
     public function recording(CallLog $callLog)

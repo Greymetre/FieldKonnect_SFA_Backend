@@ -1393,6 +1393,7 @@ Route::post('ajax/user-cities-by-district', [TourController::class, 'ajaxUserCit
     // Call Management
     Route::get('call-management', [LeadCallLogController::class, 'index'])->name('call-management.index');
     Route::get('call-management/download', [LeadCallLogController::class, 'download'])->name('call-management.download');
+    Route::get('call-management/live', [LeadCallLogController::class, 'live'])->name('call-management.live');
     Route::get('call-management/{callLog}/recording', [LeadCallLogController::class, 'recording'])->name('call-management.recording');
     Route::post('call-management/{callLog}/transcribe', [LeadCallLogController::class, 'transcribe'])->name('call-management.transcribe');
     Route::get('call-management/{callLog}', [LeadCallLogController::class, 'show'])->name('call-management.show');
