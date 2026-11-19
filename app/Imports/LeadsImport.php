@@ -105,6 +105,7 @@ class LeadsImport implements ToCollection, WithValidation, WithHeadingRow, WithB
             'customer_name',
             'customer_number',
             'email',
+            'contact_url',
             'lead_source',
             'pincode',
             'place',
@@ -143,9 +144,7 @@ class LeadsImport implements ToCollection, WithValidation, WithHeadingRow, WithB
             'created_by' => Auth::id(),
             'lead_generation_date' => $leadGenerationDate ?: null,
             'lead_source' => $row['lead_source'] ?? null,
-            'assign_to' => !empty($row['assignee'])
-                ? User::where('name', $row['assignee'])->value('id')
-                : null,
+            'assign_to' => $this->resolveAssigneeId($row['assignee'] ?? null),
             'alternate_number' => isset($row['alternet_number']) ? (string) $row['alternet_number'] : null,
             'revenue_rs_cr' => $row['revenue_rs_cr'] ?? null,
             'others_1' => $row['others_1'] ?? null,
@@ -181,6 +180,7 @@ class LeadsImport implements ToCollection, WithValidation, WithHeadingRow, WithB
             'title' => $row['designation'] ?? null,
             'phone_number' => isset($row['customer_number']) ? (string) $row['customer_number'] : null,
             'email' => $row['email'] ?? null,
+            'url' => $row['contact_url'] ?? null,
             'lead_source' => $row['lead_source'] ?? null,
         ];
 
@@ -201,6 +201,18 @@ class LeadsImport implements ToCollection, WithValidation, WithHeadingRow, WithB
             'external_contact_id' => $externalContactId,
             'created_by' => Auth::id(),
         ]);
+    }
+
+    // Assignee column accepts either the user's name or email.
+    private function resolveAssigneeId($value): ?int
+    {
+        $value = trim((string) $value);
+        if ($value === '') {
+            return null;
+        }
+
+        return User::where('email', $value)->value('id')
+            ?? User::where('name', $value)->value('id');
     }
 
     // Excel returns numeric IDs as int/float (e.g. 101.0); store them as clean strings.
@@ -232,13 +244,18 @@ class LeadsImport implements ToCollection, WithValidation, WithHeadingRow, WithB
             'alternet_number' => 'nullable',
             'revenue_rs_cr' => 'nullable',
             'email' => 'nullable',
+            'contact_url' => 'nullable',
             'pincode' => 'nullable|exists:pincodes,pincode',
             'city' => 'nullable|exists:cities,city_name',
             'district' => 'nullable|exists:districts,district_name',
             'state' => 'nullable|exists:states,state_name',
             'lead_type' => 'nullable|exists:statuses,display_name',
             'lead_source' => 'nullable|in:Google,Indiamart,Justdial,Instagram,Facebook,LinkedIn,Self',
-            'assignee' => 'nullable|exists:users,name',
+            'assignee' => ['nullable', function ($attribute, $value, $fail) {
+                if (! $this->resolveAssigneeId($value)) {
+                    $fail('The selected assignee name/email was not found in users.');
+                }
+            }],
             'place' => 'nullable',
             'address' => 'nullable',
             'note' => 'nullable',
@@ -263,7 +280,6 @@ class LeadsImport implements ToCollection, WithValidation, WithHeadingRow, WithB
 
             'lead_type.exists' => 'The lead type must be a valid status name.',
             'lead_source.in' => 'The lead source must be one of: Google, Indiamart, Justdial, Instagram, Facebook, LinkedIn, Self.',
-            'assignee.exists' => 'The selected assignee name was not found in users.',
         ];
     }
 

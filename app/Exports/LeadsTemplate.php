@@ -31,6 +31,7 @@ class LeadsTemplate implements FromCollection,WithHeadings,ShouldAutoSize
             'Alternet Number',
             'Revenue (Rs Cr)',
             'Email',
+            'Contact URL',
             'Lead Source',
             'Pincode',
             'Place',
