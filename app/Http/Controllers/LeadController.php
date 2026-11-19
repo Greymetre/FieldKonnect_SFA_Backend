@@ -263,10 +263,14 @@ class LeadController extends Controller
         $page_number = intval($request->input('page_number'));
         $page_result = ($page_number - 1) * $results_per_page;
 
-        $leads = Lead::with(['contacts', 'opportunities']);
+        $leads = Lead::with([
+            'contacts' => fn ($query) => $query->orderBy('id'),
+            'opportunities', 'tasks', 'notes', 'assign_user', 'createdby', 'status_is',
+            'address.pincodename', 'address.cityname', 'address.districtname',
+        ]);
         if (!Auth::user()->hasRole('superadmin') && !Auth::user()->hasRole('Admin')) {
             $user_ids = getUsersReportingToAuth();
-            $leads->where('assign_to', $user_ids);
+            $leads->whereIn('assign_to', $user_ids);
         }
 
         $datetime = $request->input('datetime');
@@ -314,15 +318,9 @@ class LeadController extends Controller
             $othersMap[$item->id] = $othersData;
         }
 
-        // Build rows
-        $rows = $leads->map(function ($item) use ($allOtherKeys, $othersMap) {
-            $contact = $item->contacts->first();
-
-            $contacts_name = $contact?->name ?? '';
-            $contacts_number = $contact?->phone_number ?? '';
-            $contacts_email = $contact?->email ?? '';
-            $contacts_lead_source = $contact?->lead_source ?? '';
-
+        // Build rows: one row per contact (same layout as the import sheet),
+        // repeating the lead columns; a lead without contacts still gets one row.
+        $rows = $leads->flatMap(function ($item) use ($allOtherKeys, $othersMap) {
             $address = $item->address;
 
             $othersData = $othersMap[$item->id] ?? [];
@@ -366,46 +364,56 @@ class LeadController extends Controller
                 }
             }
 
-            // Base export row
-            $baseRow = [
-                $item->id,
-                $item->lead_generation_date,
-                $item->company_name,
-                $contacts_name,
-                $contacts_number,
-                $contacts_email,
-                $contacts_lead_source,
-                $item->location_address ?? 'N/A',
-                $address->pincodename?->pincode ?? '',
-                $address->cityname?->city_name ?? '',
-                $address->districtname?->district_name ?? '',
-                $item->status_is?->status_name ?? 'Pending',
-                $address->address1 ?? '',
-                $item->assign_user?->name ?? '',
-                '', // Lead Status (custom field?)
-                $item->close_duration ?? '',
-                $item->createdby?->name ?? '',
-                $leadTime,
-                $item->opportunities->sum('amount') ?? '0',
-                $latestTask,
-                // latest 5 notes:
-                ...$noteCols,
-            ];
+            $contacts = $item->contacts->isNotEmpty() ? $item->contacts : collect([null]);
 
-            // Add ordered others consistently
-            $orderedOthers = collect($allOtherKeys)->mapWithKeys(function ($key) use ($othersData) {
-                return [$key => $othersData[$key] ?? ''];
-            })->toArray();
+            return $contacts->map(function ($contact) use ($item, $address, $othersData, $allOtherKeys, $leadTime, $latestTask, $noteCols) {
+                // Base export row
+                $baseRow = [
+                    $item->id,
+                    $item->external_lead_id ?? '',
+                    $item->lead_generation_date,
+                    $item->company_name,
+                    $contact?->external_contact_id ?? '',
+                    $contact?->name ?? '',
+                    $contact?->title ?? '',
+                    $contact?->phone_number ?? '',
+                    $contact?->email ?? '',
+                    $contact?->lead_source ?? '',
+                    $item->location_address ?? 'N/A',
+                    $address?->pincodename?->pincode ?? '',
+                    $address?->cityname?->city_name ?? '',
+                    $address?->districtname?->district_name ?? '',
+                    $item->status_is?->status_name ?? 'Pending',
+                    $address?->address1 ?? '',
+                    $item->assign_user?->name ?? '',
+                    '', // Lead Status (custom field?)
+                    $item->close_duration ?? '',
+                    $item->createdby?->name ?? '',
+                    $leadTime,
+                    $item->opportunities->sum('amount') ?? '0',
+                    $latestTask,
+                    // latest 5 notes:
+                    ...$noteCols,
+                ];
 
-            return array_merge($baseRow, $orderedOthers);
-        })->toArray();
+                // Add ordered others consistently
+                $orderedOthers = collect($allOtherKeys)->mapWithKeys(function ($key) use ($othersData) {
+                    return [$key => $othersData[$key] ?? ''];
+                })->toArray();
+
+                return array_merge($baseRow, $orderedOthers);
+            });
+        })->values()->toArray();
 
         // Build headers
         $baseHeaders = [
             'ID',
+            'Lead ID',
             'Lead Generation Date',
             'Firm Name',
+            'Contact ID',
             'Customer Name',
+            'Designation',
             'Customer Number',
             'Email',
             'Lead Source',
