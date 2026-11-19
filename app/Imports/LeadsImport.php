@@ -40,123 +40,190 @@ class LeadsImport implements ToCollection, WithValidation, WithHeadingRow, WithB
 
     public function collection(Collection $rows)
     {
+        // New leads created per assignee in this chunk (for notifications).
+        $assignedCounts = [];
+
         foreach ($rows as $row) {
             // Do not create an empty lead for blank/spacer rows in the sheet.
             if ($row->filter(fn ($value) => $value !== null && $value !== '')->isEmpty()) {
                 continue;
             }
 
-            $leadGenerationDate = $row['lead_generation_date'] ?? null;
-            if (is_numeric($leadGenerationDate)) {
-                $excelDate = $leadGenerationDate - 25569; // Adjust for Excel's epoch
-                $unixTimestamp = strtotime('+' . $excelDate . ' days', strtotime('1970-01-01'));
-                $leadGenerationDate = Carbon::createFromTimestamp($unixTimestamp)->toDateString();
-            } elseif (!empty($leadGenerationDate)) {
-                $leadGenerationDate = Carbon::parse($leadGenerationDate)->toDateString();
-            }
-            $status = !empty($row['lead_type'])
-                ? Status::where('display_name', $row['lead_type'])->value('id')
-                : null;
-            $expectedKeys = [
-                'lead_generation_date',
-                'firm_name',
-                'customer_name',
-                'customer_number',
-                'email',
-                'lead_source',
-                'pincode',
-                'place',
-                'city',
-                'district',
-                'state',
-                'address',
-                'lead_type',
-                'assignee',
-                'note',
-                'website',
-                'designation',
-                'alternet_number',
-                'revenue_rs_cr',
-                'others_1',
-                'others_2',
-                'others_3',
-                'others_4',
-                'others_5',
-            ];
+            $externalLeadId = $this->normalizeExternalId($row['lead_id'] ?? null);
+            $externalContactId = $this->normalizeExternalId($row['contact_id'] ?? null);
 
-            // Step 1: Collect other (unexpected) keys without null/empty key or value
-            $otherData = collect($row)->filter(function ($value, $key) use ($expectedKeys) {
-                return !in_array($key, $expectedKeys) && !is_null($key) && $key !== '' && !is_null($value) && $value !== '';
-            })->toArray();
-
-            $otherData = !empty($otherData)
-                ? json_encode($otherData, JSON_UNESCAPED_UNICODE)
+            // Rows sharing a Lead ID belong to one lead: reuse it (also across
+            // earlier chunks/imports) and only attach the extra contact.
+            $lead = $externalLeadId !== null
+                ? Lead::where('external_lead_id', $externalLeadId)->first()
                 : null;
-            $lead = Lead::create([
-                'company_name' => $row['firm_name'] ?? null,
-                'company_url' => $row['website'] ?? null,
-                'status' => $status ?? 0,
-                'created_by' => Auth::id(),
-                'lead_generation_date' => $leadGenerationDate ?: null,
-                'lead_source' => $row['lead_source'] ?? null,
-                'assign_to' => !empty($row['assignee'])
-                    ? User::where('name', $row['assignee'])->value('id')
-                    : null,
-                'alternate_number' => isset($row['alternet_number']) ? (string) $row['alternet_number'] : null,
-                'revenue_rs_cr' => $row['revenue_rs_cr'] ?? null,
-                'others_1' => $row['others_1'] ?? null,
-                'others_2' => $row['others_2'] ?? null,
-                'others_3' => $row['others_3'] ?? null,
-                'others_4' => $row['others_4'] ?? null,
-                'others_5' => $row['others_5'] ?? null,
-                'others' => $otherData,
-                'import_batch_order' => $this->importBatchOrder,
-                'import_row_order' => ++$this->importRowOrder,
-            ]);
-            if ($lead->id) {
-                Address::create([
-                    'model_type' => 'App\Models\Lead',
-                    'model_id' => $lead->id,
-                    'address1' => $row['address'] ?? '',
-                    'address2' => $row['place'] ?? '',
-                    'country_id' => 1,
-                    'pincode_id' => !empty($row['pincode']) ? Pincode::where('pincode', $row['pincode'])->value('id') : null,
-                    'state_id' => !empty($row['state']) ? State::where('state_name', $row['state'])->value('id') : null,
-                    'city_id' => !empty($row['city']) ? City::where('city_name', $row['city'])->value('id') : null,
-                    'district_id' => !empty($row['district']) ? District::where('district_name', $row['district'])->value('id') : null,
-                    'created_by' => Auth::id()
-                ]);
-                LeadContact::create([
-                    'name' => $row['customer_name'] ?? null,
-                    'title' => $row['designation'] ?? null,
-                    'phone_number' => isset($row['customer_number']) ? (string) $row['customer_number'] : null,
-                    'email' => $row['email'] ?? null,
-                    'lead_source' => $row['lead_source'] ?? null,
-                    'lead_id' => $lead->id,
-                    'created_by' => Auth::id()
-                ]);
-                if (isset($row['note']) && !empty($row['note'])) {
-                    $note = LeadNote::create([
-                        'note' => $row['note'],
-                        'lead_id' => $lead->id,
-                        'created_by' => Auth::id()
-                    ]);
+
+            if (! $lead) {
+                $lead = $this->createLead($row, $externalLeadId);
+
+                if ($lead->assign_to) {
+                    $assignedCounts[$lead->assign_to] = ($assignedCounts[$lead->assign_to] ?? 0) + 1;
                 }
             }
-        }
-        $assignees = $rows->pluck('assignee')->countBy()->toArray();
-        foreach ($assignees as $assignee => $count) {
-            $user = User::where('name', $assignee)->first();
-            if (!empty($user)) {
-                SendPushNotification($user->id, '🟢 You have been assigned ' . $count . ' new leads.');
-                StoreLeadNotification(null, 'Assigned Lead', '🟢 You have been assigned ' . $count . ' new leads.', $user->id);
+
+            $this->upsertContact($lead, $row, $externalContactId);
+
+            if (!empty($row['note'])) {
+                LeadNote::firstOrCreate([
+                    'note' => $row['note'],
+                    'lead_id' => $lead->id,
+                ], [
+                    'created_by' => Auth::id(),
+                ]);
             }
         }
+
+        foreach ($assignedCounts as $userId => $count) {
+            SendPushNotification($userId, '🟢 You have been assigned ' . $count . ' new leads.');
+            StoreLeadNotification(null, 'Assigned Lead', '🟢 You have been assigned ' . $count . ' new leads.', $userId);
+        }
+    }
+
+    private function createLead($row, ?string $externalLeadId): Lead
+    {
+        $leadGenerationDate = $row['lead_generation_date'] ?? null;
+        if (is_numeric($leadGenerationDate)) {
+            $excelDate = $leadGenerationDate - 25569; // Adjust for Excel's epoch
+            $unixTimestamp = strtotime('+' . $excelDate . ' days', strtotime('1970-01-01'));
+            $leadGenerationDate = Carbon::createFromTimestamp($unixTimestamp)->toDateString();
+        } elseif (!empty($leadGenerationDate)) {
+            $leadGenerationDate = Carbon::parse($leadGenerationDate)->toDateString();
+        }
+        $status = !empty($row['lead_type'])
+            ? Status::where('display_name', $row['lead_type'])->value('id')
+            : null;
+        $expectedKeys = [
+            'lead_id',
+            'contact_id',
+            'lead_generation_date',
+            'firm_name',
+            'customer_name',
+            'customer_number',
+            'email',
+            'lead_source',
+            'pincode',
+            'place',
+            'city',
+            'district',
+            'state',
+            'address',
+            'lead_type',
+            'assignee',
+            'note',
+            'website',
+            'designation',
+            'alternet_number',
+            'revenue_rs_cr',
+            'others_1',
+            'others_2',
+            'others_3',
+            'others_4',
+            'others_5',
+        ];
+
+        // Collect other (unexpected) keys without null/empty key or value
+        $otherData = collect($row)->filter(function ($value, $key) use ($expectedKeys) {
+            return !in_array($key, $expectedKeys) && !is_null($key) && $key !== '' && !is_null($value) && $value !== '';
+        })->toArray();
+
+        $otherData = !empty($otherData)
+            ? json_encode($otherData, JSON_UNESCAPED_UNICODE)
+            : null;
+
+        $lead = Lead::create([
+            'external_lead_id' => $externalLeadId,
+            'company_name' => $row['firm_name'] ?? null,
+            'company_url' => $row['website'] ?? null,
+            'status' => $status ?? 0,
+            'created_by' => Auth::id(),
+            'lead_generation_date' => $leadGenerationDate ?: null,
+            'lead_source' => $row['lead_source'] ?? null,
+            'assign_to' => !empty($row['assignee'])
+                ? User::where('name', $row['assignee'])->value('id')
+                : null,
+            'alternate_number' => isset($row['alternet_number']) ? (string) $row['alternet_number'] : null,
+            'revenue_rs_cr' => $row['revenue_rs_cr'] ?? null,
+            'others_1' => $row['others_1'] ?? null,
+            'others_2' => $row['others_2'] ?? null,
+            'others_3' => $row['others_3'] ?? null,
+            'others_4' => $row['others_4'] ?? null,
+            'others_5' => $row['others_5'] ?? null,
+            'others' => $otherData,
+            'import_batch_order' => $this->importBatchOrder,
+            'import_row_order' => ++$this->importRowOrder,
+        ]);
+
+        Address::create([
+            'model_type' => 'App\Models\Lead',
+            'model_id' => $lead->id,
+            'address1' => $row['address'] ?? '',
+            'address2' => $row['place'] ?? '',
+            'country_id' => 1,
+            'pincode_id' => !empty($row['pincode']) ? Pincode::where('pincode', $row['pincode'])->value('id') : null,
+            'state_id' => !empty($row['state']) ? State::where('state_name', $row['state'])->value('id') : null,
+            'city_id' => !empty($row['city']) ? City::where('city_name', $row['city'])->value('id') : null,
+            'district_id' => !empty($row['district']) ? District::where('district_name', $row['district'])->value('id') : null,
+            'created_by' => Auth::id()
+        ]);
+
+        return $lead;
+    }
+
+    private function upsertContact(Lead $lead, $row, ?string $externalContactId): void
+    {
+        $data = [
+            'name' => $row['customer_name'] ?? null,
+            'title' => $row['designation'] ?? null,
+            'phone_number' => isset($row['customer_number']) ? (string) $row['customer_number'] : null,
+            'email' => $row['email'] ?? null,
+            'lead_source' => $row['lead_source'] ?? null,
+        ];
+
+        // Same Contact ID on the same lead updates that contact instead of duplicating it.
+        if ($externalContactId !== null) {
+            $contact = LeadContact::where('lead_id', $lead->id)
+                ->where('external_contact_id', $externalContactId)
+                ->first();
+
+            if ($contact) {
+                $contact->update($data);
+                return;
+            }
+        }
+
+        LeadContact::create($data + [
+            'lead_id' => $lead->id,
+            'external_contact_id' => $externalContactId,
+            'created_by' => Auth::id(),
+        ]);
+    }
+
+    // Excel returns numeric IDs as int/float (e.g. 101.0); store them as clean strings.
+    private function normalizeExternalId($value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if (is_float($value) && floor($value) == $value) {
+            $value = (string) (int) $value;
+        }
+
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
     }
 
     public function rules(): array
     {
         return [
+            'lead_id' => 'nullable',
+            'contact_id' => 'nullable',
             'lead_generation_date' => 'nullable',
             'firm_name' => 'required',
             'customer_name' => 'required',

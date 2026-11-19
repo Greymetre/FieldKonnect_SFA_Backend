@@ -11,6 +11,7 @@ class LeadContact extends Model
 
     protected $fillable = [
         'lead_id',
+        'external_contact_id',
         'name',
         'title',
         'phone_number',

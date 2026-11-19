@@ -12,6 +12,7 @@ class Lead extends Model implements HasMedia
     use HasFactory,InteractsWithMedia;
 
     protected $fillable = [
+        'external_lead_id',
         'company_name',
         'company_url',
         'address_id',

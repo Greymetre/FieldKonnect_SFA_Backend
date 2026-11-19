@@ -21,8 +21,10 @@ class LeadsTemplate implements FromCollection,WithHeadings,ShouldAutoSize
     public function headings(): array
     {
         return [
+            'Lead ID',
             'Lead Generation Date',
             'Firm Name',
+            'Contact ID',
             'Customer Name',
             'Designation',
             'Customer Number',
