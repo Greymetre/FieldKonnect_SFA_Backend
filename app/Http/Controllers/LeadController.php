@@ -302,6 +302,17 @@ class LeadController extends Controller
 
         $leads = $leads->orderBy('created_at', 'desc')->groupBy('id')->get();
 
+        // "Lead Status" column = status picked after the lead's latest call.
+        $latestCallStatus = CallLog::query()
+            ->whereIn('lead_id', $leads->pluck('id'))
+            ->whereNotNull('feedback_status_id')
+            ->orderByDesc('id')
+            ->get(['lead_id', 'feedback_status_id'])
+            ->unique('lead_id');
+        $statusNames = Status::whereIn('id', $latestCallStatus->pluck('feedback_status_id'))->get()
+            ->mapWithKeys(fn ($status) => [$status->id => $status->display_name ?: $status->status_name]);
+        $leadCallStatus = $latestCallStatus->mapWithKeys(fn ($call) => [$call->lead_id => $statusNames[$call->feedback_status_id] ?? '']);
+
         $allOtherKeys = [];
         $othersMap = [];
 
@@ -318,7 +329,7 @@ class LeadController extends Controller
 
         // Build rows: one row per contact (same layout as the import sheet),
         // repeating the lead columns; a lead without contacts still gets one row.
-        $rows = $leads->flatMap(function ($item) use ($allOtherKeys, $othersMap) {
+        $rows = $leads->flatMap(function ($item) use ($allOtherKeys, $othersMap, $leadCallStatus) {
             $address = $item->address;
 
             $othersData = $othersMap[$item->id] ?? [];
@@ -369,7 +380,9 @@ class LeadController extends Controller
 
             $contacts = $item->contacts->isNotEmpty() ? $item->contacts : collect([null]);
 
-            return $contacts->map(function ($contact) use ($item, $address, $othersData, $allOtherKeys, $leadTime, $latestTask, $noteCols, $leadGenerationDate) {
+            $callStatus = $leadCallStatus[$item->id] ?? '';
+
+            return $contacts->map(function ($contact) use ($item, $address, $othersData, $allOtherKeys, $leadTime, $latestTask, $noteCols, $leadGenerationDate, $callStatus) {
                 // Base export row
                 $baseRow = [
                     $item->id,
@@ -389,7 +402,7 @@ class LeadController extends Controller
                     $item->status_is?->status_name ?? 'Pending',
                     $address?->address1 ?? '',
                     $item->assign_user?->name ?? '',
-                    '', // Lead Status (custom field?)
+                    $callStatus, // Lead Status = latest call status
                     $item->close_duration ?? '',
                     $item->createdby?->name ?? '',
                     $leadTime,
@@ -805,8 +818,9 @@ class LeadController extends Controller
 
         $media_items = $lead->getMedia('lead_file');
         $status = Status::where('module', 'LeadStatus')->where('active', 'Y')->get();
+        $call_statuses = Status::where('module', Status::MODULE_LEAD_CALL_FEEDBACK)->where('active', 'Y')->orderBy('id')->get(['id', 'display_name', 'status_name']);
         $opportunity_status = OpportunitieStatus::orderBy('ordering', 'asc')->pluck('status_name', 'id')->toArray();
-        return view('leads.show', compact('lead', 'lead_contacts', 'lead_notes', 'users', 'lead_tasks', 'lead_opportunities', 'countries', 'pincodes', 'address', 'address_data', 'media_items', 'combined', 'status', 'opportunity_status', 'lead_call_history', 'canViewCallRecordings'));
+        return view('leads.show', compact('lead', 'lead_contacts', 'lead_notes', 'users', 'lead_tasks', 'lead_opportunities', 'countries', 'pincodes', 'address', 'address_data', 'media_items', 'combined', 'status', 'opportunity_status', 'lead_call_history', 'canViewCallRecordings', 'call_statuses'));
     }
 
     /**
@@ -1041,18 +1055,26 @@ class LeadController extends Controller
         abort_unless($this->canAccessLead($lead), Response::HTTP_FORBIDDEN, '403 Forbidden');
         abort_unless((int) $callLog->lead_id === (int) $lead->id, Response::HTTP_NOT_FOUND);
 
+        $callStatusesExist = Status::where('module', Status::MODULE_LEAD_CALL_FEEDBACK)->where('active', 'Y')->exists();
         $validated = $request->validate([
+            'call_status' => [$callStatusesExist ? 'required' : 'nullable', 'integer'],
             'status' => ['required', 'integer', 'min:0'],
             'remark' => ['required', 'string', 'max:1000'],
-        ]);
+        ], ['call_status.required' => 'Please select the call status.']);
         $statusId = (int) $validated['status'];
         abort_unless(
             $statusId === 0 || Status::whereKey($statusId)->where('module', 'LeadStatus')->where('active', 'Y')->exists(),
             Response::HTTP_UNPROCESSABLE_ENTITY,
-            'Please select a valid lead status.'
+            'Please select a valid lead type.'
         );
 
-        $calls->saveFeedback($callLog, $statusId, $validated['remark'], Auth::user());
+        $calls->saveFeedback(
+            $callLog,
+            $statusId,
+            $validated['remark'],
+            Auth::user(),
+            ! empty($validated['call_status']) ? (int) $validated['call_status'] : null
+        );
 
         return response()->json(['success' => true, 'message' => 'Call remark saved.']);
     }

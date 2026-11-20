@@ -106,7 +106,7 @@ class LeadCallService
      * Status 0 means "Pending". Older app builds may still send a lead call
      * feedback status, which is stored on the call but does not change the lead.
      */
-    public function saveFeedback(CallLog $callLog, int $statusId, string $message, User $by): ?Status
+    public function saveFeedback(CallLog $callLog, int $statusId, string $message, User $by, ?int $callStatusId = null): ?Status
     {
         $status = $statusId === 0 ? null : Status::query()
             ->whereKey($statusId)
@@ -115,9 +115,17 @@ class LeadCallService
             ->firstOrFail();
         $isLeadStatus = $statusId === 0 || $status->module === 'LeadStatus';
 
-        DB::transaction(function () use ($callLog, $status, $statusId, $isLeadStatus, $message, $by) {
+        // Web sends the call outcome ("Lead Call Feedback" status) separately from
+        // the lead type; the call stores the outcome, the lead gets the type.
+        $callStatus = $callStatusId ? Status::query()
+            ->whereKey($callStatusId)
+            ->where('module', Status::MODULE_LEAD_CALL_FEEDBACK)
+            ->where('active', 'Y')
+            ->firstOrFail() : null;
+
+        DB::transaction(function () use ($callLog, $status, $callStatus, $statusId, $isLeadStatus, $message, $by) {
             $callLog->update([
-                'feedback_status_id' => $status?->id,
+                'feedback_status_id' => $callStatus?->id ?? $status?->id,
                 'remark' => trim($message),
             ]);
 

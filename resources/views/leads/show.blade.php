@@ -2904,14 +2904,28 @@ action="{{ route('leads.storeAddress') }}" class="form-horizontal" id="frmLeadsA
                 <div class="modal-body">
                     <input type="hidden" id="callFeedbackUrl">
                     <div class="form-group">
-                        <label for="callFeedbackStatus">Lead status</label>
+                        <label for="callFeedbackCallStatus">Call status @if($call_statuses->isNotEmpty())<span style="color:red">*</span>@endif</label>
+                        @if($call_statuses->isNotEmpty())
+                        <select class="form-control" id="callFeedbackCallStatus" name="call_status">
+                            <option value="">Select what happened on the call</option>
+                            @foreach($call_statuses as $callStatus)
+                            <option value="{{ $callStatus->id }}">{{ $callStatus->display_name ?: $callStatus->status_name }}</option>
+                            @endforeach
+                        </select>
+                        @else
+                        <input type="hidden" id="callFeedbackCallStatus" value="">
+                        <small class="call-feedback-hint d-block">No call statuses yet. Add them in Status master with module "Lead Call Feedback".</small>
+                        @endif
+                    </div>
+                    <div class="form-group">
+                        <label for="callFeedbackStatus">Lead type</label>
                         <select class="form-control" id="callFeedbackStatus" name="status">
                             <option value="0" {{ (int) $lead->status === 0 ? 'selected' : '' }}>Pending</option>
                             @foreach($status as $stat)
                             <option value="{{ $stat['id'] }}" {{ (int) $lead->status === (int) $stat['id'] ? 'selected' : '' }}>{{ $stat['display_name'] }}</option>
                             @endforeach
                         </select>
-                        <small class="call-feedback-hint">Keep the current status or move the lead to a new one.</small>
+                        <small class="call-feedback-hint">Keep the current lead type or change it.</small>
                     </div>
                     <div class="form-group">
                         <label for="callFeedbackRemark">Remark <span style="color:red">*</span></label>
@@ -3342,6 +3356,7 @@ function activateNotesTab() {
         $('#callFeedbackUrl').val(url);
         $('#callFeedbackSub').text(label || '');
         $('#callFeedbackRemark').val('');
+        $('select#callFeedbackCallStatus').val('');
         $('#callFeedbackError').text('');
         $('#callFeedbackModal').modal('show');
         setTimeout(function () { $('#callFeedbackRemark').trigger('focus'); }, 400);
@@ -3354,6 +3369,10 @@ function activateNotesTab() {
     $('#callFeedbackForm').on('submit', function (event) {
         event.preventDefault();
         var remark = $.trim($('#callFeedbackRemark').val());
+        if ($('select#callFeedbackCallStatus').length && !$('#callFeedbackCallStatus').val()) {
+            $('#callFeedbackError').text('Please select the call status.');
+            return;
+        }
         if (!remark) {
             $('#callFeedbackError').text('Please enter a remark.');
             return;
@@ -3362,7 +3381,7 @@ function activateNotesTab() {
         $.ajax({
             url: $('#callFeedbackUrl').val(),
             method: 'POST',
-            data: { _token: '{{ csrf_token() }}', status: $('#callFeedbackStatus').val(), remark: remark },
+            data: { _token: '{{ csrf_token() }}', call_status: $('#callFeedbackCallStatus').val(), status: $('#callFeedbackStatus').val(), remark: remark },
             success: function () {
                 $('#callFeedbackModal').modal('hide');
                 window.location.reload();
