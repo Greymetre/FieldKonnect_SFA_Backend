@@ -753,7 +753,10 @@ class LeadController extends Controller
         })->select('id', 'name')->orderBy('name')->get();
 
         $lead_contacts = LeadContact::where(['lead_id' => $lead->id])->get();
-        $lead_notes = LeadNote::where(['lead_id' => $lead->id])->get();
+        $all_notes = LeadNote::with('createdby:id,name')->where(['lead_id' => $lead->id])->orderByDesc('created_at')->get();
+        $lead_notes = $all_notes->where('type', LeadNote::TYPE_NOTE)->values();
+        $email_drafts = $all_notes->where('type', LeadNote::TYPE_EMAIL)->values();
+        $linkedin_drafts = $all_notes->where('type', LeadNote::TYPE_LINKEDIN)->values();
         $lead_tasks = LeadTask::where(['lead_id' => $lead->id])->get();
         $lead_opportunities = LeadOpportunity::where(['lead_id' => $lead->id])->get();
 
@@ -793,9 +796,7 @@ class LeadController extends Controller
         $opportunities = LeadOpportunity::where(['lead_id' => $lead->id])->get();
         $call_logs = CallLog::where(['lead_id' => $lead->id])->whereNotNull('remark')->get();
 
-        $lead_notes->each(function ($item) {
-            $item->type = 'note';
-        });
+        // Notes and drafts keep their own type (note / email / linkedin).
         $lead_tasks->each(function ($item) {
             $item->type = 'task';
         });
@@ -810,7 +811,7 @@ class LeadController extends Controller
         });
 
 
-        $combined = $lead_notes->merge($lead_tasks)->merge($lead_logs)->merge($opportunities)->merge($call_logs)->sortByDesc('created_at')->values();
+        $combined = $all_notes->merge($lead_tasks)->merge($lead_logs)->merge($opportunities)->merge($call_logs)->sortByDesc('created_at')->values();
         // $combined = $lead_notes->merge($lead_tasks)->merge($lead_logs)->sortByDesc('created_at')->values();
 
         $lead_call_history = $this->leadCallHistory($lead, $lead_contacts);
@@ -820,7 +821,7 @@ class LeadController extends Controller
         $status = Status::where('module', 'LeadStatus')->where('active', 'Y')->get();
         $call_statuses = Status::where('module', Status::MODULE_LEAD_CALL_FEEDBACK)->where('active', 'Y')->orderBy('id')->get(['id', 'display_name', 'status_name']);
         $opportunity_status = OpportunitieStatus::orderBy('ordering', 'asc')->pluck('status_name', 'id')->toArray();
-        return view('leads.show', compact('lead', 'lead_contacts', 'lead_notes', 'users', 'lead_tasks', 'lead_opportunities', 'countries', 'pincodes', 'address', 'address_data', 'media_items', 'combined', 'status', 'opportunity_status', 'lead_call_history', 'canViewCallRecordings', 'call_statuses'));
+        return view('leads.show', compact('lead', 'lead_contacts', 'lead_notes', 'users', 'lead_tasks', 'lead_opportunities', 'countries', 'pincodes', 'address', 'address_data', 'media_items', 'combined', 'status', 'opportunity_status', 'lead_call_history', 'canViewCallRecordings', 'call_statuses', 'email_drafts', 'linkedin_drafts'));
     }
 
     /**
@@ -932,7 +933,7 @@ class LeadController extends Controller
             LeadContact::create($contactData + ['lead_id' => $lead->id, 'created_by' => Auth::id()]);
         }
 
-        $firstNote = LeadNote::where('lead_id', $lead->id)->orderBy('id')->first();
+        $firstNote = LeadNote::where('lead_id', $lead->id)->where('type', LeadNote::TYPE_NOTE)->orderBy('id')->first();
         if ($firstNote) {
             $firstNote->update(['note' => $request->note]);
         } elseif ($request->filled('note')) {

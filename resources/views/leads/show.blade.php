@@ -1656,6 +1656,93 @@
             font-size: 12px;
             color: #ef4444;
         }
+        /* Email / LinkedIn drafts */
+        .lead-detail-page .draft-new-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 5px 12px;
+            border: 1px solid var(--fk-list-accent);
+            border-radius: 16px;
+            background: transparent;
+            color: var(--fk-list-accent);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .lead-detail-page .draft-new-btn i { font-size: 16px; }
+
+        .lead-detail-page .draft-form {
+            margin: 6px 0 16px;
+        }
+
+        .lead-detail-page .draft-form .draft-text {
+            min-height: 150px;
+            border: 1px solid var(--fk-list-border-strong) !important;
+            border-radius: 10px !important;
+            background: var(--fk-list-control) !important;
+            color: var(--fk-list-text) !important;
+            padding: 10px 12px;
+            white-space: pre-wrap;
+        }
+
+        .lead-detail-page .draft-form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .lead-detail-page .draft-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--fk-list-border);
+        }
+
+        .lead-detail-page .draft-item:last-child { border-bottom: 0; }
+
+        .lead-detail-page .draft-icon {
+            flex: 0 0 36px;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--fk-list-control);
+            border: 1px solid var(--fk-list-border-strong);
+            color: var(--fk-list-accent);
+        }
+
+        .lead-detail-page .draft-icon i { font-size: 18px; }
+        .lead-detail-page .draft-main { flex: 1 1 auto; min-width: 0; }
+
+        .lead-detail-page .draft-text-view,
+        .lead-detail-page .activity-draft-text {
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            font-size: 13px;
+            line-height: 1.55;
+            color: var(--fk-list-text);
+        }
+
+        .lead-detail-page .draft-meta {
+            margin-top: 6px;
+            font-size: 12px;
+            color: var(--fk-list-muted);
+        }
+
+        .lead-detail-page .draft-actions {
+            flex: 0 0 auto;
+            display: flex;
+            gap: 6px;
+        }
+
+        .lead-detail-page .draft-actions .contact-icon-btn { width: 30px; height: 30px; padding: 0; }
+        .lead-detail-page .activity-draft-icon { font-size: 22px; color: #1b5e20; }
     </style>
     <div class="row lead-detail-page">
         <div class="col-md-12">
@@ -1763,9 +1850,6 @@
         </div>
         <div class="button-box">
             <button class="btn btn-primary me-2" onclick="activateNotesTab()"><i class="material-icons">sticky_note_2</i> Note</button>
-            @if($lead_contacts[0]->email ?? '')
-            <a href="mailto:{{ $lead_contacts[0]->email }}" class="btn btn-outline-primary email_s"><i class="material-icons">mail</i> Email</a>
-            @endif
         </div>
     </div>
 
@@ -2305,14 +2389,15 @@ action="{{ route('lead-opportunities.store') }}" class="form-horizontal taskform
         <a class="nav-link" id="notes-tab" data-toggle="tab" href="#notes" role="tab">Notes</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link" id="files-tab" data-toggle="tab" href="#files" role="tab">Files</a>
+        <a class="nav-link" id="email-drafts-tab" data-toggle="tab" href="#email-drafts" role="tab">Email Draft @if($email_drafts->count())<span class="call-history-count">{{ $email_drafts->count() }}</span>@endif</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" id="linkedin-drafts-tab" data-toggle="tab" href="#linkedin-drafts" role="tab">LinkedIn Draft @if($linkedin_drafts->count())<span class="call-history-count">{{ $linkedin_drafts->count() }}</span>@endif</a>
     </li>
     <li class="nav-item">
         <a class="nav-link" id="tasks-tab" data-toggle="tab" href="#tasks" role="tab">Tasks</a>
     </li>
-    <li class="nav-item">
-        <a class="nav-link" id="others-tab" data-toggle="tab" href="#others" role="tab">Others</a>
-    </li>
+
 </ul>
 </div>
 
@@ -2365,7 +2450,11 @@ action="{{ route('lead-opportunities.store') }}" class="form-horizontal taskform
         <div class="list-one">
             <div class="image_box">
                 <div class="greenbox">
-                    @if($lead_note->type == 'note')
+                    @if($lead_note->type == 'email')
+                    <i class="material-icons activity-draft-icon">mail</i>
+                    @elseif($lead_note->type == 'linkedin')
+                    <i class="material-icons activity-draft-icon">work</i>
+                    @elseif($lead_note->type == 'note')
                     <img src="{{url('/').'/'.asset('assets/img')}}/cup.svg">
                     @elseif($lead_note->type == 'task')
                     <img src="{{url('/').'/'.asset('assets/img')}}/task_logo.png" width="35">
@@ -2379,7 +2468,11 @@ action="{{ route('lead-opportunities.store') }}" class="form-horizontal taskform
                 </div>
             </div>
             <div class="listdata">
-                @if($lead_note->type == 'note')
+                @if(in_array($lead_note->type, ['email', 'linkedin'], true))
+                <h5>{{ $lead_note->type == 'email' ? 'Email Draft' : 'LinkedIn Draft' }}</h5>
+                <div class="activity-draft-text">{{ \Illuminate\Support\Str::limit($lead_note->note, 400) }}</div>
+                <p>Created by: {{ $lead_note->createdby->name ?? '' }}</p>
+                @elseif($lead_note->type == 'note')
                 <h5>Note</h5>
                 <h5>{!! $lead_note->note??''!!}</h5>
                 <p>Created by: {!! $lead_note->createdby? $lead_note->createdby->name : ''!!}</p>
@@ -2543,96 +2636,8 @@ action="{{ route('lead-opportunities.store') }}" class="form-horizontal taskform
 @endforeach
 </div>
 </div>
-<div class="tab-pane fade" id="files" role="tabpanel">
-
-    <div class="card-header">
-        <p class="hed m-0">Files</p>
-    </div>
-    <div class="card-body">
-    @if(count($media_items) > 0)
-        <ul class="">
-            @foreach($media_items as $media)
-            <li class="d-flex flex-row justify-content-between align-items-center mb-3">
-                <a href="{{ $media->getFullUrl() }}" target="_blank">
-                    <div class="imagebox">
-                        <div class="d-flex flex-row align-items-center">
-                            @php
-                                $mime = $media->mime_type;
-                            @endphp
-
-                            @if(str_contains($mime, 'image'))
-                                <img src="{{ $media->getFullUrl() }}" alt="{{ $media->name }}" width="50" height="50">
-                            @elseif(str_contains($mime, 'pdf'))
-                                <img src="{{ url('/').'/'.asset('assets/img/pdf-icon.jpg') }}" alt="PDF" width="40"> 
-                            @elseif(str_contains($mime, 'spreadsheet') || str_contains($mime, 'excel'))
-                                <img src="{{ url('/').'/'.asset('assets/img/excel-icon.png') }}" alt="Excel" width="40"> 
-                            @else
-                                <img src="{{ url('/').'/'.asset('images/file-icon.png') }}" alt="File" width="40"> 
-                            @endif
-
-                            <div class="imagedata">
-                                <p>{{ $media->file_name }}</p>
-                                <p>{{ strtoupper($media->mime_type) }} • {{ number_format($media->size / 1024, 1) }} KB</p>
-                            </div>
-                        </div>
-                    </div>
-                </a>
-                <div class="buttonbox">
-                    <a href="{{ route('leads-deleteMedia') }}?media_id={{ $media->id }}"
-                    onclick="return confirm('Do you really want to delete?')">
-                    <img src="{{ url('/').'/'.asset('assets/img/deletbox.svg') }}">
-                    </a>
-                </div>
-            </li>
-            @endforeach 
-        </ul>
-        @endif
-
-        <div>
-
-            <form method="POST" 
-            action="{{ route('leads.uploadleadFiles') }}" class="form-horizontal taskform" id="frmLeadfileUpload" enctype="multipart/form-data">
-            @csrf
-            <div class="row">
-                <div class="col-md-12 pr-1 pl-1">
-                    <input type="hidden" name="lead_id" value="{{$lead->id??''}}">
-                    <div class="fileinput fileinput-new" data-provides="fileinput">
-
-                        <label class="bmd-label-floating">Lead file</label>
-                        @if ($errors->has('lead_file'))
-                        <div class="error col-lg-12"><p class="text-danger">{{ $errors->first('lead_file') }}</p></div>
-                        @endif
-
-                        <div class="fileinput-new thumbnail">
-                            <img src="{!! url('/').'/'.asset('assets/img/up.png') !!}" class="imagepreview7">
-                            <div class="selectThumbnail">
-                                <span class="btn btn-just-icon btn-round btn-file">
-                                    <span class="fileinput-new"><i class="fa fa-pencil"></i></span>
-                                    <span class="fileinput-exists">Change</span>
-                                    <input type="file" name="lead_file" class="getimage7" accept="image/*,application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required>
-                                </span>
-                                <br>
-                                <a href="#pablo" class="btn btn-danger btn-round fileinput-exists" data-dismiss="fileinput"><i class="fa fa-times"></i> Remove</a>
-                            </div>
-                        </div>
-                        <div class="fileinput-preview fileinput-exists thumbnail img-circle"></div>
-
-                    </div>
-                </div>
-
-                <div class="col-md-6 pr-1 pl-1">
-                    <div class="col-md-12 form-group">
-                        <div class="d-flex flex-row">
-                            <button type="submit" class="btn btn-default">Save</button>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </form>
-    </div>
-</div>
-</div>
+@include('leads.partials.drafts-pane', ['paneId' => 'email-drafts', 'type' => 'email', 'title' => 'Email draft', 'icon' => 'mail', 'placeholder' => "Subject: ...\n\nHi ...,", 'drafts' => $email_drafts])
+@include('leads.partials.drafts-pane', ['paneId' => 'linkedin-drafts', 'type' => 'linkedin', 'title' => 'LinkedIn draft', 'icon' => 'work', 'placeholder' => 'Hi ..., I came across ...', 'drafts' => $linkedin_drafts])
 <div class="tab-pane fade" id="tasks" role="tabpanel">
 
     <div class="card-header">
@@ -2666,18 +2671,6 @@ action="{{ route('lead-opportunities.store') }}" class="form-horizontal taskform
             @endforeach
         </ul>
     </div>
-</div>
-<div class="tab-pane fade" id="others" role="tabpanel">
-    @if($lead->others)
-    @foreach(json_decode($lead->others, true) as $key => $value)
-    <div class="card-header">
-        <p class="hed m-0">{{ucwords(str_replace('_', ' ', $key))}}</p>
-    </div>
-    <div class="card-body">
-        <p>{{$value}}</p>
-    </div>
-    @endforeach
-    @endif
 </div>
 </div>
 </div>
@@ -3395,6 +3388,49 @@ function activateNotesTab() {
             complete: function () { $save.prop('disabled', false).text('Save remark'); }
         });
     });
+
+    // Email / LinkedIn drafts: new, edit, cancel, copy.
+    $(document).on('click', '.draft-new-btn', function () {
+        var $form = $($(this).data('draft-form'));
+        $form.find('.draft-id').val('');
+        $form.find('.draft-text').val('');
+        $form.slideDown(150);
+        $form.find('.draft-text').trigger('focus');
+    });
+
+    $(document).on('click', '.draft-edit', function () {
+        var $form = $($(this).data('draft-form'));
+        $form.find('.draft-id').val($(this).data('id'));
+        $form.find('.draft-text').val($(this).data('text'));
+        $form.slideDown(150);
+        $form.find('.draft-text').trigger('focus');
+    });
+
+    $(document).on('click', '.draft-cancel', function () {
+        $(this).closest('.draft-form').slideUp(150);
+    });
+
+    $(document).on('click', '.draft-copy', function () {
+        var $btn = $(this);
+        var text = $($btn.data('copy-target')).text();
+        var done = function () {
+            $btn.find('i').text('check');
+            setTimeout(function () { $btn.find('i').text('content_copy'); }, 1500);
+        };
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text).then(done);
+        } else {
+            var $tmp = $('<textarea>').val(text).appendTo('body').select();
+            document.execCommand('copy');
+            $tmp.remove();
+            done();
+        }
+    });
+
+    // After saving / deleting, reopen the tab the user was working in.
+    @if(session('lead_tab'))
+    $(function () { $('#{{ session('lead_tab') }}-tab').tab('show'); });
+    @endif
 
 </script>
 </x-app-layout>

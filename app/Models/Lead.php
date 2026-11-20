@@ -57,8 +57,13 @@ class Lead extends Model implements HasMedia
         return $this->hasMany(LeadContact::class);
     }
 
+    // Plain notes only; Email / LinkedIn drafts live in the same table.
     public function notes(){
-        return $this->hasMany(LeadNote::class);
+        return $this->hasMany(LeadNote::class)->where('type', LeadNote::TYPE_NOTE);
+    }
+
+    public function drafts(){
+        return $this->hasMany(LeadNote::class)->whereIn('type', [LeadNote::TYPE_EMAIL, LeadNote::TYPE_LINKEDIN]);
     }
 
     public function registerMediaCollections(): void

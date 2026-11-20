@@ -329,7 +329,7 @@ class LeadController extends Controller
                 ] + ($request->has('designation') ? ['title' => $request->designation] : []));
             }
 
-            $latestNote = LeadNote::where('lead_id', $lead->id)->latest()->first();
+            $latestNote = LeadNote::where('lead_id', $lead->id)->where('type', LeadNote::TYPE_NOTE)->latest()->first();
             if ($latestNote) {
                 $latestNote->update([
                     'note' => $request->note,
@@ -515,7 +515,7 @@ class LeadController extends Controller
                     ->latest('id')
                     ->value('id'),
             ];
-            $lead_notes = LeadNote::with('createdby:id,name')->where(['lead_id' => $lead->id])->get();
+            $lead_notes = LeadNote::with('createdby:id,name')->where(['lead_id' => $lead->id, 'type' => LeadNote::TYPE_NOTE])->get();
             $lead_tasks = LeadTask::with('assignUser:id,name', 'createdby:id,name')->where(['lead_id' => $lead->id])->get();
             $lead_logs = LeadLog::where(['lead_id' => $lead->id])->get();
             $opportunities = LeadOpportunity::with('createdby:id,name')->where(['lead_id' => $lead->id])->get();
