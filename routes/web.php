@@ -234,6 +234,11 @@ Route::group(['middleware' => ['auth', 'resource.permission']], function () {
     Route::get('leads/{lead}/call-history', [LeadController::class, 'callHistory'])->name('leads.calls.history');
     Route::get('leads/{lead}/calls/{callLog}/status', [LeadController::class, 'callStatus'])->name('leads.calls.status');
     Route::post('leads/{lead}/calls/{callLog}/feedback', [LeadController::class, 'callFeedback'])->name('leads.calls.feedback');
+    // Lead Management > Draft Approval (email / LinkedIn drafts)
+    Route::get('draft-approvals', [App\Http\Controllers\DraftApprovalController::class, 'index'])->name('draft-approvals.index');
+    Route::post('draft-approvals/data', [App\Http\Controllers\DraftApprovalController::class, 'data'])->name('draft-approvals.data');
+    Route::put('draft-approvals/{leadNote}', [App\Http\Controllers\DraftApprovalController::class, 'update'])->name('draft-approvals.update');
+    Route::post('draft-approvals/{leadNote}/approve', [App\Http\Controllers\DraftApprovalController::class, 'approve'])->name('draft-approvals.approve');
     Route::resource('leads', LeadController::class);
     Route::post('leads/getLeads', [LeadController::class, 'getLeads'])->name('leads.getLeads');
     Route::post('lead-upload', [LeadController::class, 'upload'])->name('leads.upload');

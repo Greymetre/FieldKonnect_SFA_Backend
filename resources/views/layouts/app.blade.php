@@ -1677,7 +1677,7 @@
                         <li class="fk-menu-section"><span>Customers</span></li>
                         @if(auth()->user()->can(['lead_management_access']))
                         <li
-                            class="nav-link {{ request()->is('leads*') || request()->is('contacts*') || request()->is('call-management*') ? 'active' : '' }}">
+                            class="nav-link {{ request()->is('leads*') || request()->is('contacts*') || request()->is('call-management*') || request()->is('draft-approvals*') ? 'active' : '' }}">
                             <a class="collapsed hoveradd" data-toggle="collapse" href="#leadManagementMenu"
                                 aria-expanded="false">
                                 <i class="material-icons icon">leaderboard</i>
@@ -1742,6 +1742,15 @@
                                             <i class="material-icons icon">headset_mic</i>
                                             <span>Lead Call History</span>
                                             <div class="d-none mobile_hide">Lead Call History</div>
+                                        </a>
+                                    </li>
+                                    @endif
+                                    @if(auth()->user()->can('draft_approval'))
+                                    <li class="nav-link-btn {{ request()->is('draft-approvals*') ? 'active' : '' }}">
+                                        <a class="hoveradd2" href="{{ route('draft-approvals.index') }}">
+                                            <i class="material-icons icon">fact_check</i>
+                                            <span>Draft Approval</span>
+                                            <div class="d-none mobile_hide">Draft Approval</div>
                                         </a>
                                     </li>
                                     @endif

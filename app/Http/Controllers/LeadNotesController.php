@@ -41,6 +41,10 @@ class LeadNotesController extends Controller
         [$label, $tab] = $labels[$type];
 
         $lead_note = $request->note_id ? LeadNote::where('id', $request->note_id)->first() : null;
+        if ($lead_note && $lead_note->isApproved() && ! Auth::user()->can('draft_approval')) {
+            return redirect()->back()->with('lead_tab', $labels[$lead_note->type][1] ?? $tab)
+                ->withErrors(['note' => 'This draft is approved and can no longer be edited.']);
+        }
         if ($lead_note) {
             // Editing keeps the entry's own type (a note stays a note).
             $lead_note->update(['note' => $request->note, 'lead_id' => $request->lead_id, 'created_by' => Auth::id()]);
@@ -87,6 +91,10 @@ class LeadNotesController extends Controller
     public function destroy(Request $request, LeadNote $leadNote)
     {
         $type = $leadNote->type;
+        if ($leadNote->isApproved() && ! Auth::user()->can('draft_approval')) {
+            return redirect()->back()->with('lead_tab', ['email' => 'email-drafts', 'linkedin' => 'linkedin-drafts'][$type] ?? 'notes')
+                ->withErrors(['note' => 'This draft is approved and can no longer be deleted.']);
+        }
         $leadNote->delete();
         $label = ['email' => 'Email draft', 'linkedin' => 'LinkedIn draft'][$type] ?? 'Lead Note';
         $request->session()->flash('message_success', $label.' deleted successfully.');

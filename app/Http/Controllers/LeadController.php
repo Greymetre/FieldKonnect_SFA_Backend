@@ -753,7 +753,7 @@ class LeadController extends Controller
         })->select('id', 'name')->orderBy('name')->get();
 
         $lead_contacts = LeadContact::where(['lead_id' => $lead->id])->get();
-        $all_notes = LeadNote::with('createdby:id,name')->where(['lead_id' => $lead->id])->orderByDesc('created_at')->get();
+        $all_notes = LeadNote::with(['createdby:id,name', 'approvedby:id,name'])->where(['lead_id' => $lead->id])->orderByDesc('created_at')->get();
         $lead_notes = $all_notes->where('type', LeadNote::TYPE_NOTE)->values();
         $email_drafts = $all_notes->where('type', LeadNote::TYPE_EMAIL)->values();
         $linkedin_drafts = $all_notes->where('type', LeadNote::TYPE_LINKEDIN)->values();

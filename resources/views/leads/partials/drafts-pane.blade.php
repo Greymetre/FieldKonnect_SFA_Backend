@@ -27,23 +27,35 @@
         <p class="lead-empty">No {{ strtolower($title) }}s yet.</p>
         @endif
 
+        @php($canApproveDrafts = auth()->user()->can('draft_approval'))
         @foreach($drafts as $draft)
-        <div class="draft-item">
+        <div class="draft-item {{ $draft->isApproved() ? 'is-approved' : '' }}">
             <div class="draft-icon"><i class="material-icons">{{ $icon }}</i></div>
             <div class="draft-main">
                 <div class="draft-text-view" id="draft-text-{{ $draft->id }}">{{ $draft->note }}</div>
                 <div class="draft-meta">
+                    @if($draft->isApproved())
+                    <span class="draft-status is-approved" title="Approved by {{ $draft->approvedby->name ?? '-' }} on {{ $draft->approved_at->format('d M Y, h:i A') }}"><i class="material-icons">verified</i> Approved</span>
+                    @else
+                    <span class="draft-status is-pending"><i class="material-icons">schedule</i> Pending approval</span>
+                    @endif
                     {{ $draft->createdby->name ?? 'Unknown' }} · {{ $draft->created_at?->format('d M Y, h:i A') }}
+                    @if($draft->isApproved())
+                    · approved by {{ $draft->approvedby->name ?? '-' }}
+                    @endif
                 </div>
             </div>
             <div class="draft-actions">
                 <button type="button" class="contact-icon-btn draft-copy" data-copy-target="#draft-text-{{ $draft->id }}" title="Copy draft" data-toggle="tooltip"><i class="material-icons">content_copy</i></button>
+                {{-- Approved drafts are locked; only approvers may still change them. --}}
+                @if(! $draft->isApproved() || $canApproveDrafts)
                 <button type="button" class="contact-icon-btn contact-icon-muted draft-edit" data-draft-form="#{{ $paneId }}-form" data-id="{{ $draft->id }}" data-text="{{ $draft->note }}" title="Edit draft" data-toggle="tooltip"><i class="material-icons">edit</i></button>
                 <form action="{{ route('lead-notes.destroy', $draft->id) }}" method="POST" class="d-inline-flex m-0" onsubmit="return confirm('Delete this draft?')">
                     @csrf
                     @method('DELETE')
                     <button type="submit" class="contact-icon-btn contact-icon-muted contact-icon-danger" title="Delete draft" data-toggle="tooltip"><i class="material-icons">delete</i></button>
                 </form>
+                @endif
             </div>
         </div>
         @endforeach

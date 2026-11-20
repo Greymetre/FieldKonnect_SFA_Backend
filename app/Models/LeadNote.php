@@ -19,6 +19,12 @@ class LeadNote extends Model
         'type',
         'note',
         'created_by',
+        'approved_by',
+        'approved_at',
+    ];
+
+    protected $casts = [
+        'approved_at' => 'datetime',
     ];
 
     protected $attributes = [
@@ -28,6 +34,15 @@ class LeadNote extends Model
     
     public function lead(){
         return $this->belongsTo(Lead::class);
+    }
+
+    public function approvedby(){
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function isApproved(): bool
+    {
+        return $this->approved_at !== null;
     }
 
     public function createdby(){

@@ -1743,6 +1743,22 @@
 
         .lead-detail-page .draft-actions .contact-icon-btn { width: 30px; height: 30px; padding: 0; }
         .lead-detail-page .activity-draft-icon { font-size: 22px; color: #1b5e20; }
+        .lead-detail-page .draft-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            margin-right: 6px;
+            padding: 1px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            vertical-align: middle;
+        }
+
+        .lead-detail-page .draft-status i { font-size: 13px; }
+        .lead-detail-page .draft-status.is-approved { color: #10b981; background: rgba(16, 185, 129, .13); }
+        .lead-detail-page .draft-status.is-pending { color: #f59e0b; background: rgba(245, 158, 11, .14); }
+        .lead-detail-page .draft-item.is-approved .draft-icon { border-color: #10b981; color: #10b981; }
     </style>
     <div class="row lead-detail-page">
         <div class="col-md-12">
@@ -2469,7 +2485,13 @@ action="{{ route('lead-opportunities.store') }}" class="form-horizontal taskform
             </div>
             <div class="listdata">
                 @if(in_array($lead_note->type, ['email', 'linkedin'], true))
-                <h5>{{ $lead_note->type == 'email' ? 'Email Draft' : 'LinkedIn Draft' }}</h5>
+                <h5>{{ $lead_note->type == 'email' ? 'Email Draft' : 'LinkedIn Draft' }}
+                    @if($lead_note->isApproved())
+                    <span class="draft-status is-approved"><i class="material-icons">verified</i> Approved</span>
+                    @else
+                    <span class="draft-status is-pending"><i class="material-icons">schedule</i> Pending approval</span>
+                    @endif
+                </h5>
                 <div class="activity-draft-text">{{ \Illuminate\Support\Str::limit($lead_note->note, 400) }}</div>
                 <p>Created by: {{ $lead_note->createdby->name ?? '' }}</p>
                 @elseif($lead_note->type == 'note')
