@@ -294,7 +294,8 @@ class LeadController extends Controller
                 'company_name' => $request->company_name,
                 'company_url' => $request->website,
                 'status' => $request->status ?? 0,
-                'lead_generation_date' => date('Y-m-d'),
+                // Editing must not reset the original generation date.
+                'lead_generation_date' => $lead->lead_generation_date ?: $lead->created_at?->toDateString(),
                 'lead_source' => $request->lead_source,
                 'assign_to' => $request->assign_to,
             ];

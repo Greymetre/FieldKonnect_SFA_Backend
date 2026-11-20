@@ -73,7 +73,7 @@
     /* KPI tiles */
     .lch-kpis {
       display: grid;
-      grid-template-columns: repeat(6, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 3fr);
       gap: 14px;
       margin-bottom: 18px;
     }
@@ -118,8 +118,41 @@
     .lch-tone-bad { color: var(--lch-bad); }
     .lch-tone-warn { color: var(--lch-warn); }
 
-    .lch-meter { height: 4px; margin-top: 10px; border-radius: 4px; background: var(--fk-list-border); overflow: hidden; }
-    .lch-meter span { display: block; height: 100%; width: 0; background: var(--lch-ok); transition: width .4s ease; }
+    /* Calls by agent */
+    .lch-agents { display: flex; flex-direction: column; padding: 14px 18px 10px; min-height: 0; }
+    .lch-agents-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+    .lch-agents-head .lch-kpi-label { margin: 0; }
+    .lch-legend { display: flex; gap: 12px; font-size: 11px; color: var(--fk-list-muted); }
+    .lch-legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .lch-legend i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+    .lch-agent-list { flex: 1 1 auto; max-height: 112px; overflow-y: auto; padding-right: 4px; }
+
+    .lch-agent-row {
+      display: grid;
+      grid-template-columns: 26px minmax(110px, 180px) minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 5px 6px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .lch-agent-row:hover, .lch-agent-row.is-active { background: var(--fk-list-control); }
+    .lch-agent-row.is-active .lch-agent-name { color: var(--fk-list-accent); }
+    .lch-agent-row .lch-avatar { flex-basis: 26px; width: 26px; height: 26px; font-size: 10px; }
+    .lch-agent-name { font-size: 13px; font-weight: 600; color: var(--fk-list-heading); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lch-agent-bar { display: flex; height: 8px; border-radius: 4px; background: var(--fk-list-border); overflow: hidden; }
+    .lch-agent-bar span { display: block; height: 100%; }
+    .lch-agent-bar .is-ok { background: var(--lch-ok); }
+    .lch-agent-bar .is-bad { background: var(--lch-bad); opacity: .75; }
+    .lch-agent-count { font-size: 12px; color: var(--fk-list-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .lch-agent-count b { font-size: 14px; color: var(--fk-list-heading); }
+    .lch-agents-empty { padding: 18px 0; text-align: center; font-size: 13px; color: var(--fk-list-muted); }
 
     .lch-avatar {
       flex: 0 0 34px;
@@ -171,10 +204,13 @@
       .lch-filters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .lch-filter-actions { grid-column: 1 / -1; justify-content: flex-end; }
       .lch-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .lch-agents { grid-column: 1 / -1; }
     }
 
     @media (max-width: 575px) {
       .lch-filters, .lch-kpis { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+      .lch-agent-row { grid-template-columns: 26px minmax(0, 1fr) auto; }
+      .lch-agent-bar { display: none; }
     }
   </style>
 
@@ -259,20 +295,14 @@
         <div class="lch-kpi-value" id="no_response">0</div>
         <div class="lch-kpi-hint">Click to filter</div>
       </div>
-      <div class="lch-panel lch-kpi">
-        <div class="lch-kpi-label"><span class="lch-kpi-icon lch-tone-ok"><span class="material-icons">percent</span></span>Connect rate</div>
-        <div class="lch-kpi-value" id="connect_rate">0%</div>
-        <div class="lch-meter"><span id="connect_rate_bar"></span></div>
-      </div>
-      <div class="lch-panel lch-kpi">
-        <div class="lch-kpi-label"><span class="lch-kpi-icon lch-tone-accent"><span class="material-icons">schedule</span></span>Total talk time</div>
-        <div class="lch-kpi-value" id="call_duration">00:00:00</div>
-        <div class="lch-kpi-hint">Connected calls only</div>
-      </div>
-      <div class="lch-panel lch-kpi">
-        <div class="lch-kpi-label"><span class="lch-kpi-icon lch-tone-warn"><span class="material-icons">timer</span></span>Avg call</div>
-        <div class="lch-kpi-value" id="avg_duration">00:00:00</div>
-        <div class="lch-kpi-hint">Per connected call</div>
+      <div class="lch-panel lch-agents">
+        <div class="lch-agents-head">
+          <div class="lch-kpi-label"><span class="lch-kpi-icon lch-tone-accent"><span class="material-icons">support_agent</span></span>Calls by agent</div>
+          <div class="lch-legend"><span><i style="background:var(--lch-ok)"></i>Connected</span><span><i style="background:var(--lch-bad)"></i>Not connected</span></div>
+        </div>
+        <div class="lch-agent-list" id="lchAgentList">
+          <div class="lch-agents-empty">No calls in this range.</div>
+        </div>
       </div>
     </div>
 
@@ -453,10 +483,36 @@
       $('#dialed_calls').text(summary.total);
       $('#connected_calls').text(summary.connected);
       $('#no_response').text(summary.no_response);
-      $('#connect_rate').text(summary.connect_rate + '%');
-      $('#connect_rate_bar').css('width', Math.min(100, summary.connect_rate) + '%');
-      $('#call_duration').text(summary.total_duration);
-      $('#avg_duration').text(summary.avg_duration);
+      renderAgents(summary.agents || []);
     }
+
+    // Agent-wise calls: bar length is relative to the busiest agent.
+    function renderAgents(agents) {
+      if (!agents.length) {
+        $('#lchAgentList').html('<div class="lch-agents-empty">No calls in this range.</div>');
+        return;
+      }
+      var max = Math.max.apply(null, agents.map(function(agent) { return agent.total; })) || 1;
+      var selected = String($('#executive_id').val() || '');
+      $('#lchAgentList').html(agents.map(function(agent) {
+        var notConnected = agent.total - agent.connected;
+        return '<button type="button" class="lch-agent-row' + (String(agent.user_id) === selected ? ' is-active' : '') + '" data-user-id="' + lchEsc(agent.user_id) + '" title="Show only ' + lchEsc(agent.name) + '\'s calls">'
+          + '<span class="lch-avatar">' + lchInitials(agent.name) + '</span>'
+          + '<span class="lch-agent-name">' + lchEsc(agent.name) + '</span>'
+          + '<span class="lch-agent-bar">'
+          + '<span class="is-ok" style="width:' + (agent.connected * 100 / max) + '%"></span>'
+          + '<span class="is-bad" style="width:' + (notConnected * 100 / max) + '%"></span>'
+          + '</span>'
+          + '<span class="lch-agent-count"><b>' + agent.total + '</b> calls · ' + agent.connected + ' conn.</span>'
+          + '</button>';
+      }).join(''));
+    }
+
+    // Click an agent to filter the table by that agent; click again to clear.
+    $(document).on('click', '.lch-agent-row', function() {
+      var userId = String($(this).data('user-id') || '');
+      var current = String($('#executive_id').val() || '');
+      $('#executive_id').val(userId === current ? '' : userId).trigger('change');
+    });
   </script>
 </x-app-layout>

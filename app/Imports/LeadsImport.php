@@ -142,7 +142,8 @@ class LeadsImport implements ToCollection, WithValidation, WithHeadingRow, WithB
             'company_url' => $row['website'] ?? null,
             'status' => $status ?? 0,
             'created_by' => Auth::id(),
-            'lead_generation_date' => $leadGenerationDate ?: null,
+            // Blank date in the sheet = imported today (same as creating a lead manually).
+            'lead_generation_date' => $leadGenerationDate ?: now()->toDateString(),
             'lead_source' => $row['lead_source'] ?? null,
             'assign_to' => $this->resolveAssigneeId($row['assignee'] ?? null),
             'alternate_number' => isset($row['alternet_number']) ? (string) $row['alternet_number'] : null,

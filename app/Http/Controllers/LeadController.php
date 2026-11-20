@@ -357,14 +357,19 @@ class LeadController extends Controller
                 }
             }
 
+            // Same as the leads list: fall back to the created date when the
+            // lead has no generation date (e.g. imported with a blank date).
+            $generatedOn = $item->lead_generation_date ?: $item->created_at;
+            $leadGenerationDate = $generatedOn ? Carbon::parse($generatedOn)->format('d-m-Y') : '';
+
             $contacts = $item->contacts->isNotEmpty() ? $item->contacts : collect([null]);
 
-            return $contacts->map(function ($contact) use ($item, $address, $othersData, $allOtherKeys, $leadTime, $latestTask, $noteCols) {
+            return $contacts->map(function ($contact) use ($item, $address, $othersData, $allOtherKeys, $leadTime, $latestTask, $noteCols, $leadGenerationDate) {
                 // Base export row
                 $baseRow = [
                     $item->id,
                     $item->external_lead_id ?? '',
-                    $item->lead_generation_date,
+                    $leadGenerationDate,
                     $item->company_name,
                     $contact?->external_contact_id ?? '',
                     $contact?->name ?? '',
@@ -868,7 +873,9 @@ class LeadController extends Controller
             'company_name' => $request->company_name,
             'company_url' => $request->company_url,
             'status' => $request->status ?? 0,
-            'lead_generation_date' => date('Y-m-d'),
+            // The edit form has no date field: keep the original generation
+            // date, only filling it (from the created date) when it is missing.
+            'lead_generation_date' => $lead->lead_generation_date ?: $lead->created_at?->toDateString(),
             'lead_source' => $request->lead_source,
             'assign_to' => $request->assign_to,
             'others' => $otherData,

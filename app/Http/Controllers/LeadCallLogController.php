@@ -160,17 +160,28 @@ class LeadCallLogController extends Controller
     private function summary($query): array
     {
         $total = (clone $query)->count();
-        $connectedQuery = $this->whereConnected(clone $query);
-        $connected = (clone $connectedQuery)->count();
-        $talkSeconds = (int) (clone $connectedQuery)->sum('duration');
+        $connected = $this->whereConnected(clone $query)->count();
+
+        // Calls per agent for the "Calls by agent" panel (busiest first).
+        $agents = (clone $query)->setEagerLoads([])
+            ->selectRaw('user_id, COUNT(*) as total_calls')
+            ->selectRaw("SUM(CASE WHEN status = 1 AND recording_url IS NOT NULL AND recording_url <> '' THEN 1 ELSE 0 END) as connected_calls")
+            ->groupBy('user_id')
+            ->orderByDesc('total_calls')
+            ->limit(50)
+            ->get();
+        $agentNames = User::whereIn('id', $agents->pluck('user_id')->filter())->pluck('name', 'id');
 
         return [
             'total' => $total,
             'connected' => $connected,
             'no_response' => $total - $connected,
-            'connect_rate' => $total > 0 ? round($connected * 100 / $total) : 0,
-            'total_duration' => $this->formatDuration($talkSeconds),
-            'avg_duration' => $this->formatDuration($connected > 0 ? intdiv($talkSeconds, $connected) : 0),
+            'agents' => $agents->map(fn ($row) => [
+                'user_id' => $row->user_id,
+                'name' => $agentNames[$row->user_id] ?? 'Unassigned',
+                'total' => (int) $row->total_calls,
+                'connected' => (int) $row->connected_calls,
+            ])->values(),
         ];
     }
 
