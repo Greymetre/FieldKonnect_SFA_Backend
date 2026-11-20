@@ -55,7 +55,8 @@ class LeadContactsController extends Controller
             $lead_contacts->where(function ($query) use ($search) {
                 $query->where('name', 'like', "%{$search}%")
                     ->orWhere('phone_number', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('external_contact_id', 'like', "%{$search}%");
             });
         }
         if ($request->filled('company_name')) {

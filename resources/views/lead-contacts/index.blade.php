@@ -133,6 +133,8 @@
     .lcx-lead span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .lcx-lead .material-icons { font-size: 14px; }
 
+    .lcx-id { font-size: 12px; font-weight: 600; letter-spacing: .03em; color: var(--fk-list-heading); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
     .lcx-check { width: 16px; height: 16px; cursor: pointer; accent-color: var(--fk-list-accent); }
 
     @media (max-width: 1399px) {
@@ -196,7 +198,7 @@
       <div class="lcx-field lcx-search">
         <label for="search_text">Search</label>
         <span class="material-icons">search</span>
-        <input type="search" class="form-control contact-filter" id="search_text" placeholder="Name, phone or email" autocomplete="off">
+        <input type="search" class="form-control contact-filter" id="search_text" placeholder="Name, phone, email or Contact ID" autocomplete="off">
       </div>
       <div class="lcx-field">
         <label for="filter_user_id">Assigned to</label>
@@ -252,6 +254,7 @@
             <thead>
               <tr>
                 <th><input type="checkbox" class="lcx-check" id="lcxSelectAll" title="Select all on this page"></th>
+                <th>Contact ID</th>
                 <th>Contact</th>
                 <th>Phone</th>
                 <th>Email</th>
@@ -365,6 +368,14 @@
           orderable: false,
           render: function(id) {
             return '<input type="checkbox" class="lcx-check lcx-row-check" value="' + lcxEsc(id) + '"' + (lcxSelected[id] ? ' checked' : '') + '>';
+          }
+        },
+        {
+          data: 'external_contact_id',
+          name: 'external_contact_id',
+          defaultContent: '',
+          render: function(id) {
+            return lcxBlank(id) ? '<span class="lcx-muted">—</span>' : '<span class="lcx-id">' + lcxEsc(id) + '</span>';
           }
         },
         {
