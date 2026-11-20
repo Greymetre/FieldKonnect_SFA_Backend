@@ -1775,6 +1775,68 @@
         .lead-detail-page .lead-contact-link:hover { text-decoration: underline; }
         .lead-detail-page .lead-contact-item .contact-person > .lead-contact-phone,
         .lead-detail-page .lead-contact-item .contact-person > .lead-contact-link { display: flex; width: fit-content; }
+        /* Lead tasks */
+        .lead-detail-page ul.lead-task-list li.task-item {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--fk-list-border);
+        }
+
+        .lead-detail-page ul.lead-task-list li.task-item:last-child { border-bottom: 0; }
+        .lead-detail-page .task-item-main { flex: 1 1 auto; min-width: 0; }
+        .lead-detail-page .task-item-top { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+        .lead-detail-page .task-title { font-size: 14px; font-weight: 600; color: var(--fk-list-heading); overflow-wrap: anywhere; }
+
+        .lead-detail-page .task-status {
+            display: inline-block;
+            padding: 1px 9px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        .lead-detail-page .task-status.is-pending { color: #f59e0b; background: rgba(245, 158, 11, .14); }
+        .lead-detail-page .task-status.is-open { color: #38bdf8; background: rgba(56, 189, 248, .13); }
+        .lead-detail-page .task-status.is-progress { color: #a78bfa; background: rgba(167, 139, 250, .14); }
+        .lead-detail-page .task-status.is-done { color: #10b981; background: rgba(16, 185, 129, .13); }
+
+        .lead-detail-page .task-meta,
+        .lead-detail-page .task-timeline {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px 14px;
+            margin-top: 6px;
+            font-size: 12px;
+            color: var(--fk-list-muted);
+        }
+
+        .lead-detail-page .task-meta span,
+        .lead-detail-page .task-timeline span { display: inline-flex; align-items: center; gap: 4px; }
+        .lead-detail-page .task-meta i,
+        .lead-detail-page .task-timeline i { font-size: 14px; }
+        .lead-detail-page .task-timeline span { color: var(--fk-list-dim); }
+        .lead-detail-page .task-timeline span.is-done { color: #10b981; }
+
+        .lead-detail-page .task-remark {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+            padding: 6px 10px;
+            border-radius: 8px;
+            background: var(--fk-list-control);
+            font-size: 12px;
+            color: var(--fk-list-text);
+            overflow-wrap: anywhere;
+        }
+
+        .lead-detail-page .task-remark i { font-size: 14px; color: var(--fk-list-muted); }
+        .lead-detail-page .task-actions { flex: 0 0 auto; display: flex; gap: 6px; }
+        .lead-detail-page .task-actions .contact-icon-btn { width: 30px; height: 30px; padding: 0; }
     </style>
     <div class="row lead-detail-page">
         <div class="col-md-12">
@@ -2076,34 +2138,9 @@ action="{{ route('lead-tasks.store') }}" class="form-horizontal taskform" id="fr
 @if($lead_tasks->isEmpty())
 <p class="lead-empty">No tasks yet.</p>
 @endif
-<ul class="list-group list-group-flush list-task contact-list">
+<ul class="list-group list-group-flush list-task contact-list lead-task-list">
     @foreach($lead_tasks as $lead_task)
-    <li> 
-        <div class="d-flex flex-row justify-content-between">
-            <div class="wer">
-                <p>{{$lead_task->description??''}}</p>
-                <p><img src="{{ url('/').'/'.asset('assets/img/leaddate.svg') }}"> <span class="date">{{date("d F Y",strtotime($lead_task->date))}}</span>
-                </p>
-            </div>
-
-            <div class="d-flex flex-row per">
-                <div class="editbox" onclick="editTask('{{$lead_task}}')"> <img src="{{ url('/').'/'.asset('assets/img/ph_note-pencil-fill.svg') }}">
-                </div>
-
-                <div class="deletebox">
-                    <form action="{{ route('lead-tasks.destroy', $lead_task->id) }}" method="POST" style="display: inline-block;" onsubmit="return confirm('Do you really want to delete?')">
-                        @csrf
-                        @method('DELETE')
-                        <div type="submit" class="editbox">
-                            <button class="deletebtn" type="submit"><img src="{{ url('/').'/'.asset('assets/img/deletbox.svg') }}"></button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-
-    </li>
+    @include('leads.partials.task-item')
     @endforeach
 </ul>
 </div>
@@ -2528,7 +2565,8 @@ action="{{ route('lead-opportunities.store') }}" class="form-horizontal taskform
                 <h5>{!! $lead_note->note??''!!}</h5>
                 <p>Created by: {!! $lead_note->createdby? $lead_note->createdby->name : ''!!}</p>
                 @elseif($lead_note->type == 'task')
-                <h5>Task <span class="badge badge-info ml-1" style="font-family: 'Poppins', sans-serif;font-size: 10px;font-weight:700;border-radius: 0px 10px !important;"> {{$lead_note->priority??''}}</span></h5>
+                <h5>Task <span class="badge badge-info ml-1" style="font-family: 'Poppins', sans-serif;font-size: 10px;font-weight:700;border-radius: 0px 10px !important;"> {{$lead_note->priority??''}}</span>
+                    <span class="task-status {{ ['pending' => 'is-pending', 'open' => 'is-open', 'in_progress' => 'is-progress', 'completed' => 'is-done'][$lead_note->status] ?? 'is-pending' }}">{{ $lead_note->statusLabel() }}</span></h5>
                 <h5>{!! $lead_note->description??''!!} ({{date('d M Y', strtotime($lead_note->date))}}, {{date('h:i A', strtotime($lead_note->time))}})</h5>
                 <p>Created by: {!! $lead_note->createdby? $lead_note->createdby->name : ''!!}</p>
                 @elseif($lead_note->type == 'log')
@@ -2695,30 +2733,12 @@ action="{{ route('lead-opportunities.store') }}" class="form-horizontal taskform
         <p class="hed m-0"> Task</p>
     </div>
     <div class="card-body">
-        <ul class="list-group list-group-flush list-task contact-list">
+        @if($lead_tasks->isEmpty())
+        <p class="lead-empty">No tasks yet.</p>
+        @endif
+        <ul class="list-group list-group-flush list-task contact-list lead-task-list">
             @foreach($lead_tasks as $lead_task)
-            <li> 
-                <div class="d-flex flex-row justify-content-between">
-                    <div class="">
-                        <p>{{$lead_task->description??''}}</p>
-                        <p><img src="{{ url('/').'/'.asset('assets/img/leaddate.svg') }}"> <span class="date">{{date("d F Y",strtotime($lead_task->date))}}</span>
-                        </p>
-                    </div>
-                    <div class="d-flex flex-row">
-                        <div class="editbox" onclick="editTask('{{$lead_task}}')"> <img src="{{ url('/').'/'.asset('assets/img/ph_note-pencil-fill.svg') }}"></div>
-                        <div class="deletebox editbox ml-2">
-                            <form action="{{ route('lead-tasks.destroy', $lead_task->id) }}" method="POST" style="display: inline-block;" onsubmit="return confirm('Do you really want to delete?')">
-                                @csrf
-                                @method('DELETE')
-                                <button class="deletebtn" type="submit" class="">
-                                    <img src="{{ url('/').'/'.asset('assets/img/deletbox.svg') }}">
-
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </li>
+            @include('leads.partials.task-item')
             @endforeach
         </ul>
     </div>

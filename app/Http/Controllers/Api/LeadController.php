@@ -517,6 +517,8 @@ class LeadController extends Controller
             ];
             $lead_notes = LeadNote::with('createdby:id,name')->where(['lead_id' => $lead->id, 'type' => LeadNote::TYPE_NOTE])->get();
             $lead_tasks = LeadTask::with('assignUser:id,name', 'createdby:id,name')->where(['lead_id' => $lead->id])->get();
+            // The assignee opened this lead in the app: their tasks count as seen.
+            $lead_tasks->each(fn ($task) => $task->markSeenBy($request->user()?->id));
             $lead_logs = LeadLog::where(['lead_id' => $lead->id])->get();
             $opportunities = LeadOpportunity::with('createdby:id,name')->where(['lead_id' => $lead->id])->get();
             $call_logs = CallLog::with('user:id,name')->where(['lead_id' => $lead->id])->whereNotNull('remark')->get();
@@ -1130,6 +1132,7 @@ class LeadController extends Controller
                 // Opened from a lead activity entry.
                 if (!empty($request->task_id)) {
                     $tasks->where('id', $request->task_id);
+                    LeadTask::whereKey($request->task_id)->first()?->markSeenBy($request->user()->id);
                 }
                 $tasks = $tasks->latest()->paginate($request->pageSize ?? 30);
             } else {
@@ -1258,21 +1261,7 @@ class LeadController extends Controller
         $task_id = $request->task_id;
         $lead_task = LeadTask::find($task_id);
         if ($lead_task) {
-            $lead_task->update(['status' => $request->status, 'remark' => $request->remark ?? null]);
-            if ($request->status == 'open') {
-                $lead_task->update(['open_date' => date('Y-m-d')]);
-            }
-            if ($request->status == 'completed') {
-                $lead_task->update(['close_date' => date('Y-m-d')]);
-
-                $msg = '📝 Your assigned task ' . $lead_task->description .
-                    ' related to lead: ' . Str::limit($lead_task->lead->company_name, 10, '...') .
-                    ' has been completed.';
-
-
-                SendPushNotification($lead_task->created_by, $msg, 'task');
-                StoreLeadNotification($lead_task->id, 'Assigned Task', $msg, $lead_task->created_by, 'task');
-            }
+            $lead_task->applyStatus($request->status, $request->remark ?? null, $request->user());
             return response()->json(['status' => 'success', 'message' => 'Task status updated successfully.']);
         } else {
             return response()->json(['status' => 'error', 'message' => 'Task not found.']);

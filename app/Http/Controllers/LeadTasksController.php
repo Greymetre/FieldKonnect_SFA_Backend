@@ -300,28 +300,15 @@ class LeadTasksController extends Controller
 
     public function change_status(Request $request)
     {
-        $task_id = $request->task_id;
-        $lead_task = LeadTask::find($task_id);
-        if ($lead_task) {
-            $lead_task->update(['status' => $request->status, 'remark' => $request->remark]);
-            $request->session()->flash('message_success', __('Lead Task status changed successfully.'));
-            if ($request->status == 'open') {
-                $lead_task->update(['open_date' => date('Y-m-d')]);
-            }
-            if ($request->status == 'completed') {
-                $lead_task->update(['close_date' => date('Y-m-d')]);
-
-                $msg = '📝 Your assigned task ' . $lead_task->description .
-                    ' related to lead: ' . Str::limit($lead_task->lead->company_name, 10, '...') .
-                    ' has been completed.';
-
-
-                SendPushNotification($lead_task->created_by, $msg, 'task');
-                StoreLeadNotification($lead_task->id, 'Assigned Task', $msg, $lead_task->created_by, 'task');
-            }
-            return response()->json(['status' => 'success']);
-        } else {
+        $request->validate(['status' => 'required|in:'.implode(',', array_keys(LeadTask::STATUS_LABELS))]);
+        $lead_task = LeadTask::find($request->task_id);
+        if (! $lead_task) {
             return response()->json(['status' => 'error']);
         }
+
+        $lead_task->applyStatus($request->status, $request->remark, Auth::user());
+        $request->session()->flash('message_success', __('Lead Task status changed successfully.'));
+
+        return response()->json(['status' => 'success']);
     }
 }

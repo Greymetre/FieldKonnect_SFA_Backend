@@ -757,7 +757,9 @@ class LeadController extends Controller
         $lead_notes = $all_notes->where('type', LeadNote::TYPE_NOTE)->values();
         $email_drafts = $all_notes->where('type', LeadNote::TYPE_EMAIL)->values();
         $linkedin_drafts = $all_notes->where('type', LeadNote::TYPE_LINKEDIN)->values();
-        $lead_tasks = LeadTask::where(['lead_id' => $lead->id])->get();
+        $lead_tasks = LeadTask::with(['assignUser:id,name', 'createdby:id,name'])->where(['lead_id' => $lead->id])->get();
+        // The assignee opened this lead: their tasks count as seen.
+        $lead_tasks->each(fn ($task) => $task->markSeenBy(Auth::id()));
         $lead_opportunities = LeadOpportunity::where(['lead_id' => $lead->id])->get();
 
         // Only the saved pincode is rendered; the address modal searches the
