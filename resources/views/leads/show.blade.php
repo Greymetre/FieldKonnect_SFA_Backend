@@ -3600,7 +3600,7 @@ function activateNotesTab() {
         $('#callFeedbackRemark').val('');
         $('select#callFeedbackCallStatus').val('');
         $('#callFeedbackError').text('');
-        $('#callFeedbackModal').modal('show');
+        openPageModal('#callFeedbackModal');
         setTimeout(function () { $('#callFeedbackRemark').trigger('focus'); }, 400);
     }
 
@@ -3683,6 +3683,19 @@ function activateNotesTab() {
     $(function () { $('#{{ session('lead_tab') }}-tab').tab('show'); });
     @endif
 
+    // Popups live inside the layout's .main-panel, whose stacking/scroll context can
+    // hide a Bootstrap modal behind the page. Move it to <body> before opening.
+    function openPageModal(selector) {
+        var $modal = $(selector);
+        if (!$modal.length) return;
+        if (!$modal.parent().is('body')) $modal.appendTo('body');
+        if (typeof $.fn.modal === 'function') {
+            $modal.modal('show');
+        } else {
+            $modal.addClass('show').css('display', 'block').attr('aria-hidden', 'false');
+        }
+    }
+
     // Send an approved email draft: pick recipients, then open the mail app / Gmail
     // with the subject ("Subject: ..." first line) and body filled in.
     var sendDraft = { subject: '', body: '' };
@@ -3707,7 +3720,7 @@ function activateNotesTab() {
             .toggleClass('is-empty', !sendDraft.subject);
         updateRecipientCount();
         $('#sendDraftError').text('');
-        $('#sendDraftModal').modal('show');
+        openPageModal('#sendDraftModal');
     });
 
     function updateRecipientCount() {
