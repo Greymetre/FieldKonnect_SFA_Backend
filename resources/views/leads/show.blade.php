@@ -1759,6 +1759,22 @@
         .lead-detail-page .draft-status.is-approved { color: #10b981; background: rgba(16, 185, 129, .13); }
         .lead-detail-page .draft-status.is-pending { color: #f59e0b; background: rgba(245, 158, 11, .14); }
         .lead-detail-page .draft-item.is-approved .draft-icon { border-color: #10b981; color: #10b981; }
+        .lead-detail-page .lead-contact-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--fk-list-accent) !important;
+            white-space: nowrap;
+        }
+
+        .lead-detail-page .lead-contact-link i { font-size: 14px; }
+        .lead-detail-page .lead-contact-link .lead-contact-link-out { font-size: 12px; opacity: .8; }
+        .lead-detail-page .lead-contact-link:hover { text-decoration: underline; }
+        .lead-detail-page .lead-contact-item .contact-person > .lead-contact-phone,
+        .lead-detail-page .lead-contact-item .contact-person > .lead-contact-link { display: flex; width: fit-content; }
     </style>
     <div class="row lead-detail-page">
         <div class="col-md-12">
@@ -2187,6 +2203,19 @@ action="{{ route('lead-contacts.store') }}" class="form-horizontal contact-task-
             <p>{{$lead_contact->title??''}}</p>
             @if($lead_contact->phone_number)
             <span class="lead-contact-phone"><i class="material-icons">phone</i>{{ $lead_contact->phone_number }}</span>
+            @endif
+            @php
+                // Only real web links (adds https:// when the sheet left it out).
+                $contactUrl = trim((string) $lead_contact->url);
+                if ($contactUrl !== '' && strtoupper($contactUrl) !== 'N/A' && ! preg_match('#^https?://#i', $contactUrl)) {
+                    $contactUrl = 'https://' . ltrim($contactUrl, '/');
+                }
+                $contactUrl = filter_var($contactUrl, FILTER_VALIDATE_URL) ? $contactUrl : null;
+            @endphp
+            @if($contactUrl)
+            <a href="{{ $contactUrl }}" target="_blank" rel="noopener noreferrer" class="lead-contact-link" title="{{ $contactUrl }}">
+                <i class="material-icons">{{ str_contains(strtolower($contactUrl), 'linkedin.com') ? 'work' : 'link' }}</i>{{ str_contains(strtolower($contactUrl), 'linkedin.com') ? 'LinkedIn profile' : 'Profile link' }}<i class="material-icons lead-contact-link-out">open_in_new</i>
+            </a>
             @endif
         </div>
         <div class="contac-link">
