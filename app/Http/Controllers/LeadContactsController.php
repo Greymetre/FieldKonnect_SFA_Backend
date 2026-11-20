@@ -69,23 +69,11 @@ class LeadContactsController extends Controller
         if (empty($request->input('order'))) {
             $lead_contacts->orderBy('id', 'desc');
         }
+        // Plain values only; the page builds the HTML (escaped) on the client.
         return DataTables::of($lead_contacts)
-            ->editColumn('lead.company_name', function ($lead_contact) {
-                    return $lead_contact->lead->company_name??'';
-            })
-            ->editColumn('name', function ($lead_contact) {
-                $url = route('leads.show',$lead_contact->lead_id);
-                return '<a href="'.$url.'">'.$lead_contact->name.'</a>';
-            })
-           
-            ->addColumn('action', function ($lead_contact) {
-                return "action";
-            })
-            ->addColumn('checkbox', function ($lead_contact) {
-                $lead_contact_id = "'".$lead_contact->id."'";
-                return '<input type="checkbox" class="lead_task-checkbox checkbox_cls" value="'.$lead_contact->id.'" name="lead_contacts_ids[]" onclick="checkboxDelete('.$lead_contact_id.')">';
-            })
-            ->rawColumns(['action','name','checkbox'])
+            ->editColumn('lead.company_name', fn ($lead_contact) => $lead_contact->lead->company_name ?? '')
+            ->addColumn('lead_url', fn ($lead_contact) => $lead_contact->lead_id ? route('leads.show', $lead_contact->lead_id) : null)
+            ->addColumn('created', fn ($lead_contact) => $lead_contact->created_at?->format('d M Y'))
             ->make(true);
     }
 
@@ -230,14 +218,23 @@ class LeadContactsController extends Controller
     }
 
     public function checkboxAction(Request $request){
-         $lead_ids = $request->lead_ids;
-        $lead_id_arr = explode(",", $lead_ids);
-        if(count($lead_id_arr)>0){
-            LeadContact::whereIn('id',$lead_id_arr)->delete(); 
-            $request->session()->flash('message_success',__('Lead Task deleted successfully.'));
+        $contactIds = array_filter(array_map('intval', explode(',', (string) $request->lead_ids)));
+        if (empty($contactIds)) {
             return redirect()->back();
         }
-        
+
+        $contacts = LeadContact::whereIn('id', $contactIds);
+        // Non-admins may only delete contacts of leads assigned to / created by their team.
+        if (!Auth::user()->hasRole('superadmin') && !Auth::user()->hasRole('Admin')) {
+            $user_ids = getUsersReportingToAuth();
+            $contacts->whereHas('lead', function ($query) use ($user_ids) {
+                $query->whereIn('assign_to', $user_ids)->orWhereIn('created_by', $user_ids);
+            });
+        }
+        $deleted = $contacts->delete();
+
+        $request->session()->flash('message_success', $deleted.' contact(s) deleted successfully.');
+        return redirect()->back();
     }
 
     public function upload(Request $request)
