@@ -162,7 +162,9 @@
                     @endif
                   </select>
                 </div>
+                @can('lead_delete')
                 <button type="button" class="btn mr-3 ml-3" id="del_btn"><i class="material-icons icon mr-1">delete</i>Delete</button>
+                @endcan
                 <button type="button" class="btn mr-3 ml-3" id="convert_btn"><i class="material-icons icon mr-1">transcribe</i>Convert to Customer</button>
               </div>
             </div>
@@ -181,6 +183,7 @@
                   <th><input type="checkbox" id="checkAll"></th>
                   <th>Action</th>
                   <th>Date</th>
+                  <th>Lead ID</th>
                   <th>Company Name</th>
                   <th>Contact</th>
                   <th>Phone</th>
@@ -331,6 +334,11 @@
           {
             data: 'created_at',
             name: 'created_at'
+          },
+          {
+            data: 'external_lead_id',
+            name: 'external_lead_id',
+            defaultContent: '-'
           },
           {
             data: 'company_name',

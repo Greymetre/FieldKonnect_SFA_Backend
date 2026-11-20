@@ -18,6 +18,7 @@ use Excel;
 use App\Models\Lead;
 use App\Models\LeadContact;
 use App\Models\LeadNote;
+use App\Models\User;
 
 class LeadContactsController extends Controller
 {
@@ -29,12 +30,19 @@ class LeadContactsController extends Controller
     public function index(Request $request)
     {
         // abort_if(Gate::denies('lead_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
-        
-        return view('lead-contacts.index');
+
+        // Users whose leads can be filtered (the whole team for non-admins).
+        $users = User::where('active', 'Y')->select('id', 'name')->orderBy('name');
+        if (!Auth::user()->hasRole('superadmin') && !Auth::user()->hasRole('Admin')) {
+            $users->whereIn('id', getUsersReportingToAuth());
+        }
+        $users = $users->get();
+
+        return view('lead-contacts.index', compact('users'));
     }
 
     public function getLeadContacts(Request $request){
-        $lead_contacts = LeadContact::with(['lead']); 
+        $lead_contacts = LeadContact::with(['lead.assign_user:id,name']); 
         if (!Auth::user()->hasRole('superadmin') && !Auth::user()->hasRole('Admin')) {
             $user_ids = getUsersReportingToAuth();
             $lead_ids = Lead::whereIn('assign_to', $user_ids)
@@ -59,6 +67,10 @@ class LeadContactsController extends Controller
         if ($request->filled('title')) {
             $lead_contacts->where('title', 'like', '%' . $request->title . '%');
         }
+        if ($request->filled('user_id')) {
+            $userId = (int) $request->user_id;
+            $lead_contacts->whereHas('lead', fn ($query) => $query->where('assign_to', $userId));
+        }
         if ($request->filled('start_date')) {
             $lead_contacts->whereDate('created_at', '>=', $request->start_date);
         }
@@ -74,6 +86,9 @@ class LeadContactsController extends Controller
             ->editColumn('lead.company_name', fn ($lead_contact) => $lead_contact->lead->company_name ?? '')
             ->addColumn('lead_url', fn ($lead_contact) => $lead_contact->lead_id ? route('leads.show', $lead_contact->lead_id) : null)
             ->addColumn('created', fn ($lead_contact) => $lead_contact->created_at?->format('d M Y'))
+            ->addColumn('assigned_to', fn ($lead_contact) => $lead_contact->lead?->assign_user?->name)
+            // The page escapes every value itself; server-side escaping would show "&amp;".
+            ->escapeColumns([])
             ->make(true);
     }
 

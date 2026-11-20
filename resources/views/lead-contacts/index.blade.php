@@ -34,7 +34,7 @@
     /* Filters */
     .lcx-filters {
       display: grid;
-      grid-template-columns: minmax(0, 2fr) repeat(4, minmax(0, 1fr)) auto;
+      grid-template-columns: minmax(0, 1.6fr) repeat(5, minmax(0, 1fr)) auto;
       gap: 12px;
       align-items: end;
       padding: 16px 18px;
@@ -64,6 +64,10 @@
     .lcx-search { position: relative; }
     .lcx-search .material-icons { position: absolute; left: 10px; bottom: 10px; font-size: 18px; color: var(--fk-list-muted); }
     .lcx-search .form-control { padding-left: 34px; }
+    .lcx-field .select2-container { width: 100% !important; }
+    .lcx-field .select2-container .select2-selection--single { height: 40px !important; border: 1px solid var(--fk-list-border-strong) !important; border-radius: 10px !important; background: var(--fk-list-control) !important; }
+    .lcx-field .select2-container .select2-selection__rendered { line-height: 38px !important; color: var(--fk-list-text) !important; }
+    .lcx-field .select2-container .select2-selection__arrow { height: 38px !important; }
 
     /* Bulk bar */
     .lcx-bulk {
@@ -131,7 +135,7 @@
 
     .lcx-check { width: 16px; height: 16px; cursor: pointer; accent-color: var(--fk-list-accent); }
 
-    @media (max-width: 1199px) {
+    @media (max-width: 1399px) {
       .lcx-filters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .lcx-filters .lcx-search { grid-column: 1 / -1; }
     }
@@ -193,6 +197,15 @@
         <label for="search_text">Search</label>
         <span class="material-icons">search</span>
         <input type="search" class="form-control contact-filter" id="search_text" placeholder="Name, phone or email" autocomplete="off">
+      </div>
+      <div class="lcx-field">
+        <label for="filter_user_id">Assigned to</label>
+        <select class="select2 contact-filter" id="filter_user_id">
+          <option value="">All users</option>
+          @foreach($users as $user)
+          <option value="{{ $user->id }}">{{ $user->name }}</option>
+          @endforeach
+        </select>
       </div>
       <div class="lcx-field">
         <label for="filter_company_name">Company</label>
@@ -336,6 +349,7 @@
         method: 'POST',
         data: function(d) {
           d.search_text = jQuery('#search_text').val();
+          d.user_id = jQuery('#filter_user_id').val();
           d.company_name = jQuery('#filter_company_name').val();
           d.title = jQuery('#filter_title').val();
           d.start_date = jQuery('#start_date').val();
@@ -386,8 +400,9 @@
           render: function(company, type, row) {
             if (lcxBlank(company)) return '<span class="lcx-muted">—</span>';
             var chip = '<span class="material-icons">business</span><span>' + lcxEsc(company) + '</span>';
-            return row.lead_url ? '<a class="lcx-lead" href="' + lcxEsc(row.lead_url) + '" title="' + lcxEsc(company) + '">' + chip + '</a>'
+            var html = row.lead_url ? '<a class="lcx-lead" href="' + lcxEsc(row.lead_url) + '" title="' + lcxEsc(company) + '">' + chip + '</a>'
               : '<span class="lcx-lead">' + chip + '</span>';
+            return html + (row.assigned_to ? '<span class="lcx-sub" style="margin-top:4px">Assigned to ' + lcxEsc(row.assigned_to) + '</span>' : '');
           }
         },
         {
@@ -411,6 +426,7 @@
 
     $('#lcxReset').on('click', function() {
       $('.contact-filter').val('');
+      $('#filter_user_id').trigger('change.select2');
       table.draw();
     });
 

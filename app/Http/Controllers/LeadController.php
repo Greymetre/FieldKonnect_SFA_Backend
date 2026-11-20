@@ -96,6 +96,7 @@ class LeadController extends Controller
             $search = $request->input('search');
             $leads->where(function ($query) use ($search) {
                 $query->where('company_name', 'like', "%{$search}%")
+                    ->orWhere('external_lead_id', 'like', "%{$search}%")
                     ->orWhereHas('contacts', function ($subQuery) use ($search) {
                         $subQuery->where('name', 'like', "%{$search}%")
                             ->orWhere('phone_number', 'like', "%{$search}%");
@@ -143,12 +144,13 @@ class LeadController extends Controller
             ->select(\DB::raw(with(new Lead)->getTable() . '.*'))
             ->groupBy('id');
         $canEditLead = $this->permissionAllows('lead_edit');
-        $canDeleteLead = $this->permissionAllows('lead_delete');
+        $canDeleteLead = Auth::user()->can('lead_delete');
 
         return DataTables::of($leads)
             ->editColumn('company_name', function ($lead) {
                 return e(ucwords(strtolower($lead->company_name)));
             })
+            ->editColumn('external_lead_id', fn ($lead) => $lead->external_lead_id ?: '-')
             ->editColumn('assign_to', function ($lead) {
                 return $lead->assign_user ? $lead->assign_user->name : '-';
             })
@@ -957,7 +959,11 @@ class LeadController extends Controller
     //Multiple delete
     public function deleteLead(Request $request)
     {
-        $this->abortIfPermissionDenied('lead_delete');
+        // Enforced directly: lead_delete is a Spatie permission, not a defined
+        // Gate, so abortIfPermissionDenied() would always let it through.
+        if (! Auth::user()->can('lead_delete')) {
+            return response()->json(['status' => 'error', 'message' => 'You do not have permission to delete leads.'], Response::HTTP_FORBIDDEN);
+        }
 
         $leadIds = (array) $request->lead_id;
         abort_unless($this->canAccessLeadIds($leadIds), Response::HTTP_FORBIDDEN, '403 Forbidden');
