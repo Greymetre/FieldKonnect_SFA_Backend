@@ -1867,10 +1867,12 @@
         .lead-detail-page .draft-send-btn i { font-size: 15px; }
 
         /* Send email popup (resets the layout's global label styles inside it) */
-        #sendDraftModal .sdm,
-        #sendDraftModal .sdm * { letter-spacing: normal !important; text-transform: none !important; }
-        #sendDraftModal .modal-dialog { max-width: 560px; }
-        #sendDraftModal .sdm { overflow: hidden; border: 1px solid var(--fk-list-border-strong) !important; border-radius: 18px !important; background: var(--fk-list-panel, #0b1736) !important; color: var(--fk-list-text) !important; box-shadow: 0 24px 60px rgba(0, 0, 0, .45); }
+        #sendDraftModal .sdm-card,
+        #sendDraftModal .sdm-card * { letter-spacing: normal !important; text-transform: none !important; }
+        #sendDraftModal .modal-dialog { max-width: 560px; margin: 1.5rem auto !important; min-height: calc(100% - 3rem) !important; display: flex; align-items: center; transform: none !important; }
+        #sendDraftModal .modal-dialog > .sdm-card { width: 100%; }
+        /* Note: not ".sdm" - that class is a hover-only dropdown elsewhere on this page (opacity: 0). */
+        #sendDraftModal .sdm-card { opacity: 1 !important; overflow: hidden; display: flex; flex-direction: column; max-height: calc(100vh - 3rem); border-radius: 18px !important; }
         #sendDraftModal .sdm-head { display: flex; align-items: center; gap: 12px; padding: 18px 20px; border-bottom: 1px solid var(--fk-list-border); }
         #sendDraftModal .sdm-head-icon { flex: 0 0 40px; width: 40px; height: 40px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: rgba(16, 185, 129, .14); color: #10b981; }
         #sendDraftModal .sdm-head-copy { flex: 1 1 auto; min-width: 0; }
@@ -1878,7 +1880,7 @@
         #sendDraftModal .sdm-head-copy p { margin: 2px 0 0; font-size: 12.5px; color: var(--fk-list-muted); }
         #sendDraftModal .sdm-close { flex: 0 0 34px; width: 34px; height: 34px; border: 0; border-radius: 10px; background: var(--fk-list-control); color: var(--fk-list-muted); cursor: pointer; }
         #sendDraftModal .sdm-close:hover { color: var(--fk-list-heading); }
-        #sendDraftModal .sdm-body { max-height: calc(100vh - 220px); overflow-y: auto; padding: 16px 20px 4px; }
+        #sendDraftModal .sdm-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 16px 20px 4px; }
         #sendDraftModal .sdm-section { margin-bottom: 18px; }
         #sendDraftModal .sdm-section-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
         #sendDraftModal .sdm-step { width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--fk-list-count-bg); border: 1px solid var(--fk-list-count-border); color: var(--fk-list-accent); font-size: 11px; font-weight: 700; }
@@ -3044,7 +3046,7 @@ action="{{ route('leads.storeAddress') }}" class="form-horizontal" id="frmLeadsA
 @endphp
 <div class="modal fade" id="sendDraftModal" tabindex="-1" role="dialog" aria-labelledby="sendDraftTitle" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content sdm">
+        <div class="modal-content sdm-card">
             <div class="sdm-head">
                 <div class="sdm-head-icon"><i class="material-icons">send</i></div>
                 <div class="sdm-head-copy">
