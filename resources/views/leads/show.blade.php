@@ -1867,61 +1867,71 @@
         .lead-detail-page .draft-send-btn i { font-size: 15px; }
 
         /* Send email popup (resets the layout's global label styles inside it) */
-        #sendDraftModal .sdm-card,
-        #sendDraftModal .sdm-card * { letter-spacing: normal !important; text-transform: none !important; }
-        #sendDraftModal .modal-dialog { max-width: 560px; margin: 1.5rem auto !important; min-height: calc(100% - 3rem) !important; display: flex; align-items: center; transform: none !important; }
-        #sendDraftModal .modal-dialog > .sdm-card { width: 100%; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-card,
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-card * { letter-spacing: normal !important; text-transform: none !important; }
+        :is(#sendDraftModal, #sendLinkedinModal) .modal-dialog { max-width: 560px; margin: 1.5rem auto !important; min-height: calc(100% - 3rem) !important; display: flex; align-items: center; transform: none !important; }
+        :is(#sendDraftModal, #sendLinkedinModal) .modal-dialog > .sdm-card { width: 100%; }
         /* Note: not ".sdm" - that class is a hover-only dropdown elsewhere on this page (opacity: 0). */
-        #sendDraftModal .sdm-card { opacity: 1 !important; overflow: hidden; display: flex; flex-direction: column; max-height: calc(100vh - 3rem); border-radius: 18px !important; }
-        #sendDraftModal .sdm-head { display: flex; align-items: center; gap: 12px; padding: 18px 20px; border-bottom: 1px solid var(--fk-list-border); }
-        #sendDraftModal .sdm-head-icon { flex: 0 0 40px; width: 40px; height: 40px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: rgba(16, 185, 129, .14); color: #10b981; }
-        #sendDraftModal .sdm-head-copy { flex: 1 1 auto; min-width: 0; }
-        #sendDraftModal .sdm-head-copy h5 { margin: 0; font-size: 17px; font-weight: 700; color: var(--fk-list-heading); text-align: left; }
-        #sendDraftModal .sdm-head-copy p { margin: 2px 0 0; font-size: 12.5px; color: var(--fk-list-muted); }
-        #sendDraftModal .sdm-close { flex: 0 0 34px; width: 34px; height: 34px; border: 0; border-radius: 10px; background: var(--fk-list-control); color: var(--fk-list-muted); cursor: pointer; }
-        #sendDraftModal .sdm-close:hover { color: var(--fk-list-heading); }
-        #sendDraftModal .sdm-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 16px 20px 4px; }
-        #sendDraftModal .sdm-section { margin-bottom: 18px; }
-        #sendDraftModal .sdm-section-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-        #sendDraftModal .sdm-step { width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--fk-list-count-bg); border: 1px solid var(--fk-list-count-border); color: var(--fk-list-accent); font-size: 11px; font-weight: 700; }
-        #sendDraftModal .sdm-section-title { font-size: 13px; font-weight: 700; color: var(--fk-list-heading); }
-        #sendDraftModal .sdm-count { font-size: 12px; color: var(--fk-list-muted); }
-        #sendDraftModal .sdm-link { margin-left: auto; padding: 0; border: 0; background: none; color: var(--fk-list-accent); font-size: 12px; font-weight: 600; cursor: pointer; }
-        #sendDraftModal .sdm-recipients { display: flex; flex-direction: column; gap: 6px; max-height: 210px; overflow-y: auto; }
-        #sendDraftModal .sdm-recipient { position: relative; display: flex; align-items: center; gap: 10px; margin: 0; padding: 9px 12px; border: 1px solid var(--fk-list-border); border-radius: 12px; background: var(--fk-list-control); cursor: pointer; transition: border-color .15s ease; }
-        #sendDraftModal .sdm-recipient input { position: absolute; opacity: 0; pointer-events: none; }
-        #sendDraftModal .sdm-check { flex: 0 0 20px; width: 20px; height: 20px; border-radius: 6px; border: 1.5px solid var(--fk-list-border-strong); display: inline-flex; align-items: center; justify-content: center; color: transparent; }
-        #sendDraftModal .sdm-check i { font-size: 15px; }
-        #sendDraftModal .sdm-recipient input:checked ~ .sdm-check { background: var(--fk-list-accent); border-color: var(--fk-list-accent); color: var(--fk-list-primary-text); }
-        #sendDraftModal .sdm-recipient.is-checked { border-color: var(--fk-list-accent); }
-        #sendDraftModal .sdm-avatar { flex: 0 0 32px; width: 32px; height: 32px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--fk-list-panel); border: 1px solid var(--fk-list-border-strong); color: var(--fk-list-accent); font-size: 11px; font-weight: 700; }
-        #sendDraftModal .sdm-recipient-copy { display: flex; flex-direction: column; min-width: 0; }
-        #sendDraftModal .sdm-name { font-size: 13.5px; font-weight: 600; color: var(--fk-list-heading); }
-        #sendDraftModal .sdm-email { font-size: 12px; color: var(--fk-list-accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        #sendDraftModal .sdm-title { font-size: 11.5px; color: var(--fk-list-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        #sendDraftModal .sdm-subject { padding: 10px 12px; border: 1px solid var(--fk-list-border); border-radius: 12px; background: var(--fk-list-control); font-size: 13px; color: var(--fk-list-text); }
-        #sendDraftModal .sdm-subject.is-empty { color: var(--fk-list-muted); font-style: italic; }
-        #sendDraftModal .sdm-apps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-        #sendDraftModal .sdm-app { margin: 0; cursor: pointer; }
-        #sendDraftModal .sdm-app input { position: absolute; opacity: 0; pointer-events: none; }
-        #sendDraftModal .sdm-app-card { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; height: 100%; padding: 10px 12px; border: 1px solid var(--fk-list-border); border-radius: 12px; background: var(--fk-list-control); transition: border-color .15s ease; }
-        #sendDraftModal .sdm-app-card i { margin-bottom: 4px; font-size: 20px; color: var(--fk-list-muted); }
-        #sendDraftModal .sdm-app-name { font-size: 13px; font-weight: 600; color: var(--fk-list-heading); }
-        #sendDraftModal .sdm-app-hint { font-size: 11px; line-height: 1.3; color: var(--fk-list-muted); }
-        #sendDraftModal .sdm-app:hover .sdm-app-card { border-color: var(--fk-list-border-strong); }
-        #sendDraftModal .sdm-app input:checked + .sdm-app-card { border-color: var(--fk-list-accent); box-shadow: 0 0 0 1px var(--fk-list-accent) inset; }
-        #sendDraftModal .sdm-app input:checked + .sdm-app-card i { color: var(--fk-list-accent); }
-        #sendDraftModal .sdm-empty { padding: 26px 10px; text-align: center; color: var(--fk-list-muted); }
-        #sendDraftModal .sdm-empty i { font-size: 32px; color: var(--fk-list-dim); }
-        #sendDraftModal .sdm-error { margin: 0 0 8px; min-height: 18px; font-size: 12px; color: #ef4444; }
-        #sendDraftModal .sdm-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--fk-list-border); }
-        #sendDraftModal .sdm-btn { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 18px; border: 1px solid var(--fk-list-border-strong); border-radius: 10px; background: transparent; color: var(--fk-list-text); font-size: 13.5px; font-weight: 600; cursor: pointer; }
-        #sendDraftModal .sdm-btn i { font-size: 17px; }
-        #sendDraftModal .sdm-btn.is-primary { border-color: transparent; background: linear-gradient(135deg, #10b981, #0891b2); color: #fff; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-card { opacity: 1 !important; overflow: hidden; display: flex; flex-direction: column; max-height: calc(100vh - 3rem); border-radius: 18px !important; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-head { display: flex; align-items: center; gap: 12px; padding: 18px 20px; border-bottom: 1px solid var(--fk-list-border); }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-head-icon { flex: 0 0 40px; width: 40px; height: 40px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: rgba(16, 185, 129, .14); color: #10b981; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-head-copy { flex: 1 1 auto; min-width: 0; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-head-copy h5 { margin: 0; font-size: 17px; font-weight: 700; color: var(--fk-list-heading); text-align: left; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-head-copy p { margin: 2px 0 0; font-size: 12.5px; color: var(--fk-list-muted); }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-close { flex: 0 0 34px; width: 34px; height: 34px; border: 0; border-radius: 10px; background: var(--fk-list-control); color: var(--fk-list-muted); cursor: pointer; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-close:hover { color: var(--fk-list-heading); }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 16px 20px 4px; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-section { margin-bottom: 18px; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-section-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-step { width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--fk-list-count-bg); border: 1px solid var(--fk-list-count-border); color: var(--fk-list-accent); font-size: 11px; font-weight: 700; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-section-title { font-size: 13px; font-weight: 700; color: var(--fk-list-heading); }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-count { font-size: 12px; color: var(--fk-list-muted); }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-link { margin-left: auto; padding: 0; border: 0; background: none; color: var(--fk-list-accent); font-size: 12px; font-weight: 600; cursor: pointer; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-recipients { display: flex; flex-direction: column; gap: 6px; max-height: 210px; overflow-y: auto; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-recipient { position: relative; display: flex; align-items: center; gap: 10px; margin: 0; padding: 9px 12px; border: 1px solid var(--fk-list-border); border-radius: 12px; background: var(--fk-list-control); cursor: pointer; transition: border-color .15s ease; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-recipient input { position: absolute; opacity: 0; pointer-events: none; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-check { flex: 0 0 20px; width: 20px; height: 20px; border-radius: 6px; border: 1.5px solid var(--fk-list-border-strong); display: inline-flex; align-items: center; justify-content: center; color: transparent; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-check i { font-size: 15px; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-recipient input:checked ~ .sdm-check { background: var(--fk-list-accent); border-color: var(--fk-list-accent); color: var(--fk-list-primary-text); }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-recipient.is-checked { border-color: var(--fk-list-accent); }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-avatar { flex: 0 0 32px; width: 32px; height: 32px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--fk-list-panel); border: 1px solid var(--fk-list-border-strong); color: var(--fk-list-accent); font-size: 11px; font-weight: 700; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-recipient-copy { display: flex; flex-direction: column; min-width: 0; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-name { font-size: 13.5px; font-weight: 600; color: var(--fk-list-heading); }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-email { font-size: 12px; color: var(--fk-list-accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-title { font-size: 11.5px; color: var(--fk-list-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-subject { padding: 10px 12px; border: 1px solid var(--fk-list-border); border-radius: 12px; background: var(--fk-list-control); font-size: 13px; color: var(--fk-list-text); }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-subject.is-empty { color: var(--fk-list-muted); font-style: italic; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-apps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-app { margin: 0; cursor: pointer; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-app input { position: absolute; opacity: 0; pointer-events: none; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-app-card { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; height: 100%; padding: 10px 12px; border: 1px solid var(--fk-list-border); border-radius: 12px; background: var(--fk-list-control); transition: border-color .15s ease; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-app-card i { margin-bottom: 4px; font-size: 20px; color: var(--fk-list-muted); }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-app-name { font-size: 13px; font-weight: 600; color: var(--fk-list-heading); }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-app-hint { font-size: 11px; line-height: 1.3; color: var(--fk-list-muted); }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-app:hover .sdm-app-card { border-color: var(--fk-list-border-strong); }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-app input:checked + .sdm-app-card { border-color: var(--fk-list-accent); box-shadow: 0 0 0 1px var(--fk-list-accent) inset; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-app input:checked + .sdm-app-card i { color: var(--fk-list-accent); }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-empty { padding: 26px 10px; text-align: center; color: var(--fk-list-muted); }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-empty i { font-size: 32px; color: var(--fk-list-dim); }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-error { margin: 0 0 8px; min-height: 18px; font-size: 12px; color: #ef4444; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--fk-list-border); }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-btn { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 18px; border: 1px solid var(--fk-list-border-strong); border-radius: 10px; background: transparent; color: var(--fk-list-text); font-size: 13.5px; font-weight: 600; cursor: pointer; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-btn i { font-size: 17px; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-btn.is-primary { border-color: transparent; background: linear-gradient(135deg, #10b981, #0891b2); color: #fff; }
         @media (max-width: 575px) {
-            #sendDraftModal .sdm-apps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-            #sendDraftModal .sdm-head, #sendDraftModal .sdm-body, #sendDraftModal .sdm-foot { padding-left: 16px; padding-right: 16px; }
+            :is(#sendDraftModal, #sendLinkedinModal) .sdm-apps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            :is(#sendDraftModal, #sendLinkedinModal) .sdm-head, :is(#sendDraftModal, #sendLinkedinModal) .sdm-body, :is(#sendDraftModal, #sendLinkedinModal) .sdm-foot { padding-left: 16px; padding-right: 16px; }
         }
+        /* LinkedIn send popup (reuses the Send email popup styles) */
+        #sendLinkedinModal .sdm-card,
+        #sendLinkedinModal .sdm-card * { letter-spacing: normal !important; text-transform: none !important; }
+        .lead-detail-page .draft-linkedin-btn { background: #0a66c2; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-head-icon-li { background: rgba(10, 102, 194, .18); color: #4ba3f5; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-radio { border-radius: 50%; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-message { max-height: 160px; overflow-y: auto; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-note { display: flex; gap: 8px; margin-bottom: 10px; padding: 10px 12px; border-radius: 12px; background: rgba(10, 102, 194, .12); font-size: 12px; line-height: 1.45; color: var(--fk-list-text); }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-note i { font-size: 16px; color: #4ba3f5; }
+        :is(#sendDraftModal, #sendLinkedinModal) .sdm-btn.is-linkedin { background: linear-gradient(135deg, #0a66c2, #0891b2); }
     </style>
     <div class="row lead-detail-page">
         <div class="col-md-12">
@@ -3134,6 +3144,85 @@ action="{{ route('leads.storeAddress') }}" class="form-horizontal" id="frmLeadsA
         </div>
     </div>
 </div>
+@php
+    // Contacts with a LinkedIn profile link, for "Send message" on approved LinkedIn drafts.
+    $linkedinRecipients = $lead_contacts->map(function ($contact) {
+        $url = trim((string) $contact->url);
+        if ($url !== '' && ! preg_match('#^https?://#i', $url)) {
+            $url = 'https://' . ltrim($url, '/');
+        }
+        $contact->linkedin_url = filter_var($url, FILTER_VALIDATE_URL) && str_contains(strtolower($url), 'linkedin.com') ? $url : null;
+        return $contact;
+    })->filter(fn ($contact) => $contact->linkedin_url)->values();
+@endphp
+<div class="modal fade" id="sendLinkedinModal" tabindex="-1" role="dialog" aria-labelledby="sendLinkedinTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content sdm-card">
+            <div class="sdm-head">
+                <div class="sdm-head-icon sdm-head-icon-li"><i class="material-icons">work</i></div>
+                <div class="sdm-head-copy">
+                    <h5 id="sendLinkedinTitle">Send LinkedIn message</h5>
+                    <p>Pick one contact. The message is copied and their LinkedIn profile opens.</p>
+                </div>
+                <button type="button" class="sdm-close" data-dismiss="modal" aria-label="Close"><i class="material-icons">close</i></button>
+            </div>
+
+            <div class="sdm-body">
+                @if($linkedinRecipients->isEmpty())
+                <div class="sdm-empty">
+                    <i class="material-icons">link_off</i>
+                    <p>None of this lead's contacts has a LinkedIn profile link. Add the LinkedIn URL to a contact first.</p>
+                </div>
+                @else
+                <section class="sdm-section">
+                    <div class="sdm-section-head">
+                        <span class="sdm-step">1</span>
+                        <span class="sdm-section-title">Send to</span>
+                        <span class="sdm-count">Choose one</span>
+                    </div>
+                    <div class="sdm-recipients">
+                        @foreach($linkedinRecipients as $recipient)
+                        <label class="sdm-recipient sdm-recipient-radio {{ $loop->first ? 'is-checked' : '' }}">
+                            <input type="radio" name="linkedin_recipient" class="send-linkedin-to" value="{{ $recipient->linkedin_url }}" data-name="{{ $recipient->name }}" {{ $loop->first ? 'checked' : '' }}>
+                            <span class="sdm-check sdm-radio"><i class="material-icons">check</i></span>
+                            <span class="sdm-avatar">{{ strtoupper(collect(preg_split('/\s+/', trim($recipient->name ?? '')))->filter()->take(2)->map(fn ($part) => mb_substr($part, 0, 1))->implode('')) ?: '?' }}</span>
+                            <span class="sdm-recipient-copy">
+                                <span class="sdm-name">{{ $recipient->name }}</span>
+                                <span class="sdm-email">{{ preg_replace('#^https?://(www\.)?#i', '', rtrim($recipient->linkedin_url, '/')) }}</span>
+                                @if($recipient->title)
+                                <span class="sdm-title">{{ $recipient->title }}</span>
+                                @endif
+                            </span>
+                        </label>
+                        @endforeach
+                    </div>
+                </section>
+
+                <section class="sdm-section">
+                    <div class="sdm-section-head">
+                        <span class="sdm-step">2</span>
+                        <span class="sdm-section-title">Message</span>
+                    </div>
+                    <div class="sdm-subject sdm-message" id="sendLinkedinPreview"></div>
+                </section>
+
+                <div class="sdm-note">
+                    <i class="material-icons">info</i>
+                    <span>LinkedIn does not let other websites type into its chat. After the profile opens, click <strong>Message</strong> and paste (Ctrl+V / Cmd+V).</span>
+                </div>
+                @endif
+                <p class="sdm-error" id="sendLinkedinError"></p>
+            </div>
+
+            <div class="sdm-foot">
+                <button type="button" class="sdm-btn" data-dismiss="modal">Cancel</button>
+                @if($linkedinRecipients->isNotEmpty())
+                <button type="button" class="sdm-btn is-primary is-linkedin" id="sendLinkedinGo"><i class="material-icons">content_copy</i><span>Copy &amp; open LinkedIn</span></button>
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
 <div class="modal fade" id="callFeedbackModal" tabindex="-1" role="dialog" aria-labelledby="callFeedbackTitle" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content call-feedback-modal">
@@ -3799,6 +3888,48 @@ function activateNotesTab() {
             window.open(webUrls[app], '_blank', 'noopener');
         }
         $('#sendDraftModal').modal('hide');
+    });
+
+    // Send an approved LinkedIn draft: pick ONE contact, copy the message and open
+    // their LinkedIn profile (LinkedIn does not allow pre-filling its chat).
+    var linkedinMessage = '';
+
+    $(document).on('click', '.draft-linkedin-btn', function () {
+        linkedinMessage = $.trim($($(this).data('draft-target')).text());
+        $('#sendLinkedinPreview').text(linkedinMessage);
+        $('#sendLinkedinError').text('');
+        openPageModal('#sendLinkedinModal');
+    });
+
+    $(document).on('change', '.send-linkedin-to', function () {
+        $('.send-linkedin-to').each(function () { $(this).closest('.sdm-recipient').toggleClass('is-checked', this.checked); });
+        $('#sendLinkedinError').text('');
+    });
+
+    $(document).on('click', '#sendLinkedinGo', function () {
+        var $picked = $('.send-linkedin-to:checked');
+        if (!$picked.length) {
+            $('#sendLinkedinError').text('Select a contact.');
+            return;
+        }
+        // Copy synchronously (inside the click) so it still works after the new tab takes focus.
+        var $tmp = $('<textarea>').val(linkedinMessage).css({ position: 'fixed', opacity: 0 }).appendTo('body');
+        $tmp[0].select();
+        var copied = false;
+        try { copied = document.execCommand('copy'); } catch (e) {}
+        $tmp.remove();
+        if (!copied && navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(linkedinMessage);
+        }
+
+        window.open($picked.val(), '_blank', 'noopener');
+        $('#sendLinkedinModal').modal('hide');
+        Swal.fire({
+            icon: 'success',
+            title: 'Message copied',
+            html: 'On ' + $('<div>').text($picked.data('name') || 'their').html() + '\'s LinkedIn profile, click <b>Message</b> and paste (Ctrl+V / Cmd+V).',
+            timer: 6000
+        });
     });
 
 </script>

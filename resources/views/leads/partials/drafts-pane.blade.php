@@ -57,6 +57,11 @@
                 </div>
             </div>
             <div class="draft-actions">
+                @if($type === 'linkedin' && $draft->isApproved())
+                <button type="button" class="draft-send-btn draft-linkedin-btn" data-draft-target="#draft-text-{{ $draft->id }}" title="Send this LinkedIn message">
+                    <i class="material-icons">send</i> Send message
+                </button>
+                @endif
                 @if($type === 'email' && $draft->isApproved())
                 <button type="button" class="draft-send-btn" data-draft-target="#draft-text-{{ $draft->id }}" title="Send this email">
                     <i class="material-icons">send</i> Send email
