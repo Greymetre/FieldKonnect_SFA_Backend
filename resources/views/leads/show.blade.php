@@ -1847,6 +1847,55 @@
             color: var(--fk-list-text) !important;
             font-size: 13px;
         }
+        /* Send approved email */
+        .lead-detail-page .draft-send-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            height: 30px;
+            padding: 0 12px;
+            border: 0;
+            border-radius: 15px;
+            background: #10b981;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .lead-detail-page .draft-send-btn i { font-size: 15px; }
+        .send-draft-all { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 12px; font-weight: 600; color: var(--fk-list-muted); cursor: pointer; }
+        .send-draft-list { max-height: 260px; overflow-y: auto; border: 1px solid var(--fk-list-border); border-radius: 10px; }
+        .send-draft-item { display: flex; align-items: center; gap: 10px; margin: 0; padding: 10px 12px; border-bottom: 1px solid var(--fk-list-border); cursor: pointer; }
+        .send-draft-item:last-child { border-bottom: 0; }
+        .send-draft-item input, .send-draft-all input { width: 16px; height: 16px; accent-color: var(--fk-list-accent); }
+        .send-draft-item strong { display: block; font-size: 13px; color: var(--fk-list-heading); }
+        .send-draft-item small { display: block; font-size: 12px; color: var(--fk-list-muted); }
+        .send-draft-preview { margin-top: 12px; }
+        .send-draft-preview label { display: block; margin-bottom: 4px; font-size: 12px; font-weight: 600; color: var(--fk-list-muted); }
+        .send-draft-subject { padding: 8px 10px; border-radius: 8px; background: var(--fk-list-control); font-size: 13px; color: var(--fk-list-text); }
+        .send-draft-apps { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .send-draft-app { margin: 0; cursor: pointer; }
+        .send-draft-app input { position: absolute; opacity: 0; pointer-events: none; }
+        .send-draft-app span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            height: 100%;
+            padding: 8px 10px;
+            border: 1px solid var(--fk-list-border-strong);
+            border-radius: 9px;
+            background: var(--fk-list-control);
+            color: var(--fk-list-text);
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .send-draft-app span i { font-size: 16px; color: var(--fk-list-muted); }
+        .send-draft-app input:checked + span { border-color: var(--fk-list-accent); box-shadow: 0 0 0 1px var(--fk-list-accent) inset; }
+        .send-draft-app input:checked + span i { color: var(--fk-list-accent); }
+        @media (max-width: 575px) { .send-draft-apps { grid-template-columns: 1fr; } }
     </style>
     <div class="row lead-detail-page">
         <div class="col-md-12">
@@ -2964,6 +3013,65 @@ action="{{ route('leads.storeAddress') }}" class="form-horizontal" id="frmLeadsA
 
 <script type="text/javascript" src="{{ url('/').'/'.asset('vendor/ckeditor/js/ckeditor.js') }}"></script>
 
+
+@php
+    // Contacts with a usable email address, for "Send email" on approved drafts.
+    $emailRecipients = $lead_contacts->filter(fn ($contact) => filter_var(trim((string) $contact->email), FILTER_VALIDATE_EMAIL))->values();
+@endphp
+<div class="modal fade" id="sendDraftModal" tabindex="-1" role="dialog" aria-labelledby="sendDraftTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content call-feedback-modal">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="sendDraftTitle">Send email</h5>
+                    <small>Choose who should receive this approved email.</small>
+                </div>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                @if($emailRecipients->isEmpty())
+                <p class="call-feedback-hint">None of this lead's contacts has an email address. Add one to a contact first.</p>
+                @else
+                <label class="send-draft-all"><input type="checkbox" id="sendDraftAll"> Select all</label>
+                <div class="send-draft-list">
+                    @foreach($emailRecipients as $recipient)
+                    <label class="send-draft-item">
+                        <input type="checkbox" class="send-draft-to" value="{{ trim($recipient->email) }}" {{ $loop->first ? 'checked' : '' }}>
+                        <span>
+                            <strong>{{ $recipient->name }}</strong>
+                            <small>{{ trim($recipient->email) }}{{ $recipient->title ? ' · '.$recipient->title : '' }}</small>
+                        </span>
+                    </label>
+                    @endforeach
+                </div>
+                <div class="send-draft-preview">
+                    <label>Subject</label>
+                    <div id="sendDraftSubject" class="send-draft-subject"></div>
+                </div>
+                <div class="send-draft-preview">
+                    <label>Send using</label>
+                    <div class="send-draft-apps">
+                        <label class="send-draft-app"><input type="radio" name="send_draft_app" value="gmail" checked><span><i class="material-icons">alternate_email</i>Gmail</span></label>
+                        <label class="send-draft-app"><input type="radio" name="send_draft_app" value="outlook_work"><span><i class="material-icons">business</i>Outlook (office / Microsoft 365)</span></label>
+                        <label class="send-draft-app"><input type="radio" name="send_draft_app" value="outlook_personal"><span><i class="material-icons">person</i>Outlook.com (personal)</span></label>
+                        <label class="send-draft-app"><input type="radio" name="send_draft_app" value="yahoo"><span><i class="material-icons">mail_outline</i>Yahoo Mail</span></label>
+                        <label class="send-draft-app"><input type="radio" name="send_draft_app" value="default"><span><i class="material-icons">computer</i>Default mail app on this computer</span></label>
+                        <label class="send-draft-app"><input type="radio" name="send_draft_app" value="copy"><span><i class="material-icons">content_copy</i>Copy email (paste in any app)</span></label>
+                    </div>
+                    <small class="call-feedback-hint d-block mt-1">"Default mail app" opens whichever app is set as default on this computer (Outlook, Apple Mail...). To use another app, pick it above or change the default in system settings.</small>
+                </div>
+                @endif
+                <p class="call-feedback-error" id="sendDraftError"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-primary" data-dismiss="modal">Cancel</button>
+                @if($emailRecipients->isNotEmpty())
+                <button type="button" class="btn btn-primary" id="sendDraftGo"><i class="material-icons" style="font-size:16px;vertical-align:middle">send</i> <span>Continue</span></button>
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
 <div class="modal fade" id="callFeedbackModal" tabindex="-1" role="dialog" aria-labelledby="callFeedbackTitle" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content call-feedback-modal">
@@ -3514,6 +3622,92 @@ function activateNotesTab() {
     @if(session('lead_tab'))
     $(function () { $('#{{ session('lead_tab') }}-tab').tab('show'); });
     @endif
+
+    // Send an approved email draft: pick recipients, then open the mail app / Gmail
+    // with the subject ("Subject: ..." first line) and body filled in.
+    var sendDraft = { subject: '', body: '' };
+
+    function splitDraft(text) {
+        var lines = String(text || '').replace(/\r\n/g, '\n').split('\n');
+        var subject = '';
+        if (lines.length && /^\s*subject\s*:/i.test(lines[0])) {
+            subject = lines.shift().replace(/^\s*subject\s*:\s*/i, '').trim();
+            while (lines.length && !lines[0].trim()) lines.shift();
+        }
+        return { subject: subject, body: lines.join('\n').trim() };
+    }
+
+    function selectedRecipients() {
+        return $('.send-draft-to:checked').map(function () { return this.value; }).get();
+    }
+
+    $(document).on('click', '.draft-send-btn', function () {
+        sendDraft = splitDraft($($(this).data('draft-target')).text());
+        $('#sendDraftSubject').text(sendDraft.subject || '(no subject line in the draft)');
+        $('#sendDraftError').text('');
+        $('#sendDraftModal').modal('show');
+    });
+
+    $('#sendDraftAll').on('change', function () {
+        $('.send-draft-to').prop('checked', this.checked);
+    });
+
+    // Remember the agent's last choice of mail app (per browser).
+    try {
+        var savedApp = localStorage.getItem('fk_send_draft_app');
+        if (savedApp) $('input[name="send_draft_app"][value="' + savedApp + '"]').prop('checked', true);
+    } catch (e) {}
+
+    function syncSendLabel() {
+        var app = $('input[name="send_draft_app"]:checked').val();
+        $('#sendDraftGo span').text(app === 'copy' ? 'Copy email' : 'Open & send');
+    }
+    $(document).on('change', 'input[name="send_draft_app"]', syncSendLabel);
+    syncSendLabel();
+
+    $('#sendDraftGo').on('click', function () {
+        var to = selectedRecipients();
+        if (!to.length) {
+            $('#sendDraftError').text('Select at least one email address.');
+            return;
+        }
+        var app = $('input[name="send_draft_app"]:checked').val() || 'gmail';
+        try { localStorage.setItem('fk_send_draft_app', app); } catch (e) {}
+
+        var toList = to.join(',');
+        var subject = encodeURIComponent(sendDraft.subject);
+        var body = encodeURIComponent(sendDraft.body);
+        var webUrls = {
+            gmail: 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(toList) + '&su=' + subject + '&body=' + body,
+            outlook_work: 'https://outlook.office.com/mail/deeplink/compose?to=' + encodeURIComponent(toList) + '&subject=' + subject + '&body=' + body,
+            outlook_personal: 'https://outlook.live.com/mail/0/deeplink/compose?to=' + encodeURIComponent(toList) + '&subject=' + subject + '&body=' + body,
+            yahoo: 'https://compose.mail.yahoo.com/?to=' + encodeURIComponent(toList) + '&subject=' + subject + '&body=' + body
+        };
+
+        if (app === 'copy') {
+            var text = 'To: ' + to.join(', ') + '\n' + (sendDraft.subject ? 'Subject: ' + sendDraft.subject + '\n' : '') + '\n' + sendDraft.body;
+            var done = function () {
+                $('#sendDraftModal').modal('hide');
+                Swal.fire({ icon: 'success', title: 'Email copied', text: 'Paste it into any mail app to send.', timer: 2500 });
+            };
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(done);
+            } else {
+                var $tmp = $('<textarea>').val(text).appendTo('body').select();
+                document.execCommand('copy');
+                $tmp.remove();
+                done();
+            }
+            return;
+        }
+
+        if (app === 'default') {
+            window.location.href = 'mailto:' + to.map(encodeURIComponent).join(',') + '?subject=' + subject + '&body=' + body;
+        } else {
+            window.open(webUrls[app], '_blank', 'noopener');
+        }
+        $('#sendDraftModal').modal('hide');
+    });
 
 </script>
 </x-app-layout>

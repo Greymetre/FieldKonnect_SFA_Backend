@@ -57,6 +57,11 @@
                 </div>
             </div>
             <div class="draft-actions">
+                @if($type === 'email' && $draft->isApproved())
+                <button type="button" class="draft-send-btn" data-draft-target="#draft-text-{{ $draft->id }}" title="Send this email">
+                    <i class="material-icons">send</i> Send email
+                </button>
+                @endif
                 <button type="button" class="contact-icon-btn draft-copy" data-copy-target="#draft-text-{{ $draft->id }}" title="Copy draft" data-toggle="tooltip"><i class="material-icons">content_copy</i></button>
                 {{-- Approved drafts are locked; only approvers may still change them. --}}
                 @if(! $draft->isApproved() || $draft->canBeApprovedBy(auth()->user()))
