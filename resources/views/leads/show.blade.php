@@ -3805,7 +3805,8 @@ function activateNotesTab() {
         return $('.send-draft-to:checked').map(function () { return this.value; }).get();
     }
 
-    $(document).on('click', '.draft-send-btn', function () {
+    // Only the email button: the LinkedIn button shares the .draft-send-btn style.
+    $(document).on('click', '.draft-email-btn', function () {
         sendDraft = splitDraft($($(this).data('draft-target')).text());
         $('#sendDraftSubject').text(sendDraft.subject || 'No subject (start the draft with "Subject: ..." to add one)')
             .toggleClass('is-empty', !sendDraft.subject);

@@ -63,7 +63,7 @@
                 </button>
                 @endif
                 @if($type === 'email' && $draft->isApproved())
-                <button type="button" class="draft-send-btn" data-draft-target="#draft-text-{{ $draft->id }}" title="Send this email">
+                <button type="button" class="draft-send-btn draft-email-btn" data-draft-target="#draft-text-{{ $draft->id }}" title="Send this email">
                     <i class="material-icons">send</i> Send email
                 </button>
                 @endif
