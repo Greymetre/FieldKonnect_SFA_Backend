@@ -1865,37 +1865,61 @@
         }
 
         .lead-detail-page .draft-send-btn i { font-size: 15px; }
-        .send-draft-all { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 12px; font-weight: 600; color: var(--fk-list-muted); cursor: pointer; }
-        .send-draft-list { max-height: 260px; overflow-y: auto; border: 1px solid var(--fk-list-border); border-radius: 10px; }
-        .send-draft-item { display: flex; align-items: center; gap: 10px; margin: 0; padding: 10px 12px; border-bottom: 1px solid var(--fk-list-border); cursor: pointer; }
-        .send-draft-item:last-child { border-bottom: 0; }
-        .send-draft-item input, .send-draft-all input { width: 16px; height: 16px; accent-color: var(--fk-list-accent); }
-        .send-draft-item strong { display: block; font-size: 13px; color: var(--fk-list-heading); }
-        .send-draft-item small { display: block; font-size: 12px; color: var(--fk-list-muted); }
-        .send-draft-preview { margin-top: 12px; }
-        .send-draft-preview label { display: block; margin-bottom: 4px; font-size: 12px; font-weight: 600; color: var(--fk-list-muted); }
-        .send-draft-subject { padding: 8px 10px; border-radius: 8px; background: var(--fk-list-control); font-size: 13px; color: var(--fk-list-text); }
-        .send-draft-apps { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-        .send-draft-app { margin: 0; cursor: pointer; }
-        .send-draft-app input { position: absolute; opacity: 0; pointer-events: none; }
-        .send-draft-app span {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            height: 100%;
-            padding: 8px 10px;
-            border: 1px solid var(--fk-list-border-strong);
-            border-radius: 9px;
-            background: var(--fk-list-control);
-            color: var(--fk-list-text);
-            font-size: 12px;
-            font-weight: 600;
-        }
 
-        .send-draft-app span i { font-size: 16px; color: var(--fk-list-muted); }
-        .send-draft-app input:checked + span { border-color: var(--fk-list-accent); box-shadow: 0 0 0 1px var(--fk-list-accent) inset; }
-        .send-draft-app input:checked + span i { color: var(--fk-list-accent); }
-        @media (max-width: 575px) { .send-draft-apps { grid-template-columns: 1fr; } }
+        /* Send email popup (resets the layout's global label styles inside it) */
+        #sendDraftModal .sdm,
+        #sendDraftModal .sdm * { letter-spacing: normal !important; text-transform: none !important; }
+        #sendDraftModal .modal-dialog { max-width: 560px; }
+        #sendDraftModal .sdm { overflow: hidden; border: 1px solid var(--fk-list-border-strong) !important; border-radius: 18px !important; background: var(--fk-list-panel, #0b1736) !important; color: var(--fk-list-text) !important; box-shadow: 0 24px 60px rgba(0, 0, 0, .45); }
+        #sendDraftModal .sdm-head { display: flex; align-items: center; gap: 12px; padding: 18px 20px; border-bottom: 1px solid var(--fk-list-border); }
+        #sendDraftModal .sdm-head-icon { flex: 0 0 40px; width: 40px; height: 40px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: rgba(16, 185, 129, .14); color: #10b981; }
+        #sendDraftModal .sdm-head-copy { flex: 1 1 auto; min-width: 0; }
+        #sendDraftModal .sdm-head-copy h5 { margin: 0; font-size: 17px; font-weight: 700; color: var(--fk-list-heading); text-align: left; }
+        #sendDraftModal .sdm-head-copy p { margin: 2px 0 0; font-size: 12.5px; color: var(--fk-list-muted); }
+        #sendDraftModal .sdm-close { flex: 0 0 34px; width: 34px; height: 34px; border: 0; border-radius: 10px; background: var(--fk-list-control); color: var(--fk-list-muted); cursor: pointer; }
+        #sendDraftModal .sdm-close:hover { color: var(--fk-list-heading); }
+        #sendDraftModal .sdm-body { max-height: calc(100vh - 220px); overflow-y: auto; padding: 16px 20px 4px; }
+        #sendDraftModal .sdm-section { margin-bottom: 18px; }
+        #sendDraftModal .sdm-section-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        #sendDraftModal .sdm-step { width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--fk-list-count-bg); border: 1px solid var(--fk-list-count-border); color: var(--fk-list-accent); font-size: 11px; font-weight: 700; }
+        #sendDraftModal .sdm-section-title { font-size: 13px; font-weight: 700; color: var(--fk-list-heading); }
+        #sendDraftModal .sdm-count { font-size: 12px; color: var(--fk-list-muted); }
+        #sendDraftModal .sdm-link { margin-left: auto; padding: 0; border: 0; background: none; color: var(--fk-list-accent); font-size: 12px; font-weight: 600; cursor: pointer; }
+        #sendDraftModal .sdm-recipients { display: flex; flex-direction: column; gap: 6px; max-height: 210px; overflow-y: auto; }
+        #sendDraftModal .sdm-recipient { position: relative; display: flex; align-items: center; gap: 10px; margin: 0; padding: 9px 12px; border: 1px solid var(--fk-list-border); border-radius: 12px; background: var(--fk-list-control); cursor: pointer; transition: border-color .15s ease; }
+        #sendDraftModal .sdm-recipient input { position: absolute; opacity: 0; pointer-events: none; }
+        #sendDraftModal .sdm-check { flex: 0 0 20px; width: 20px; height: 20px; border-radius: 6px; border: 1.5px solid var(--fk-list-border-strong); display: inline-flex; align-items: center; justify-content: center; color: transparent; }
+        #sendDraftModal .sdm-check i { font-size: 15px; }
+        #sendDraftModal .sdm-recipient input:checked ~ .sdm-check { background: var(--fk-list-accent); border-color: var(--fk-list-accent); color: var(--fk-list-primary-text); }
+        #sendDraftModal .sdm-recipient.is-checked { border-color: var(--fk-list-accent); }
+        #sendDraftModal .sdm-avatar { flex: 0 0 32px; width: 32px; height: 32px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--fk-list-panel); border: 1px solid var(--fk-list-border-strong); color: var(--fk-list-accent); font-size: 11px; font-weight: 700; }
+        #sendDraftModal .sdm-recipient-copy { display: flex; flex-direction: column; min-width: 0; }
+        #sendDraftModal .sdm-name { font-size: 13.5px; font-weight: 600; color: var(--fk-list-heading); }
+        #sendDraftModal .sdm-email { font-size: 12px; color: var(--fk-list-accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #sendDraftModal .sdm-title { font-size: 11.5px; color: var(--fk-list-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #sendDraftModal .sdm-subject { padding: 10px 12px; border: 1px solid var(--fk-list-border); border-radius: 12px; background: var(--fk-list-control); font-size: 13px; color: var(--fk-list-text); }
+        #sendDraftModal .sdm-subject.is-empty { color: var(--fk-list-muted); font-style: italic; }
+        #sendDraftModal .sdm-apps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+        #sendDraftModal .sdm-app { margin: 0; cursor: pointer; }
+        #sendDraftModal .sdm-app input { position: absolute; opacity: 0; pointer-events: none; }
+        #sendDraftModal .sdm-app-card { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; height: 100%; padding: 10px 12px; border: 1px solid var(--fk-list-border); border-radius: 12px; background: var(--fk-list-control); transition: border-color .15s ease; }
+        #sendDraftModal .sdm-app-card i { margin-bottom: 4px; font-size: 20px; color: var(--fk-list-muted); }
+        #sendDraftModal .sdm-app-name { font-size: 13px; font-weight: 600; color: var(--fk-list-heading); }
+        #sendDraftModal .sdm-app-hint { font-size: 11px; line-height: 1.3; color: var(--fk-list-muted); }
+        #sendDraftModal .sdm-app:hover .sdm-app-card { border-color: var(--fk-list-border-strong); }
+        #sendDraftModal .sdm-app input:checked + .sdm-app-card { border-color: var(--fk-list-accent); box-shadow: 0 0 0 1px var(--fk-list-accent) inset; }
+        #sendDraftModal .sdm-app input:checked + .sdm-app-card i { color: var(--fk-list-accent); }
+        #sendDraftModal .sdm-empty { padding: 26px 10px; text-align: center; color: var(--fk-list-muted); }
+        #sendDraftModal .sdm-empty i { font-size: 32px; color: var(--fk-list-dim); }
+        #sendDraftModal .sdm-error { margin: 0 0 8px; min-height: 18px; font-size: 12px; color: #ef4444; }
+        #sendDraftModal .sdm-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--fk-list-border); }
+        #sendDraftModal .sdm-btn { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 18px; border: 1px solid var(--fk-list-border-strong); border-radius: 10px; background: transparent; color: var(--fk-list-text); font-size: 13.5px; font-weight: 600; cursor: pointer; }
+        #sendDraftModal .sdm-btn i { font-size: 17px; }
+        #sendDraftModal .sdm-btn.is-primary { border-color: transparent; background: linear-gradient(135deg, #10b981, #0891b2); color: #fff; }
+        @media (max-width: 575px) {
+            #sendDraftModal .sdm-apps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            #sendDraftModal .sdm-head, #sendDraftModal .sdm-body, #sendDraftModal .sdm-foot { padding-left: 16px; padding-right: 16px; }
+        }
     </style>
     <div class="row lead-detail-page">
         <div class="col-md-12">
@@ -3020,53 +3044,89 @@ action="{{ route('leads.storeAddress') }}" class="form-horizontal" id="frmLeadsA
 @endphp
 <div class="modal fade" id="sendDraftModal" tabindex="-1" role="dialog" aria-labelledby="sendDraftTitle" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content call-feedback-modal">
-            <div class="modal-header">
-                <div>
-                    <h5 class="modal-title" id="sendDraftTitle">Send email</h5>
-                    <small>Choose who should receive this approved email.</small>
+        <div class="modal-content sdm">
+            <div class="sdm-head">
+                <div class="sdm-head-icon"><i class="material-icons">send</i></div>
+                <div class="sdm-head-copy">
+                    <h5 id="sendDraftTitle">Send email</h5>
+                    <p>Pick the recipients and the app to send from.</p>
                 </div>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <button type="button" class="sdm-close" data-dismiss="modal" aria-label="Close"><i class="material-icons">close</i></button>
             </div>
-            <div class="modal-body">
+
+            <div class="sdm-body">
                 @if($emailRecipients->isEmpty())
-                <p class="call-feedback-hint">None of this lead's contacts has an email address. Add one to a contact first.</p>
+                <div class="sdm-empty">
+                    <i class="material-icons">contact_mail</i>
+                    <p>None of this lead's contacts has an email address yet. Add an email to a contact first.</p>
+                </div>
                 @else
-                <label class="send-draft-all"><input type="checkbox" id="sendDraftAll"> Select all</label>
-                <div class="send-draft-list">
-                    @foreach($emailRecipients as $recipient)
-                    <label class="send-draft-item">
-                        <input type="checkbox" class="send-draft-to" value="{{ trim($recipient->email) }}" {{ $loop->first ? 'checked' : '' }}>
-                        <span>
-                            <strong>{{ $recipient->name }}</strong>
-                            <small>{{ trim($recipient->email) }}{{ $recipient->title ? ' · '.$recipient->title : '' }}</small>
-                        </span>
-                    </label>
-                    @endforeach
-                </div>
-                <div class="send-draft-preview">
-                    <label>Subject</label>
-                    <div id="sendDraftSubject" class="send-draft-subject"></div>
-                </div>
-                <div class="send-draft-preview">
-                    <label>Send using</label>
-                    <div class="send-draft-apps">
-                        <label class="send-draft-app"><input type="radio" name="send_draft_app" value="gmail" checked><span><i class="material-icons">alternate_email</i>Gmail</span></label>
-                        <label class="send-draft-app"><input type="radio" name="send_draft_app" value="outlook_work"><span><i class="material-icons">business</i>Outlook (office / Microsoft 365)</span></label>
-                        <label class="send-draft-app"><input type="radio" name="send_draft_app" value="outlook_personal"><span><i class="material-icons">person</i>Outlook.com (personal)</span></label>
-                        <label class="send-draft-app"><input type="radio" name="send_draft_app" value="yahoo"><span><i class="material-icons">mail_outline</i>Yahoo Mail</span></label>
-                        <label class="send-draft-app"><input type="radio" name="send_draft_app" value="default"><span><i class="material-icons">computer</i>Default mail app on this computer</span></label>
-                        <label class="send-draft-app"><input type="radio" name="send_draft_app" value="copy"><span><i class="material-icons">content_copy</i>Copy email (paste in any app)</span></label>
+                <section class="sdm-section">
+                    <div class="sdm-section-head">
+                        <span class="sdm-step">1</span>
+                        <span class="sdm-section-title">To</span>
+                        <span class="sdm-count" id="sendDraftCount"></span>
+                        <button type="button" class="sdm-link" id="sendDraftAll">Select all</button>
                     </div>
-                    <small class="call-feedback-hint d-block mt-1">"Default mail app" opens whichever app is set as default on this computer (Outlook, Apple Mail...). To use another app, pick it above or change the default in system settings.</small>
-                </div>
+                    <div class="sdm-recipients">
+                        @foreach($emailRecipients as $recipient)
+                        <label class="sdm-recipient">
+                            <input type="checkbox" class="send-draft-to" value="{{ trim($recipient->email) }}" {{ $loop->first ? 'checked' : '' }}>
+                            <span class="sdm-check"><i class="material-icons">check</i></span>
+                            <span class="sdm-avatar">{{ strtoupper(collect(preg_split('/\s+/', trim($recipient->name ?? '')))->filter()->take(2)->map(fn ($part) => mb_substr($part, 0, 1))->implode('')) ?: '?' }}</span>
+                            <span class="sdm-recipient-copy">
+                                <span class="sdm-name">{{ $recipient->name }}</span>
+                                <span class="sdm-email">{{ strtolower(trim($recipient->email)) }}</span>
+                                @if($recipient->title)
+                                <span class="sdm-title">{{ $recipient->title }}</span>
+                                @endif
+                            </span>
+                        </label>
+                        @endforeach
+                    </div>
+                </section>
+
+                <section class="sdm-section">
+                    <div class="sdm-section-head">
+                        <span class="sdm-step">2</span>
+                        <span class="sdm-section-title">Subject</span>
+                    </div>
+                    <div class="sdm-subject" id="sendDraftSubject"></div>
+                </section>
+
+                <section class="sdm-section">
+                    <div class="sdm-section-head">
+                        <span class="sdm-step">3</span>
+                        <span class="sdm-section-title">Send using</span>
+                    </div>
+                    <div class="sdm-apps">
+                        @foreach([
+                            ['gmail', 'alternate_email', 'Gmail', 'Opens Gmail in a new tab'],
+                            ['outlook_work', 'business', 'Outlook', 'Office / Microsoft 365'],
+                            ['outlook_personal', 'person', 'Outlook.com', 'Personal account'],
+                            ['yahoo', 'mail_outline', 'Yahoo Mail', 'Opens in a new tab'],
+                            ['default', 'computer', 'Mail app', 'Default app on this computer'],
+                            ['copy', 'content_copy', 'Copy', 'Paste into any app'],
+                        ] as [$appValue, $appIcon, $appName, $appHint])
+                        <label class="sdm-app">
+                            <input type="radio" name="send_draft_app" value="{{ $appValue }}" {{ $loop->first ? 'checked' : '' }}>
+                            <span class="sdm-app-card">
+                                <i class="material-icons">{{ $appIcon }}</i>
+                                <span class="sdm-app-name">{{ $appName }}</span>
+                                <span class="sdm-app-hint">{{ $appHint }}</span>
+                            </span>
+                        </label>
+                        @endforeach
+                    </div>
+                </section>
                 @endif
-                <p class="call-feedback-error" id="sendDraftError"></p>
+                <p class="sdm-error" id="sendDraftError"></p>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-primary" data-dismiss="modal">Cancel</button>
+
+            <div class="sdm-foot">
+                <button type="button" class="sdm-btn" data-dismiss="modal">Cancel</button>
                 @if($emailRecipients->isNotEmpty())
-                <button type="button" class="btn btn-primary" id="sendDraftGo"><i class="material-icons" style="font-size:16px;vertical-align:middle">send</i> <span>Continue</span></button>
+                <button type="button" class="sdm-btn is-primary" id="sendDraftGo"><i class="material-icons">send</i><span>Open &amp; send</span></button>
                 @endif
             </div>
         </div>
@@ -3643,13 +3703,30 @@ function activateNotesTab() {
 
     $(document).on('click', '.draft-send-btn', function () {
         sendDraft = splitDraft($($(this).data('draft-target')).text());
-        $('#sendDraftSubject').text(sendDraft.subject || '(no subject line in the draft)');
+        $('#sendDraftSubject').text(sendDraft.subject || 'No subject (start the draft with "Subject: ..." to add one)')
+            .toggleClass('is-empty', !sendDraft.subject);
+        updateRecipientCount();
         $('#sendDraftError').text('');
         $('#sendDraftModal').modal('show');
     });
 
-    $('#sendDraftAll').on('change', function () {
-        $('.send-draft-to').prop('checked', this.checked);
+    function updateRecipientCount() {
+        var total = $('.send-draft-to').length;
+        var picked = $('.send-draft-to:checked').length;
+        $('.send-draft-to').each(function () { $(this).closest('.sdm-recipient').toggleClass('is-checked', this.checked); });
+        $('#sendDraftCount').text(picked + ' of ' + total + ' selected');
+        $('#sendDraftAll').text(picked === total ? 'Clear all' : 'Select all');
+    }
+
+    $('#sendDraftAll').on('click', function () {
+        var selectAll = $('.send-draft-to:checked').length !== $('.send-draft-to').length;
+        $('.send-draft-to').prop('checked', selectAll);
+        updateRecipientCount();
+    });
+
+    $(document).on('change', '.send-draft-to', function () {
+        updateRecipientCount();
+        $('#sendDraftError').text('');
     });
 
     // Remember the agent's last choice of mail app (per browser).
