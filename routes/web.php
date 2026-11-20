@@ -237,6 +237,7 @@ Route::group(['middleware' => ['auth', 'resource.permission']], function () {
     Route::resource('leads', LeadController::class);
     Route::post('leads/getLeads', [LeadController::class, 'getLeads'])->name('leads.getLeads');
     Route::post('lead-upload', [LeadController::class, 'upload'])->name('leads.upload');
+    Route::get('lead-upload', fn () => redirect()->route('leads.index'));
     Route::any('lead-template', [LeadController::class, 'template'])->name('leads.template');
     Route::post('leads/searchExistsLead', [LeadController::class, 'searchExistsLead'])->name('leads.searchExistsLead');
     Route::post('leads/storeAddress', [LeadController::class, 'storeAddress'])->name('leads.storeAddress');

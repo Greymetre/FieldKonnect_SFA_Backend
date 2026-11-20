@@ -33,6 +33,11 @@ class LeadsImport implements ToCollection, WithValidation, WithHeadingRow, WithB
 
     private int $importRowOrder = 0;
 
+    /** Totals shown to the user after the upload. */
+    public int $createdLeads = 0;
+    public int $reassignedLeads = 0;
+    public int $updatedLeads = 0;
+
     public function __construct()
     {
         $this->importBatchOrder = (int) round(microtime(true) * 1000000);
@@ -59,6 +64,7 @@ class LeadsImport implements ToCollection, WithValidation, WithHeadingRow, WithB
 
             if (! $lead) {
                 $lead = $this->createLead($row, $externalLeadId);
+                $this->createdLeads++;
                 if ($externalLeadId !== null) {
                     $this->leadCache['L:'.$externalLeadId] = $lead;
                 }
@@ -70,8 +76,13 @@ class LeadsImport implements ToCollection, WithValidation, WithHeadingRow, WithB
                 // Existing lead: only the assignee is updated from the sheet, so a
                 // re-import can split / move leads between users.
                 $assigneeId = $this->resolveAssigneeId($row['assignee'] ?? null);
+                if (! isset($this->touchedLeads[$lead->id])) {
+                    $this->touchedLeads[$lead->id] = true;
+                    $this->updatedLeads++;
+                }
                 if ($assigneeId && (int) $lead->assign_to !== $assigneeId) {
                     $lead->update(['assign_to' => $assigneeId]);
+                    $this->reassignedLeads++;
                     $reassignedCounts[$assigneeId] = ($reassignedCounts[$assigneeId] ?? 0) + 1;
                 }
             }
@@ -123,6 +134,9 @@ class LeadsImport implements ToCollection, WithValidation, WithHeadingRow, WithB
 
     /** @var array<string, Lead> */
     private array $leadCache = [];
+
+    /** @var array<int, bool> existing leads seen in this import */
+    private array $touchedLeads = [];
 
     private function createLead($row, ?string $externalLeadId): Lead
     {

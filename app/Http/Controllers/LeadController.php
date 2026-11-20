@@ -1105,10 +1105,33 @@ class LeadController extends Controller
     public function upload(Request $request)
     {
         abort_if(Gate::denies('lead_upload'), Response::HTTP_FORBIDDEN, '403 Forbidden');
-        if (ob_get_contents()) ob_end_clean();
-        ob_start();
-        Excel::import(new LeadsImport, request()->file('import_file'));
-        return back();
+        $request->validate(['import_file' => ['required', 'file', 'mimes:xls,xlsx']]);
+
+        // Large sheets (thousands of rows) must not be cut off half-way.
+        @set_time_limit(600);
+        ignore_user_abort(true);
+
+        $import = new LeadsImport;
+        try {
+            Excel::import($import, $request->file('import_file'));
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $exception) {
+            // Validation runs per 1000-row chunk: chunks before the failing one are
+            // already saved, and re-uploading is safe (existing Lead IDs are updated).
+            $messages = collect($exception->failures())
+                ->take(20)
+                ->map(fn ($failure) => 'Row '.$failure->row().': '.implode(', ', $failure->errors()))
+                ->all();
+
+            return redirect()->route('leads.index')
+                ->withErrors(array_merge(['Import stopped at these rows. Fix them and upload the same file again (already imported leads will be updated, not duplicated):'], $messages));
+        }
+
+        return redirect()->route('leads.index')->with('message_success', sprintf(
+            'Import complete: %d new leads created, %d existing leads updated (%d re-assigned).',
+            $import->createdLeads,
+            $import->updatedLeads,
+            $import->reassignedLeads
+        ));
     }
 
     public function template()
