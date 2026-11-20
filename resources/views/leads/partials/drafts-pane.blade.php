@@ -17,6 +17,15 @@
             <input type="hidden" name="type" value="{{ $type }}">
             <input type="hidden" name="note_id" class="draft-id">
             <textarea name="note" class="form-control draft-text" rows="7" placeholder="{{ $placeholder }}" required></textarea>
+            <div class="draft-approver-row">
+                <label>Send for approval to <span style="color:red">*</span></label>
+                <select name="approver_id" class="form-control draft-approver" required>
+                    <option value="">Choose who should approve this draft</option>
+                    @foreach($draft_approvers as $approverUser)
+                    <option value="{{ $approverUser->id }}">{{ $approverUser->name }}</option>
+                    @endforeach
+                </select>
+            </div>
             <div class="draft-form-actions">
                 <button type="button" class="btn btn-outline-primary draft-cancel">Cancel</button>
                 <button type="submit" class="btn btn-primary">Save draft</button>
@@ -27,7 +36,6 @@
         <p class="lead-empty">No {{ strtolower($title) }}s yet.</p>
         @endif
 
-        @php($canApproveDrafts = auth()->user()->can('draft_approval'))
         @foreach($drafts as $draft)
         <div class="draft-item {{ $draft->isApproved() ? 'is-approved' : '' }}">
             <div class="draft-icon"><i class="material-icons">{{ $icon }}</i></div>
@@ -40,6 +48,9 @@
                     <span class="draft-status is-pending"><i class="material-icons">schedule</i> Pending approval</span>
                     @endif
                     {{ $draft->createdby->name ?? 'Unknown' }} · {{ $draft->created_at?->format('d M Y, h:i A') }}
+                    @if($draft->approver)
+                    · approval: {{ $draft->approver->name }}
+                    @endif
                     @if($draft->isApproved())
                     · approved by {{ $draft->approvedby->name ?? '-' }}
                     @endif
@@ -48,8 +59,8 @@
             <div class="draft-actions">
                 <button type="button" class="contact-icon-btn draft-copy" data-copy-target="#draft-text-{{ $draft->id }}" title="Copy draft" data-toggle="tooltip"><i class="material-icons">content_copy</i></button>
                 {{-- Approved drafts are locked; only approvers may still change them. --}}
-                @if(! $draft->isApproved() || $canApproveDrafts)
-                <button type="button" class="contact-icon-btn contact-icon-muted draft-edit" data-draft-form="#{{ $paneId }}-form" data-id="{{ $draft->id }}" data-text="{{ $draft->note }}" title="Edit draft" data-toggle="tooltip"><i class="material-icons">edit</i></button>
+                @if(! $draft->isApproved() || $draft->canBeApprovedBy(auth()->user()))
+                <button type="button" class="contact-icon-btn contact-icon-muted draft-edit" data-draft-form="#{{ $paneId }}-form" data-id="{{ $draft->id }}" data-approver="{{ $draft->approver_id }}" data-text="{{ $draft->note }}" title="Edit draft" data-toggle="tooltip"><i class="material-icons">edit</i></button>
                 <form action="{{ route('lead-notes.destroy', $draft->id) }}" method="POST" class="d-inline-flex m-0" onsubmit="return confirm('Delete this draft?')">
                     @csrf
                     @method('DELETE')

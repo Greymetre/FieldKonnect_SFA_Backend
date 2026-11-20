@@ -753,10 +753,16 @@ class LeadController extends Controller
         })->select('id', 'name')->orderBy('name')->get();
 
         $lead_contacts = LeadContact::where(['lead_id' => $lead->id])->get();
-        $all_notes = LeadNote::with(['createdby:id,name', 'approvedby:id,name'])->where(['lead_id' => $lead->id])->orderByDesc('created_at')->get();
+        $all_notes = LeadNote::with(['createdby:id,name', 'approvedby:id,name', 'approver:id,name'])->where(['lead_id' => $lead->id])->orderByDesc('created_at')->get();
         $lead_notes = $all_notes->where('type', LeadNote::TYPE_NOTE)->values();
         $email_drafts = $all_notes->where('type', LeadNote::TYPE_EMAIL)->values();
         $linkedin_drafts = $all_notes->where('type', LeadNote::TYPE_LINKEDIN)->values();
+        // Who a draft can be sent to for approval: active internal users (not customers).
+        $draft_approvers = User::where('active', 'Y')
+            ->whereDoesntHave('roles', fn ($query) => $query->whereIn('id', config('constants.customer_roles')))
+            ->where('id', '!=', Auth::id())
+            ->orderBy('name')
+            ->get(['id', 'name']);
         $lead_tasks = LeadTask::with(['assignUser:id,name', 'createdby:id,name'])->where(['lead_id' => $lead->id])->get();
         // The assignee opened this lead: their tasks count as seen.
         $lead_tasks->each(fn ($task) => $task->markSeenBy(Auth::id()));
@@ -823,7 +829,7 @@ class LeadController extends Controller
         $status = Status::where('module', 'LeadStatus')->where('active', 'Y')->get();
         $call_statuses = Status::where('module', Status::MODULE_LEAD_CALL_FEEDBACK)->where('active', 'Y')->orderBy('id')->get(['id', 'display_name', 'status_name']);
         $opportunity_status = OpportunitieStatus::orderBy('ordering', 'asc')->pluck('status_name', 'id')->toArray();
-        return view('leads.show', compact('lead', 'lead_contacts', 'lead_notes', 'users', 'lead_tasks', 'lead_opportunities', 'countries', 'pincodes', 'address', 'address_data', 'media_items', 'combined', 'status', 'opportunity_status', 'lead_call_history', 'canViewCallRecordings', 'call_statuses', 'email_drafts', 'linkedin_drafts'));
+        return view('leads.show', compact('lead', 'lead_contacts', 'lead_notes', 'users', 'lead_tasks', 'lead_opportunities', 'countries', 'pincodes', 'address', 'address_data', 'media_items', 'combined', 'status', 'opportunity_status', 'lead_call_history', 'canViewCallRecordings', 'call_statuses', 'email_drafts', 'linkedin_drafts', 'draft_approvers'));
     }
 
     /**

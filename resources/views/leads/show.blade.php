@@ -1837,6 +1837,16 @@
         .lead-detail-page .task-remark i { font-size: 14px; color: var(--fk-list-muted); }
         .lead-detail-page .task-actions { flex: 0 0 auto; display: flex; gap: 6px; }
         .lead-detail-page .task-actions .contact-icon-btn { width: 30px; height: 30px; padding: 0; }
+        .lead-detail-page .draft-approver-row { margin-top: 10px; }
+        .lead-detail-page .draft-approver-row label { display: block; margin-bottom: 4px; font-size: 12px; font-weight: 600; color: var(--fk-list-muted); }
+        .lead-detail-page .draft-approver-row .draft-approver {
+            height: 40px;
+            border: 1px solid var(--fk-list-border-strong) !important;
+            border-radius: 10px !important;
+            background: var(--fk-list-control) !important;
+            color: var(--fk-list-text) !important;
+            font-size: 13px;
+        }
     </style>
     <div class="row lead-detail-page">
         <div class="col-md-12">
@@ -3465,6 +3475,7 @@ function activateNotesTab() {
         var $form = $($(this).data('draft-form'));
         $form.find('.draft-id').val('');
         $form.find('.draft-text').val('');
+        $form.find('.draft-approver').val('');
         $form.slideDown(150);
         $form.find('.draft-text').trigger('focus');
     });
@@ -3473,6 +3484,7 @@ function activateNotesTab() {
         var $form = $($(this).data('draft-form'));
         $form.find('.draft-id').val($(this).data('id'));
         $form.find('.draft-text').val($(this).data('text'));
+        $form.find('.draft-approver').val(String($(this).data('approver') || ''));
         $form.slideDown(150);
         $form.find('.draft-text').trigger('focus');
     });

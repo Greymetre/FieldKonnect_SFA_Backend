@@ -17,7 +17,7 @@ class DraftApprovalController extends Controller
     {
         $this->authorizeApproval();
 
-        $pending = LeadNote::whereIn('type', [LeadNote::TYPE_EMAIL, LeadNote::TYPE_LINKEDIN])
+        $pending = $this->visibleDrafts()
             ->whereNull('approved_at')
             ->selectRaw('type, COUNT(*) as total')
             ->groupBy('type')
@@ -35,7 +35,8 @@ class DraftApprovalController extends Controller
         $this->authorizeApproval();
 
         $type = $request->input('type') === LeadNote::TYPE_LINKEDIN ? LeadNote::TYPE_LINKEDIN : LeadNote::TYPE_EMAIL;
-        $query = LeadNote::with(['lead:id,company_name,external_lead_id', 'createdby:id,name', 'approvedby:id,name'])
+        $query = $this->visibleDrafts()
+            ->with(['lead:id,company_name,external_lead_id', 'createdby:id,name', 'approvedby:id,name', 'approver:id,name'])
             ->where('type', $type);
 
         $status = $request->input('status', 'pending');
@@ -74,6 +75,7 @@ class DraftApprovalController extends Controller
                 'approved' => $draft->isApproved(),
                 'approved_by' => $draft->approvedby?->name,
                 'approved_at' => $draft->approved_at?->format('d M Y, h:i A'),
+                'approver' => $draft->approver?->name,
                 'update_url' => route('draft-approvals.update', $draft),
                 'approve_url' => route('draft-approvals.approve', $draft),
             ]);
@@ -89,8 +91,8 @@ class DraftApprovalController extends Controller
     /** Edit the draft text (approval state is kept). */
     public function update(Request $request, LeadNote $leadNote)
     {
-        $this->authorizeApproval();
         $this->ensureDraft($leadNote);
+        abort_unless($leadNote->canBeApprovedBy(Auth::user()), Response::HTTP_FORBIDDEN, 'This draft was sent to another approver.');
 
         $validated = $request->validate(['note' => ['required', 'string', 'max:10000']]);
         $leadNote->update(['note' => $validated['note']]);
@@ -101,8 +103,8 @@ class DraftApprovalController extends Controller
     /** Approve (optionally with edited text in the same step). */
     public function approve(Request $request, LeadNote $leadNote)
     {
-        $this->authorizeApproval();
         $this->ensureDraft($leadNote);
+        abort_unless($leadNote->canBeApprovedBy(Auth::user()), Response::HTTP_FORBIDDEN, 'This draft was sent to another approver.');
 
         $validated = $request->validate(['note' => ['nullable', 'string', 'max:10000']]);
         $leadNote->update(array_filter([
@@ -114,9 +116,20 @@ class DraftApprovalController extends Controller
         return response()->json(['success' => true, 'message' => 'Draft approved.']);
     }
 
+    /** Approvers see the page: full access with draft_approval, else only drafts sent to them. */
     private function authorizeApproval(): void
     {
-        abort_unless(Auth::user()->can('draft_approval'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        abort_unless(
+            Auth::user()->can('draft_approval') || LeadNote::where('approver_id', Auth::id())->exists(),
+            Response::HTTP_FORBIDDEN,
+            '403 Forbidden'
+        );
+    }
+
+    private function visibleDrafts()
+    {
+        return LeadNote::whereIn('type', [LeadNote::TYPE_EMAIL, LeadNote::TYPE_LINKEDIN])
+            ->when(! Auth::user()->can('draft_approval'), fn ($query) => $query->where('approver_id', Auth::id()));
     }
 
     private function ensureDraft(LeadNote $leadNote): void

@@ -19,6 +19,7 @@ class LeadNote extends Model
         'type',
         'note',
         'created_by',
+        'approver_id',
         'approved_by',
         'approved_at',
     ];
@@ -34,6 +35,17 @@ class LeadNote extends Model
     
     public function lead(){
         return $this->belongsTo(Lead::class);
+    }
+
+    /** The user this draft was sent to for approval. */
+    public function approver(){
+        return $this->belongsTo(User::class, 'approver_id');
+    }
+
+    /** Approvers: anyone with draft_approval, or the user the draft was sent to. */
+    public function canBeApprovedBy(?User $user): bool
+    {
+        return $user && ($user->can('draft_approval') || (int) $this->approver_id === (int) $user->id);
     }
 
     public function approvedby(){

@@ -1745,7 +1745,7 @@
                                         </a>
                                     </li>
                                     @endif
-                                    @if(auth()->user()->can('draft_approval'))
+                                    @if(auth()->user()->can('draft_approval') || \App\Models\LeadNote::where('approver_id', auth()->id())->exists())
                                     <li class="nav-link-btn {{ request()->is('draft-approvals*') ? 'active' : '' }}">
                                         <a class="hoveradd2" href="{{ route('draft-approvals.index') }}">
                                             <i class="material-icons icon">fact_check</i>

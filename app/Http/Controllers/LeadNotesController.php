@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
 
@@ -27,36 +28,74 @@ class LeadNotesController extends Controller
      */
    public function store(Request $request)
     {
+        $existing = $request->note_id ? LeadNote::where('id', $request->note_id)->first() : null;
+        $type = $existing->type ?? $request->input('type', LeadNote::TYPE_NOTE);
+        $isDraft = in_array($type, [LeadNote::TYPE_EMAIL, LeadNote::TYPE_LINKEDIN], true);
+
         $request->validate([
             'lead_id' => 'required',
             'note' => 'required',
             'type' => 'nullable|in:'.implode(',', LeadNote::TYPES),
-        ]);
-        $type = $request->input('type', LeadNote::TYPE_NOTE);
+            // Drafts go to the user picked here for approval.
+            'approver_id' => [$isDraft ? 'required' : 'nullable', 'integer', 'exists:users,id'],
+        ], ['approver_id.required' => 'Please choose who should approve this draft.']);
+
         $labels = [
             LeadNote::TYPE_NOTE => ['Lead Note', 'notes'],
             LeadNote::TYPE_EMAIL => ['Email draft', 'email-drafts'],
             LeadNote::TYPE_LINKEDIN => ['LinkedIn draft', 'linkedin-drafts'],
         ];
-        [$label, $tab] = $labels[$type];
+        [$label, $tab] = $labels[$type] ?? $labels[LeadNote::TYPE_NOTE];
 
-        $lead_note = $request->note_id ? LeadNote::where('id', $request->note_id)->first() : null;
-        if ($lead_note && $lead_note->isApproved() && ! Auth::user()->can('draft_approval')) {
-            return redirect()->back()->with('lead_tab', $labels[$lead_note->type][1] ?? $tab)
+        if ($existing && $existing->isApproved() && ! $existing->canBeApprovedBy(Auth::user())) {
+            return redirect()->back()->with('lead_tab', $tab)
                 ->withErrors(['note' => 'This draft is approved and can no longer be edited.']);
         }
-        if ($lead_note) {
-            // Editing keeps the entry's own type (a note stays a note).
-            $lead_note->update(['note' => $request->note, 'lead_id' => $request->lead_id, 'created_by' => Auth::id()]);
+
+        $approverId = $isDraft ? (int) $request->approver_id : null;
+        if ($existing) {
+            $updates = ['note' => $request->note, 'lead_id' => $request->lead_id];
+            if ($isDraft) {
+                $updates['approver_id'] = $approverId;
+            } else {
+                $updates['created_by'] = Auth::id();
+            }
+            $approverChanged = $isDraft && (int) $existing->approver_id !== $approverId;
+            $existing->update($updates);
             $request->session()->flash('message_success', $label.' updated successfully.');
-            $tab = $labels[$lead_note->type][1] ?? $tab;
+            if ($approverChanged && ! $existing->isApproved()) {
+                $this->notifyApprover($existing, $label);
+            }
         } else {
-            LeadNote::create(['type' => $type, 'note' => $request->note, 'lead_id' => $request->lead_id, 'created_by' => Auth::id()]);
-            $request->session()->flash('message_success', $label.' added successfully.');
+            $draft = LeadNote::create([
+                'type' => $type,
+                'note' => $request->note,
+                'lead_id' => $request->lead_id,
+                'created_by' => Auth::id(),
+                'approver_id' => $approverId,
+            ]);
+            $request->session()->flash('message_success', $isDraft
+                ? $label.' sent to '.($draft->approver->name ?? 'the approver').' for approval.'
+                : $label.' added successfully.');
+            if ($isDraft) {
+                $this->notifyApprover($draft, $label);
+            }
         }
 
         // Reopen the tab the entry was saved from.
         return redirect()->back()->with('lead_tab', $tab);
+    }
+
+    /** Tell the chosen approver a draft is waiting for them. */
+    private function notifyApprover(LeadNote $draft, string $label): void
+    {
+        if (! $draft->approver_id || (int) $draft->approver_id === (int) Auth::id()) {
+            return;
+        }
+        $company = Str::limit($draft->lead->company_name ?? '', 30);
+        $msg = '✉️ '.Auth::user()->name.' sent you a '.strtolower($label).' for '.$company.' to approve.';
+        SendPushNotification($draft->approver_id, $msg, 'lead');
+        StoreLeadNotification($draft->lead_id, 'Draft Approval', $msg, $draft->approver_id, 'lead');
     }
 
     // public function update(Request $request, LeadNote $leadNote)
@@ -91,7 +130,7 @@ class LeadNotesController extends Controller
     public function destroy(Request $request, LeadNote $leadNote)
     {
         $type = $leadNote->type;
-        if ($leadNote->isApproved() && ! Auth::user()->can('draft_approval')) {
+        if ($leadNote->isApproved() && ! $leadNote->canBeApprovedBy(Auth::user())) {
             return redirect()->back()->with('lead_tab', ['email' => 'email-drafts', 'linkedin' => 'linkedin-drafts'][$type] ?? 'notes')
                 ->withErrors(['note' => 'This draft is approved and can no longer be deleted.']);
         }

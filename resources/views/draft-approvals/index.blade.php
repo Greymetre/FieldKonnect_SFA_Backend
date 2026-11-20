@@ -186,6 +186,7 @@
                 <th>Lead</th>
                 <th>Draft</th>
                 <th>Written by</th>
+                <th>Sent to</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -272,6 +273,12 @@
             data: 'created_by',
             render: function(name, type, row) {
               return '<span class="dap-lead">' + dapEsc(name) + '</span><span class="dap-sub">' + dapEsc(row.created_at) + '</span>';
+            }
+          },
+          {
+            data: 'approver',
+            render: function(name) {
+              return name ? '<span class="dap-lead">' + dapEsc(name) + '</span>' : '<span class="dap-sub">Not assigned</span>';
             }
           },
           {
