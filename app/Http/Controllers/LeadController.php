@@ -65,7 +65,7 @@ class LeadController extends Controller
 
     public function getLeads(Request $request)
     {
-        $leads = Lead::with(['contacts', 'assign_user', 'status_is']);
+        $leads = Lead::with(['contacts', 'assign_user', 'status_is', 'notes', 'address.cityname']);
 
         $datetime = $request->input('datetime');
         if ($datetime != "") {
@@ -225,14 +225,14 @@ class LeadController extends Controller
                 }
             })
             ->editColumn('others', function ($lead) {
-                if (!is_array($lead->others)) {
-                    $jsonData = '';
-                    $lead->others = json_decode($lead->others, true);
+                $others = is_array($lead->others) ? $lead->others : json_decode((string) $lead->others, true);
+                if (! is_array($others)) {
+                    return '';
                 }
-                if (!empty($lead->others) && count($lead->others) > 0) {
-                    foreach ($lead->others as $key => $value) {
-                        $jsonData .= "<strong>" . ucwords(str_replace('_', ' ', $key)) . ":</strong> " . $value . "<br>";
-                    }
+                $jsonData = '';
+                foreach ($others as $key => $value) {
+                    $value = is_scalar($value) || $value === null ? (string) $value : json_encode($value, JSON_UNESCAPED_UNICODE);
+                    $jsonData .= '<strong>' . e(ucwords(str_replace('_', ' ', (string) $key))) . ':</strong> ' . e($value) . '<br>';
                 }
                 return $jsonData;
             })
@@ -243,7 +243,10 @@ class LeadController extends Controller
                 }
                 return '';
             })
-            ->with('records_filtered_count', $leads->get()->count())
+            ->with('records_filtered_count', \DB::query()->fromSub(
+                (clone $leads)->setEagerLoads([])->toBase()->reorder()->select('leads.id'),
+                'filtered_leads'
+            )->count())
             ->rawColumns(['action', 'company_name', 'checkbox', 'status', 'others', 'note'])
             ->make(true);
     }

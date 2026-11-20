@@ -40,8 +40,9 @@ class LeadsImport implements ToCollection, WithValidation, WithHeadingRow, WithB
 
     public function collection(Collection $rows)
     {
-        // New leads created per assignee in this chunk (for notifications).
+        // New / re-assigned leads per assignee in this chunk (for notifications).
         $assignedCounts = [];
+        $reassignedCounts = [];
 
         foreach ($rows as $row) {
             // Do not create an empty lead for blank/spacer rows in the sheet.
@@ -54,15 +55,24 @@ class LeadsImport implements ToCollection, WithValidation, WithHeadingRow, WithB
 
             // Rows sharing a Lead ID belong to one lead: reuse it (also across
             // earlier chunks/imports) and only attach the extra contact.
-            $lead = $externalLeadId !== null
-                ? Lead::where('external_lead_id', $externalLeadId)->first()
-                : null;
+            $lead = $this->existingLead($externalLeadId, $row['id'] ?? null);
 
             if (! $lead) {
                 $lead = $this->createLead($row, $externalLeadId);
+                if ($externalLeadId !== null) {
+                    $this->leadCache['L:'.$externalLeadId] = $lead;
+                }
 
                 if ($lead->assign_to) {
                     $assignedCounts[$lead->assign_to] = ($assignedCounts[$lead->assign_to] ?? 0) + 1;
+                }
+            } else {
+                // Existing lead: only the assignee is updated from the sheet, so a
+                // re-import can split / move leads between users.
+                $assigneeId = $this->resolveAssigneeId($row['assignee'] ?? null);
+                if ($assigneeId && (int) $lead->assign_to !== $assigneeId) {
+                    $lead->update(['assign_to' => $assigneeId]);
+                    $reassignedCounts[$assigneeId] = ($reassignedCounts[$assigneeId] ?? 0) + 1;
                 }
             }
 
@@ -82,7 +92,37 @@ class LeadsImport implements ToCollection, WithValidation, WithHeadingRow, WithB
             SendPushNotification($userId, '🟢 You have been assigned ' . $count . ' new leads.');
             StoreLeadNotification(null, 'Assigned Lead', '🟢 You have been assigned ' . $count . ' new leads.', $userId);
         }
+        foreach ($reassignedCounts as $userId => $count) {
+            SendPushNotification($userId, '🟢 ' . $count . ' leads have been assigned to you.');
+            StoreLeadNotification(null, 'Assigned Lead', '🟢 ' . $count . ' leads have been assigned to you.', $userId);
+        }
     }
+
+    /**
+     * Find the lead a row belongs to: by Lead ID, or - for sheets exported from
+     * this system that have no Lead ID - by the internal "ID" column.
+     */
+    private function existingLead(?string $externalLeadId, $internalId): ?Lead
+    {
+        $internalId = $this->normalizeExternalId($internalId);
+        $key = $externalLeadId !== null ? 'L:'.$externalLeadId : ($internalId !== null && ctype_digit($internalId) ? 'I:'.$internalId : null);
+        if ($key === null) {
+            return null;
+        }
+        // A lead's rows usually come one after another; look it up once.
+        if (isset($this->leadCache[$key])) {
+            return $this->leadCache[$key];
+        }
+
+        $lead = $externalLeadId !== null
+            ? Lead::where('external_lead_id', $externalLeadId)->first()
+            : Lead::find((int) $internalId);
+
+        return $lead ? $this->leadCache[$key] = $lead : null;
+    }
+
+    /** @var array<string, Lead> */
+    private array $leadCache = [];
 
     private function createLead($row, ?string $externalLeadId): Lead
     {
@@ -98,6 +138,7 @@ class LeadsImport implements ToCollection, WithValidation, WithHeadingRow, WithB
             ? Status::where('display_name', $row['lead_type'])->value('id')
             : null;
         $expectedKeys = [
+            'id',
             'lead_id',
             'contact_id',
             'lead_generation_date',
@@ -185,16 +226,28 @@ class LeadsImport implements ToCollection, WithValidation, WithHeadingRow, WithB
             'lead_source' => $row['lead_source'] ?? null,
         ];
 
-        // Same Contact ID on the same lead updates that contact instead of duplicating it.
+        // Same contact on the same lead (by Contact ID, else by phone number)
+        // is updated instead of duplicated.
+        $contact = null;
         if ($externalContactId !== null) {
             $contact = LeadContact::where('lead_id', $lead->id)
                 ->where('external_contact_id', $externalContactId)
                 ->first();
+        }
+        $phone = substr(preg_replace('/\D+/', '', (string) $data['phone_number']), -10);
+        if (! $contact && strlen($phone) === 10) {
+            $contact = LeadContact::where('lead_id', $lead->id)->get()
+                ->first(fn ($existing) => substr(preg_replace('/\D+/', '', (string) $existing->phone_number), -10) === $phone);
+        }
 
-            if ($contact) {
-                $contact->update($data);
-                return;
+        if ($contact) {
+            // Blank cells must not wipe data already saved on the contact.
+            $updates = array_filter($data, fn ($value) => $value !== null && trim((string) $value) !== '' && strtoupper(trim((string) $value)) !== 'N/A');
+            if ($externalContactId !== null && ! $contact->external_contact_id) {
+                $updates['external_contact_id'] = $externalContactId;
             }
+            $contact->update($updates);
+            return;
         }
 
         LeadContact::create($data + [
@@ -204,7 +257,10 @@ class LeadsImport implements ToCollection, WithValidation, WithHeadingRow, WithB
         ]);
     }
 
-    // Assignee column accepts either the user's name or email.
+    /** @var array<string, int|null> */
+    private array $assigneeCache = [];
+
+    // Assignee column accepts either the user's name or email (cached per import).
     private function resolveAssigneeId($value): ?int
     {
         $value = trim((string) $value);
@@ -212,8 +268,8 @@ class LeadsImport implements ToCollection, WithValidation, WithHeadingRow, WithB
             return null;
         }
 
-        return User::where('email', $value)->value('id')
-            ?? User::where('name', $value)->value('id');
+        return $this->assigneeCache[$value] ??= (User::where('email', $value)->value('id')
+            ?? User::where('name', $value)->value('id'));
     }
 
     // Excel returns numeric IDs as int/float (e.g. 101.0); store them as clean strings.
