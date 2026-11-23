@@ -43,7 +43,11 @@
                     </div>
                     @if($call->follow_up_at)
                     <div class="call-history-meta" style="margin-top:4px">
+                        @if(! empty($call->follow_up_channels))
+                        <span style="color:#38bdf8"><i class="material-icons">event</i>Send details on {{ collect($call->follow_up_channels)->map(fn ($channel) => ['whatsapp' => 'WhatsApp', 'linkedin' => 'LinkedIn', 'email' => 'Email'][$channel] ?? $channel)->implode(' & ') }} by {{ $call->follow_up_at->format('d M Y, h:i A') }}</span>
+                        @else
                         <span style="color:#38bdf8"><i class="material-icons">event</i>Call back on {{ $call->follow_up_at->format('d M Y, h:i A') }}</span>
+                        @endif
                     </div>
                     @endif
                     @if($call->feedbackStatus || $call->remark)

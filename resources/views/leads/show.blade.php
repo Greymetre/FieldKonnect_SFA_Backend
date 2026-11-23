@@ -2028,6 +2028,17 @@
         #callFeedbackModal .cfm-btn i { font-size: 17px; }
         #callFeedbackModal .cfm-btn.is-primary { border-color: transparent; background: linear-gradient(135deg, var(--fk-list-accent), var(--fk-list-accent-2)); color: var(--fk-list-primary-text); }
         #callFeedbackModal .cfm-btn:disabled { opacity: .6; cursor: wait; }
+        #callFeedbackModal .cfm-channels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+        #callFeedbackModal .cfm-channel { position: relative; margin: 0; cursor: pointer; }
+        #callFeedbackModal .cfm-channel input { position: absolute; opacity: 0; pointer-events: none; }
+        #callFeedbackModal .cfm-channel span { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--fk-list-border); border-radius: 12px; background: var(--fk-list-control); font-size: 13px; font-weight: 600; color: var(--fk-list-heading); }
+        #callFeedbackModal .cfm-channel span i { font-size: 18px; }
+        #callFeedbackModal .cfm-channel.is-whatsapp span i { color: #25d366; }
+        #callFeedbackModal .cfm-channel.is-linkedin span i { color: #4ba3f5; }
+        #callFeedbackModal .cfm-channel.is-email span i { color: #f59e0b; }
+        #callFeedbackModal .cfm-channel.is-none span i { color: #94a3b8; }
+        #callFeedbackModal .cfm-channel input:checked + span { border-color: var(--fk-list-accent); background: var(--fk-list-count-bg); box-shadow: 0 0 0 1px var(--fk-list-accent) inset; }
+        #callFeedbackModal .cfm-details { padding: 12px; border-radius: 12px; background: rgba(16, 185, 129, .07); border: 1px solid rgba(16, 185, 129, .28); }
     </style>
     <div class="row lead-detail-page">
         <div class="col-md-12">
@@ -3460,7 +3471,7 @@ action="{{ route('leads.storeAddress') }}" class="form-horizontal" id="frmLeadsA
                             @foreach($call_statuses as $callStatus)
                             @php([$outcomeIcon, $outcomeTone] = $outcomeStyle[$callStatus->status_name] ?? ['label', 'is-grey'])
                             <label class="cfm-outcome {{ $outcomeTone }}">
-                                <input type="radio" name="call_status" value="{{ $callStatus->id }}" data-callback="{{ $callStatus->status_name === \App\Models\Status::LEAD_CALL_BACK ? 1 : 0 }}">
+                                <input type="radio" name="call_status" value="{{ $callStatus->id }}" data-callback="{{ $callStatus->status_name === \App\Models\Status::LEAD_CALL_BACK ? 1 : 0 }}" data-done="{{ $callStatus->status_name === \App\Models\Status::LEAD_CALL_DONE ? 1 : 0 }}">
                                 <span><i class="material-icons">{{ $outcomeIcon }}</i>{{ $callStatus->display_name ?: $callStatus->status_name }}</span>
                             </label>
                             @endforeach
@@ -3470,10 +3481,20 @@ action="{{ route('leads.storeAddress') }}" class="form-horizontal" id="frmLeadsA
                         @endif
                     </div>
 
+                    <div class="cfm-section cfm-details" id="callFeedbackDetails" style="display:none">
+                        <div class="cfm-label">Customer wants details on <span class="cfm-req">*</span></div>
+                        <div class="cfm-channels">
+                            <label class="cfm-channel is-whatsapp"><input type="checkbox" name="details_via[]" value="whatsapp"><span><i class="material-icons">chat</i>WhatsApp</span></label>
+                            <label class="cfm-channel is-linkedin"><input type="checkbox" name="details_via[]" value="linkedin"><span><i class="material-icons">work</i>LinkedIn</span></label>
+                            <label class="cfm-channel is-email"><input type="checkbox" name="details_via[]" value="email"><span><i class="material-icons">mail</i>Email</span></label>
+                            <label class="cfm-channel is-none"><input type="checkbox" name="details_via[]" value="none"><span><i class="material-icons">block</i>No follow-up needed</span></label>
+                        </div>
+                    </div>
+
                     <div class="cfm-section cfm-callback" id="callFeedbackCallback" style="display:none">
-                        <div class="cfm-label">Call back on <span class="cfm-req">*</span></div>
+                        <div class="cfm-label"><span id="callFeedbackFollowUpLabel">Call back on</span> <span class="cfm-req">*</span></div>
                         <input type="datetime-local" class="cfm-input" id="callFeedbackFollowUp">
-                        <p class="cfm-hint">A "Call back" task is created for this time.</p>
+                        <p class="cfm-hint" id="callFeedbackFollowUpHint">A "Call back" task is created for this time.</p>
                     </div>
 
                     <div class="cfm-section">
@@ -3921,8 +3942,9 @@ function activateNotesTab() {
         $('#callFeedbackSub').text(label || '');
         $('#callFeedbackRemark').val('');
         $('input[name="call_status"]').prop('checked', false);
+        $('input[name="details_via[]"]').prop('checked', false);
         $('#callFeedbackFollowUp').val('');
-        $('#callFeedbackCallback').hide();
+        $('#callFeedbackCallback, #callFeedbackDetails').hide();
         $('#callFeedbackError').text('');
         openPageModal('#callFeedbackModal');
         setTimeout(function () { $('#callFeedbackRemark').trigger('focus'); }, 400);
@@ -3938,18 +3960,53 @@ function activateNotesTab() {
         return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate()) + 'T' + pad(date.getHours()) + ':' + pad(date.getMinutes());
     }
 
-    $(document).on('change', 'input[name="call_status"]', function () {
-        var isCallBack = String($(this).data('callback')) === '1';
-        $('#callFeedbackCallback').toggle(isCallBack);
-        $('#callFeedbackError').text('');
-        if (isCallBack) {
+    // Which follow-up (if any) the chosen status needs.
+    function callFollowUpMode() {
+        var $picked = $('input[name="call_status"]:checked');
+        if (!$picked.length) return '';
+        if (String($picked.data('callback')) === '1') return 'callback';
+        if (String($picked.data('done')) === '1') {
+            var channels = $('input[name="details_via[]"]:checked').map(function () { return this.value; }).get()
+                .filter(function (value) { return value !== 'none'; });
+            return channels.length ? 'details' : '';
+        }
+        return '';
+    }
+
+    function syncCallFollowUp() {
+        var $picked = $('input[name="call_status"]:checked');
+        $('#callFeedbackDetails').toggle($picked.length > 0 && String($picked.data('done')) === '1');
+        var mode = callFollowUpMode();
+        $('#callFeedbackCallback').toggle(mode !== '');
+        if (mode === 'callback') {
+            $('#callFeedbackFollowUpLabel').text('Call back on');
+            $('#callFeedbackFollowUpHint').text('A "Call back" task is created for this time.');
+        } else if (mode === 'details') {
+            $('#callFeedbackFollowUpLabel').text('Send details by');
+            $('#callFeedbackFollowUpHint').text('A task to send the details is created for this time.');
+        }
+        if (mode) {
             var now = new Date();
             $('#callFeedbackFollowUp').attr('min', localDateTimeValue(now));
             if (!$('#callFeedbackFollowUp').val()) {
-                var later = new Date(now.getTime() + 60 * 60 * 1000);
-                $('#callFeedbackFollowUp').val(localDateTimeValue(later));
+                $('#callFeedbackFollowUp').val(localDateTimeValue(new Date(now.getTime() + 60 * 60 * 1000)));
             }
         }
+    }
+
+    $(document).on('change', 'input[name="call_status"]', function () {
+        $('#callFeedbackError').text('');
+        syncCallFollowUp();
+    });
+
+    // "No follow-up needed" and the channels exclude each other.
+    $(document).on('change', 'input[name="details_via[]"]', function () {
+        if (this.checked) {
+            if (this.value === 'none') $('input[name="details_via[]"]').not(this).prop('checked', false);
+            else $('input[name="details_via[]"][value="none"]').prop('checked', false);
+        }
+        $('#callFeedbackError').text('');
+        syncCallFollowUp();
     });
 
     $('#callFeedbackForm').on('submit', function (event) {
@@ -3960,10 +4017,16 @@ function activateNotesTab() {
             $('#callFeedbackError').text('Please select the call status.');
             return;
         }
-        var isCallBack = $picked.length && String($picked.data('callback')) === '1';
+        var isCallDone = $picked.length && String($picked.data('done')) === '1';
+        var detailsVia = $('input[name="details_via[]"]:checked').map(function () { return this.value; }).get();
+        if (isCallDone && !detailsVia.length) {
+            $('#callFeedbackError').text('Choose where the customer wants details, or "No follow-up needed".');
+            return;
+        }
+        var mode = callFollowUpMode();
         var followUp = $('#callFeedbackFollowUp').val();
-        if (isCallBack && !followUp) {
-            $('#callFeedbackError').text('Please choose the call back date and time.');
+        if (mode && !followUp) {
+            $('#callFeedbackError').text(mode === 'callback' ? 'Please choose the call back date and time.' : 'Please choose when to send the details.');
             return;
         }
         if (!remark) {
@@ -3980,7 +4043,8 @@ function activateNotesTab() {
                 call_status: $picked.val() || '',
                 status: $('#callFeedbackStatus').val(),
                 remark: remark,
-                follow_up_at: isCallBack ? followUp : ''
+                details_via: isCallDone ? detailsVia : [],
+                follow_up_at: mode ? followUp : ''
             },
             success: function () {
                 $('#callFeedbackModal').modal('hide');

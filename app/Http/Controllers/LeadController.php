@@ -1111,16 +1111,28 @@ class LeadController extends Controller
             'Please select a valid lead type.'
         );
 
-        // "Call Back" needs a follow-up date and time.
+        // Follow-ups that need a date & time (and become a task for the agent):
+        //  - "Call Back"
+        //  - "Call Done" where the customer wants details on WhatsApp / LinkedIn / Email
         $callStatus = ! empty($validated['call_status']) ? Status::find((int) $validated['call_status']) : null;
         $isCallBack = $callStatus && $callStatus->status_name === Status::LEAD_CALL_BACK;
+        $isCallDone = $callStatus && $callStatus->status_name === Status::LEAD_CALL_DONE;
+        $channels = [];
+        if ($isCallDone) {
+            $request->validate(
+                ['details_via' => ['required', 'array', 'min:1'], 'details_via.*' => ['in:whatsapp,linkedin,email,none']],
+                ['details_via.required' => 'Choose where the customer wants details, or "No follow-up needed".']
+            );
+            $channels = array_values(array_diff(array_unique($request->details_via), ['none']));
+        }
+
         $followUp = null;
-        if ($isCallBack) {
+        if ($isCallBack || $channels) {
             $request->validate(
                 ['follow_up_at' => ['required', 'date_format:Y-m-d\\TH:i', 'after:now']],
                 [
-                    'follow_up_at.required' => 'Please choose the call back date and time.',
-                    'follow_up_at.after' => 'The call back time must be in the future.',
+                    'follow_up_at.required' => $isCallBack ? 'Please choose the call back date and time.' : 'Please choose when to send the details.',
+                    'follow_up_at.after' => 'The follow-up time must be in the future.',
                 ]
             );
             $followUp = \Carbon\Carbon::createFromFormat('Y-m-d\\TH:i', $request->follow_up_at);
@@ -1134,16 +1146,18 @@ class LeadController extends Controller
             $callStatus?->id
         );
 
-        $callLog->update(['follow_up_at' => $followUp]);
+        $callLog->update(['follow_up_at' => $followUp, 'follow_up_channels' => $channels ?: null]);
         if ($followUp) {
-            // The call back also becomes a task for the agent who made the call.
+            // The follow-up becomes a task for the agent who made the call.
             $contactName = $callLog->contact?->name ?: $callLog->number;
+            $channelNames = collect($channels)->map(fn ($channel) => ['whatsapp' => 'WhatsApp', 'linkedin' => 'LinkedIn', 'email' => 'Email'][$channel])->implode(' & ');
+            $description = $isCallBack ? 'Call back '.$contactName : 'Send details on '.$channelNames.' to '.$contactName;
             $assignee = $callLog->user_id ?: Auth::id();
             $task = LeadTask::create([
                 'lead_id' => $lead->id,
                 'assigned_to' => $assignee,
                 'created_by' => Auth::id(),
-                'description' => 'Call back '.$contactName,
+                'description' => $description,
                 'date' => $followUp->toDateString(),
                 'time' => $followUp->format('H:i:s'),
                 'priority' => 'high',
@@ -1151,8 +1165,9 @@ class LeadController extends Controller
                 'remark' => \Illuminate\Support\Str::limit($validated['remark'], 250),
             ]);
             if ((int) $assignee !== (int) Auth::id()) {
-                SendPushNotification($assignee, '📞 Call back '.$contactName.' on '.$followUp->format('d M, h:i A').'.', 'task');
-                StoreLeadNotification($task->id, 'Call Back', '📞 Call back '.$contactName.' on '.$followUp->format('d M, h:i A').'.', $assignee, 'task');
+                $msg = '📝 '.$description.' on '.$followUp->format('d M, h:i A').'.';
+                SendPushNotification($assignee, $msg, 'task');
+                StoreLeadNotification($task->id, 'Follow-up Task', $msg, $assignee, 'task');
             }
         }
 

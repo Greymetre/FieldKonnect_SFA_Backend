@@ -15,6 +15,7 @@ class Status extends Model
     // Lead call outcomes, in the order they are shown after a call.
     public const LEAD_CALL_OUTCOMES = ['lead_call_done', 'lead_call_no_response', 'lead_call_switch_off', 'lead_call_wrong_number', 'lead_call_back'];
     public const LEAD_CALL_BACK = 'lead_call_back';
+    public const LEAD_CALL_DONE = 'lead_call_done';
 
     protected $table = 'statuses';
 
