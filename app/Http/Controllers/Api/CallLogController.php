@@ -52,6 +52,14 @@ class CallLogController extends Controller
                 ->whereKey($request->call_log_id)
                 ->where('user_id', $user->id)
                 ->firstOrFail();
+            // Remark already saved (e.g. in the CRM while the app sheet was open): keep it.
+            if (trim((string) $callLog->remark) !== '') {
+                return response()->json([
+                    'success' => false,
+                    'already_saved' => true,
+                    'message' => 'The remark for this call was already saved.',
+                ], 409);
+            }
             $service = app(LeadCallService::class);
             $next = $service->recordOutcome($callLog, $service->validatedOutcome($request, (bool) $callLog->lead_id), $user);
 
@@ -97,16 +105,23 @@ class CallLogController extends Controller
     {
         $user = $request->user('users');
 
-        $callLog = CallLog::with(['lead:id,company_name,status', 'lead.contacts:id,lead_id,name', 'contact:id,name'])
+        // Only the user's most recent lead call is ever prompted, and only while it
+        // has no remark. Older calls without a remark are not prompted one after
+        // another, and a call whose remark was saved (in the app or the CRM) is
+        // never prompted again.
+        $latest = CallLog::with(['lead:id,company_name,status', 'lead.contacts:id,lead_id,name', 'contact:id,name'])
             ->where('user_id', $user->id)
             ->whereNotNull('lead_id')
             ->whereNull('call_management_entry_id')
-            ->whereNotNull('completed_at')
-            ->where('completed_at', '>=', now()->subDay())
-            ->where(fn ($query) => $query->whereNull('remark')->orWhere('remark', ''))
-            ->where(fn ($query) => $query->where('direction', 'outbound')->orWhereNotNull('answered_at'))
-            ->latest('completed_at')
+            ->latest('started_at')
+            ->latest('id')
             ->first();
+        $callLog = $latest
+            && trim((string) $latest->remark) === ''
+            && $latest->completed_at
+            && $latest->completed_at->gte(now()->subHours(6))
+            && ($latest->direction === 'outbound' || $latest->answered_at)
+            ? $latest : null;
 
         return response()->json([
             'success' => true,
