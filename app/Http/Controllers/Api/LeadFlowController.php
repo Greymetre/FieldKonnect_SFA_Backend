@@ -400,7 +400,7 @@ class LeadFlowController extends Controller
 
     private function isConnected(CallLog $call): bool
     {
-        return (int) $call->status === 1 && ! empty($call->recording_url);
+        return $call->isConnected();
     }
 
     private function callStatusLabel(CallLog $call): string

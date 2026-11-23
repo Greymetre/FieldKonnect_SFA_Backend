@@ -153,10 +153,11 @@ class CallLogController extends Controller
         // A call log can remain after its lead/contact has been deleted.
         // Do not let an orphaned log fail the complete mobile listing.
         $contact = $log->lead ? $log->lead->contacts->first() : null;
-        $connected = !empty($log->recording_url);
+        // Connected = agent and customer actually talked; the recording link is separate.
+        $connected = $log->isConnected();
 
         $recordingPlayUrl = null;
-        if ($connected) {
+        if (!empty($log->recording_url)) {
             try {
                 $recordingPlayUrl = URL::temporarySignedRoute(
                     'api.call-recordings.play',
@@ -335,13 +336,13 @@ class CallLogController extends Controller
         // Connection filter is applied after the summary so the cards keep counting all calls.
         $listQuery = clone $query;
         if ($request->input('status') === 'connected') {
-            $listQuery->whereNotNull('recording_url')->where('recording_url', '!=', '');
+            $listQuery->whereNotNull('connected_at');
         } elseif ($request->input('status') === 'not_connected') {
-            $listQuery->where(fn ($statusQuery) => $statusQuery->whereNull('recording_url')->orWhere('recording_url', ''));
+            $listQuery->whereNull('connected_at');
         }
         $attempts = (clone $summaryQuery)->count();
-        $connected = (clone $summaryQuery)->whereNotNull('recording_url')->where('recording_url', '!=', '')->count();
-        $duration = (clone $summaryQuery)->whereNotNull('recording_url')->where('recording_url', '!=', '')->sum('duration');
+        $connected = (clone $summaryQuery)->whereNotNull('connected_at')->count();
+        $duration = (clone $summaryQuery)->whereNotNull('connected_at')->sum('duration');
         $pageSize = min(100, max(1, (int) $request->input('page_size', 30)));
         $logs = $listQuery->latest('started_at')->latest('id')->paginate($pageSize);
 

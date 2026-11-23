@@ -136,12 +136,30 @@ class PlivoController extends Controller
             'plivo_b_leg_uuid' => $request->input('DialBLegUUID', $callLog->plivo_b_leg_uuid),
         ];
 
-        $billDuration = $request->input('DialBLegBillDuration', $request->input('BillDuration'));
-        $duration = is_numeric($billDuration)
-            ? $billDuration
-            : $request->input('DialBLegDuration', $request->input('Duration'));
-        if (is_numeric($duration)) {
-            $updates['duration'] = (int) $duration;
+        // Dial (B-leg) events are the second leg: the customer for agent-first
+        // calls, the agent for inbound callbacks. Only when that leg answers did
+        // the agent and the customer actually talk.
+        $bLegStatus = strtolower((string) $request->input('DialBLegStatus', ''));
+        $isDialEvent = $bLegStatus !== '' || $request->filled('DialAction');
+        if ($isDialEvent) {
+            $bLegAnswered = in_array(strtolower((string) $dialAction), ['answer'], true)
+                || in_array($bLegStatus, ['answer', 'answered', 'in-progress'], true);
+            // Talk time = real B-leg duration (not the billed, rounded-up value).
+            $talkSeconds = $request->input('DialBLegDuration');
+            if (is_numeric($talkSeconds)) {
+                $updates['duration'] = (int) $talkSeconds;
+                if ((int) $talkSeconds > 0) {
+                    $bLegAnswered = true;
+                }
+            }
+            if ($bLegAnswered && ! $callLog->connected_at) {
+                $updates['connected_at'] = is_numeric($talkSeconds) && (int) $talkSeconds > 0
+                    ? now()->subSeconds((int) $talkSeconds)
+                    : now();
+            }
+        } elseif (! $callLog->plivo_b_leg_uuid && ! $callLog->connected_at && ! $request->filled('DialBLegUUID')) {
+            // First-leg hangup before the second leg was ever dialled: nobody talked.
+            $updates['duration'] = 0;
         }
 
         $cost = $request->input('TotalCost', $request->input('CallCost'));
@@ -215,6 +233,11 @@ class PlivoController extends Controller
             // deliver their webhooks in either order during concurrent calls.
             'recording_duration' => is_numeric($duration) && (int) $duration >= 0 ? (int) $duration : null,
             'status' => $recordingUrl ? 1 : null,
+            // The recording starts only when the second leg answers, so a
+            // non-empty recording also proves the two sides talked.
+            'connected_at' => ! $callLog->connected_at && is_numeric($duration) && (int) $duration > 0
+                ? now()->subSeconds((int) $duration)
+                : null,
         ], static fn ($value) => $value !== null && $value !== ''));
 
         return response('OK', 200);

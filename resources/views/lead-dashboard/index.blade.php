@@ -511,7 +511,7 @@
           <ul class="ldb-list">
             @foreach($recentCalls as $call)
             @php
-              $isConnected = (int) $call->status === 1 && ! empty($call->recording_url);
+              $isConnected = $call->isConnected();
               $feedback = $call->feedbackStatus;
               if ($feedback && $feedback->module === \App\Models\Status::MODULE_LEAD_CALL_FEEDBACK) {
                   [$callTag, $callTone] = [$feedback->display_name ?: $feedback->status_name, ['good' => 'is-good', 'warn' => 'is-warn', 'bad' => 'is-bad', 'info' => 'is-info', 'muted' => 'is-muted'][$outcomeTones[$feedback->status_name] ?? 'info']];

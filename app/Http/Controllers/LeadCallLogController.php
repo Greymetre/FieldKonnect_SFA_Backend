@@ -147,11 +147,7 @@ class LeadCallLogController extends Controller
         if ($status === 'connected') {
             $this->whereConnected($query);
         } elseif ($status === 'not_connected') {
-            $query->where(function ($statusQuery) {
-                $statusQuery->where('status', 0)
-                    ->orWhereNull('recording_url')
-                    ->orWhere('recording_url', '');
-            });
+            $query->whereNull('call_logs.connected_at');
         } elseif ($status === 'no_remark') {
             $query->whereNull('feedback_status_id');
         }
@@ -167,7 +163,7 @@ class LeadCallLogController extends Controller
         // Calls per agent for the "Calls by agent" panel (busiest first).
         $agents = (clone $query)->setEagerLoads([])
             ->selectRaw('user_id, COUNT(*) as total_calls')
-            ->selectRaw("SUM(CASE WHEN status = 1 AND recording_url IS NOT NULL AND recording_url <> '' THEN 1 ELSE 0 END) as connected_calls")
+            ->selectRaw("SUM(CASE WHEN connected_at IS NOT NULL THEN 1 ELSE 0 END) as connected_calls")
             ->groupBy('user_id')
             ->orderByDesc('total_calls')
             ->limit(50)
@@ -189,14 +185,13 @@ class LeadCallLogController extends Controller
 
     private function whereConnected($query)
     {
-        return $query->where('status', 1)
-            ->whereNotNull('recording_url')
-            ->where('recording_url', '!=', '');
+        // Agent and customer actually talked (both legs connected).
+        return $query->whereNotNull('call_logs.connected_at');
     }
 
     private function isConnected(CallLog $call): bool
     {
-        return (int) $call->status === 1 && ! empty($call->recording_url);
+        return $call->isConnected();
     }
 
     private function isLive(CallLog $call): bool

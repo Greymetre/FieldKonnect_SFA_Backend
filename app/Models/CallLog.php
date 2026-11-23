@@ -37,9 +37,13 @@ class CallLog extends Model
         'transcription_error',
         'cost',
         'answered_at',
+        'connected_at',
         'completed_at',
         'webhook_token',
     ];
+
+    /** SQL condition for "agent and customer actually talked" (both legs connected). */
+    public const CONNECTED_SQL = 'connected_at IS NOT NULL';
 
     protected $hidden = ['webhook_token'];
 
@@ -49,6 +53,7 @@ class CallLog extends Model
         'recording_duration' => 'integer',
         'answered_at' => 'datetime',
         'completed_at' => 'datetime',
+        'connected_at' => 'datetime',
         'follow_up_at' => 'datetime',
         'follow_up_channels' => 'array',
         'diarized_transcript' => 'array',
@@ -85,5 +90,21 @@ class CallLog extends Model
     public function feedbackStatus()
     {
         return $this->belongsTo(Status::class, 'feedback_status_id', 'id');
+    }
+
+    /** The agent and the customer were actually connected (both legs answered). */
+    public function isConnected(): bool
+    {
+        return $this->connected_at !== null;
+    }
+
+    public function scopeConnected($query)
+    {
+        return $query->whereNotNull('call_logs.connected_at');
+    }
+
+    public function scopeNotConnected($query)
+    {
+        return $query->whereNull('call_logs.connected_at');
     }
 }

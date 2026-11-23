@@ -60,7 +60,8 @@ class LeadDashboardController extends Controller
             ->when($userId, fn ($query) => $query->where('assigned_to', $userId));
 
         $today = now()->toDateString();
-        $connected = fn ($query) => $query->where('status', 1)->whereNotNull('recording_url')->where('recording_url', '!=', '');
+        // Agent and customer actually talked (both call legs connected).
+        $connected = fn ($query) => $query->whereNotNull('connected_at');
 
         // ---- KPI tiles ---------------------------------------------------------
         $totalLeads = (clone $leads)->count();
@@ -112,7 +113,7 @@ class LeadDashboardController extends Controller
         $perDay = (clone $leads)->whereBetween('created_at', [$from, $to])
             ->selectRaw('DATE(created_at) as day, COUNT(*) as total')->groupBy('day')->pluck('total', 'day');
         $callsPerDay = (clone $callsInRange)->selectRaw('DATE(started_at) as day, COUNT(*) as total')
-            ->selectRaw("SUM(CASE WHEN status = 1 AND recording_url IS NOT NULL AND recording_url <> '' THEN 1 ELSE 0 END) as connected")
+            ->selectRaw("SUM(CASE WHEN connected_at IS NOT NULL THEN 1 ELSE 0 END) as connected")
             ->groupBy('day')->get()->keyBy('day');
         $trend = [];
         for ($day = $from->copy(); $day->lte($to); $day->addDay()) {
@@ -187,7 +188,7 @@ class LeadDashboardController extends Controller
             'called_leads'
         )->selectRaw('assign_to as user_id, COUNT(*) as total')->groupBy('assign_to')->pluck('total', 'user_id');
         $agentCalls = (clone $callsInRange)->selectRaw('user_id, COUNT(*) as total')
-            ->selectRaw("SUM(CASE WHEN status = 1 AND recording_url IS NOT NULL AND recording_url <> '' THEN 1 ELSE 0 END) as connected")
+            ->selectRaw("SUM(CASE WHEN connected_at IS NOT NULL THEN 1 ELSE 0 END) as connected")
             ->groupBy('user_id')->get()->keyBy('user_id');
         $agentTasks = (clone $tasks)->where('status', '!=', 'completed')->selectRaw('assigned_to as user_id, COUNT(*) as open_tasks')
             ->selectRaw('SUM(CASE WHEN date < ? THEN 1 ELSE 0 END) as overdue', [$today])

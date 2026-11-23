@@ -1175,7 +1175,7 @@ class LeadController extends Controller
                 $tone = $tones[$call->feedbackStatus->status_name] ?? 'is-blue';
             } elseif (! $call->completed_at) {
                 [$label, $tone] = ['Calling…', 'is-blue'];
-            } elseif ((int) $call->status === 1 && ! empty($call->recording_url)) {
+            } elseif ($call->isConnected()) {
                 [$label, $tone] = ['Connected', 'is-green'];
             } else {
                 [$label, $tone] = ['Not connected', 'is-amber'];

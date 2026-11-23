@@ -1,7 +1,7 @@
 <x-app-layout>
   @php
     $contact = $callLog->lead?->contacts->first();
-    $connected = (int) $callLog->status === 1 && !empty($callLog->recording_url);
+    $connected = $callLog->isConnected();
     $duration = (int) $callLog->duration;
     $recordingDuration = (int) $callLog->recording_duration;
     $formatDuration = static fn ($seconds) => sprintf('%02d:%02d:%02d', intdiv($seconds, 3600), intdiv($seconds % 3600, 60), $seconds % 60);

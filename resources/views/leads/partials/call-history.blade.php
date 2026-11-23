@@ -8,7 +8,7 @@
                 $isLive = ! $call->completed_at && ! in_array($callStatus, ['failed', 'completed', 'hangup', 'busy', 'no-answer', 'timeout', 'cancel', 'agent-unavailable'], true);
                 if ($isLive) {
                     [$badgeClass, $badgeText] = ['live', 'In progress'];
-                } elseif ($call->answered_at && (int) $call->duration > 0) {
+                } elseif ($call->isConnected()) {
                     [$badgeClass, $badgeText] = ['ok', 'Connected'];
                 } elseif (in_array($callStatus, ['failed', 'agent-unavailable'], true)) {
                     [$badgeClass, $badgeText] = ['bad', 'Failed'];
