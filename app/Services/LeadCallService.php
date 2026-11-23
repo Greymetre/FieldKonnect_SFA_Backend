@@ -117,25 +117,31 @@ class LeadCallService
 
         if ($followUp && $callLog->lead_id) {
             $contactName = $callLog->contact?->name ?: $callLog->number;
-            $channelNames = collect($channels)->map(fn ($channel) => ['whatsapp' => 'WhatsApp', 'linkedin' => 'LinkedIn', 'email' => 'Email'][$channel])->implode(' & ');
             $isCallBack = $callStatus && $callStatus->status_name === Status::LEAD_CALL_BACK;
-            $description = $isCallBack ? 'Call back '.$contactName : 'Send details on '.$channelNames.' to '.$contactName;
+            $channelNames = ['whatsapp' => 'WhatsApp', 'linkedin' => 'LinkedIn', 'email' => 'Email'];
+            // "Call Back" is one task; "Call Done" gets one task per channel
+            // (WhatsApp, LinkedIn, Email) so each can be completed on its own.
+            $descriptions = $isCallBack
+                ? ['Call back '.$contactName]
+                : collect($channels)->map(fn ($channel) => 'Send details on '.$channelNames[$channel].' to '.$contactName)->all();
             $assignee = $callLog->user_id ?: $by->id;
-            $task = LeadTask::create([
-                'lead_id' => $callLog->lead_id,
-                'assigned_to' => $assignee,
-                'created_by' => $by->id,
-                'description' => $description,
-                'date' => $followUp->toDateString(),
-                'time' => $followUp->format('H:i:s'),
-                'priority' => 'high',
-                'status' => 'pending',
-                'remark' => Str::limit($outcome['remark'], 250),
-            ]);
-            if ((int) $assignee !== (int) $by->id) {
-                $msg = '📝 '.$description.' on '.$followUp->format('d M, h:i A').'.';
-                SendPushNotification($assignee, $msg, 'task');
-                StoreLeadNotification($task->id, 'Follow-up Task', $msg, $assignee, 'task');
+            foreach ($descriptions as $description) {
+                $task = LeadTask::create([
+                    'lead_id' => $callLog->lead_id,
+                    'assigned_to' => $assignee,
+                    'created_by' => $by->id,
+                    'description' => $description,
+                    'date' => $followUp->toDateString(),
+                    'time' => $followUp->format('H:i:s'),
+                    'priority' => 'high',
+                    'status' => 'pending',
+                    'remark' => Str::limit($outcome['remark'], 250),
+                ]);
+                if ((int) $assignee !== (int) $by->id) {
+                    $msg = '📝 '.$description.' on '.$followUp->format('d M, h:i A').'.';
+                    SendPushNotification($assignee, $msg, 'task');
+                    StoreLeadNotification($task->id, 'Follow-up Task', $msg, $assignee, 'task');
+                }
             }
         }
 
