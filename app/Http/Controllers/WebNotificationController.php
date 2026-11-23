@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\LeadTask;
 use App\Models\Notification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -91,25 +92,55 @@ class WebNotificationController extends Controller
 
     private function destination(Notification $notification): string
     {
-        if (strtolower(trim((string) $notification->model)) === 'general_notification') {
+        $model = strtolower(trim((string) $notification->model));
+        $title = strtolower(trim((string) $notification->type));
+        $message = strtolower((string) $notification->data);
+        $id = $notification->model_id;
+
+        if ($model === 'general_notification') {
             return route('web-notifications.page');
         }
 
-        if (!$notification->model_id) {
-            return url('dashboard');
+        // Draft sent for approval: only the chosen approver gets this, and the
+        // approval screen is open to every approver (DraftApprovalController::authorizeApproval).
+        if ($title === 'draft approval') {
+            return route('draft-approvals.index');
         }
 
-        return match (strtolower(trim((string) $notification->model))) {
-            'order', 'order_history' => route('orders.show', $notification->model_id),
-            'leave' => route('leaves.show', $notification->model_id),
-            'tour', 'tour_plan' => route('tours.show', $notification->model_id),
-            'expense', 'expense_management' => route('expenses.show', $notification->model_id),
-            'lead' => route('leads.show', $notification->model_id),
-            'task', 'task_management' => route('tasks.show', $notification->model_id),
-            'opportunity' => route('lead-opportunities.show', $notification->model_id),
-            'customer', 'distributor' => route('customers.show', $notification->model_id),
-            'attendance' => url('attendances?notification_id=' . $notification->model_id),
-            default => url('dashboard'),
+        // Lead tasks / follow-ups ("task" = lead_tasks row): open the lead they belong to.
+        if ($model === 'task') {
+            $leadId = $id ? LeadTask::whereKey($id)->value('lead_id') : null;
+            return $leadId ? route('leads.show', $leadId) : url('lead-tasks');
+        }
+
+        // No single record (bulk assign, import, older notifications): open the matching list.
+        if (! $id) {
+            if ($model === 'lead' || $title === 'assigned lead' || str_contains($message, 'new lead') || str_contains($message, 'leads have been assigned')) {
+                return url('leads');
+            }
+            return match ($model) {
+                'task_management' => url('tasks'),
+                'opportunity' => url('lead-opportunities'),
+                'leave' => url('leaves'),
+                'tour', 'tour_plan' => url('tours'),
+                'expense', 'expense_management' => url('expenses'),
+                'order', 'order_history' => url('orders'),
+                'attendance' => url('attendances'),
+                default => route('web-notifications.page'),
+            };
+        }
+
+        return match ($model) {
+            'order', 'order_history' => route('orders.show', $id),
+            'leave' => route('leaves.show', $id),
+            'tour', 'tour_plan' => route('tours.show', $id),
+            'expense', 'expense_management' => route('expenses.show', $id),
+            'lead' => route('leads.show', $id),
+            'task_management' => route('tasks.show', $id),
+            'opportunity' => route('lead-opportunities.show', $id),
+            'customer', 'distributor' => route('customers.show', $id),
+            'attendance' => url('attendances?notification_id=' . $id),
+            default => route('web-notifications.page'),
         };
     }
 }

@@ -100,11 +100,11 @@ class LeadsImport implements ToCollection, WithValidation, WithHeadingRow, WithB
         }
 
         foreach ($assignedCounts as $userId => $count) {
-            SendPushNotification($userId, '🟢 You have been assigned ' . $count . ' new leads.');
+            SendPushNotification($userId, '🟢 You have been assigned ' . $count . ' new leads.', 'lead', null, 'Assigned Lead');
             StoreLeadNotification(null, 'Assigned Lead', '🟢 You have been assigned ' . $count . ' new leads.', $userId);
         }
         foreach ($reassignedCounts as $userId => $count) {
-            SendPushNotification($userId, '🟢 ' . $count . ' leads have been assigned to you.');
+            SendPushNotification($userId, '🟢 ' . $count . ' leads have been assigned to you.', 'lead', null, 'Assigned Lead');
             StoreLeadNotification(null, 'Assigned Lead', '🟢 ' . $count . ' leads have been assigned to you.', $userId);
         }
     }
