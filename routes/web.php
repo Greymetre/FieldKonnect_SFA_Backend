@@ -234,6 +234,7 @@ Route::group(['middleware' => ['auth', 'resource.permission']], function () {
     Route::get('leads/{lead}/call-history', [LeadController::class, 'callHistory'])->name('leads.calls.history');
     Route::get('leads/{lead}/calls/{callLog}/status', [LeadController::class, 'callStatus'])->name('leads.calls.status');
     Route::post('leads/{lead}/calls/{callLog}/feedback', [LeadController::class, 'callFeedback'])->name('leads.calls.feedback');
+    Route::get('lead-dashboard', [App\Http\Controllers\LeadDashboardController::class, 'index'])->name('lead-dashboard.index');
     // Lead Management > Draft Approval (email / LinkedIn drafts)
     Route::get('draft-approvals', [App\Http\Controllers\DraftApprovalController::class, 'index'])->name('draft-approvals.index');
     Route::post('draft-approvals/data', [App\Http\Controllers\DraftApprovalController::class, 'data'])->name('draft-approvals.data');

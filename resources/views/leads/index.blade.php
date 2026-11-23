@@ -356,6 +356,15 @@
 
 
 
+    // Links from the Lead Dashboard can pre-select the "Calling" filter (?call_progress=partial).
+    (function() {
+      var preset = new URLSearchParams(window.location.search).get('call_progress');
+      if (preset && jQuery('#call_progress option[value="' + preset + '"]').length) {
+        jQuery('#call_progress').val(preset);
+        if (jQuery.fn.selectpicker) jQuery(function() { jQuery('#call_progress').selectpicker('refresh'); });
+      }
+    })();
+
     function getLeads() {
       jQuery('#getLeads').dataTable().fnDestroy();
       jQuery('#getLeads tbody').empty();
