@@ -64,9 +64,30 @@ class LeadController extends Controller
             });
         }
 
+        // Calling progress, same as the CRM: contacts with a phone vs. contacts called at least once.
+        $dialable = fn ($query) => $query->whereNotNull('phone_number')->where('phone_number', '!=', '');
+        $listQuery->withCount([
+            'contacts as dialable_contacts' => $dialable,
+            'contacts as called_contacts' => fn ($query) => $dialable($query)->whereHas('callLogs'),
+        ]);
+        $progress = (string) $request->input('call_progress', '');
+        if (in_array($progress, ['not_called', 'partial', 'all_called'], true)) {
+            $listQuery->whereHas('contacts', $dialable);
+            $called = fn ($query) => $dialable($query)->whereHas('callLogs');
+            if ($progress === 'not_called') {
+                $listQuery->whereDoesntHave('contacts', $called);
+            } elseif ($progress === 'all_called') {
+                $listQuery->whereDoesntHave('contacts', fn ($query) => $dialable($query)->whereDoesntHave('callLogs'));
+            } else {
+                $listQuery->whereHas('contacts', $called)
+                    ->whereHas('contacts', fn ($query) => $dialable($query)->whereDoesntHave('callLogs'));
+            }
+        }
+
         if ($request->filled('search')) {
             $listQuery->where(function ($query) use ($request) {
                 $query->where('company_name', 'like', "%{$request->search}%")
+                    ->orWhere('external_lead_id', 'like', "%{$request->search}%")
                     ->orWhereHas('contacts', function ($subQuery) use ($request) {
                         $subQuery->where('name', 'like', "%{$request->search}%")
                             ->orWhere('phone_number', 'like', "%{$request->search}%");
@@ -108,6 +129,15 @@ class LeadController extends Controller
         $leads = $leads->map(function ($lead) {
             return [
                 'id' => $lead->id,
+                'external_lead_id' => $lead->external_lead_id,
+                'contacts_count' => $lead->contacts->count(),
+                'calling' => [
+                    'dialable' => (int) $lead->dialable_contacts,
+                    'called' => (int) $lead->called_contacts,
+                    'state' => $lead->dialable_contacts == 0 ? 'no_phone'
+                        : ($lead->called_contacts == 0 ? 'not_called'
+                        : ($lead->called_contacts >= $lead->dialable_contacts ? 'all_called' : 'partial')),
+                ],
                 'name' => $lead->company_name,
                 'address' => $lead->address ? $lead->address->full_address : '',
                 'location_address' => $lead->location_address ? $lead->location_address : 'N/A',
@@ -1261,6 +1291,12 @@ class LeadController extends Controller
         $task_id = $request->task_id;
         $lead_task = LeadTask::find($task_id);
         if ($lead_task) {
+            // Only the assignee, the creator or an admin may change a task's status.
+            $actor = $request->user();
+            if (! in_array((int) $actor->id, [(int) $lead_task->assigned_to, (int) $lead_task->created_by], true)
+                && ! $actor->hasRole('superadmin') && ! $actor->hasRole('Admin')) {
+                return response()->json(['status' => 'error', 'message' => 'Only the assignee or creator can change this task.'], 403);
+            }
             $lead_task->applyStatus($request->status, $request->remark ?? null, $request->user());
             return response()->json(['status' => 'success', 'message' => 'Task status updated successfully.']);
         } else {

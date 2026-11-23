@@ -6,9 +6,12 @@ use App\Models\CallLog;
 use App\Models\Lead;
 use App\Models\LeadContact;
 use App\Models\LeadLog;
+use App\Models\LeadTask;
 use App\Models\Status;
 use App\Models\User;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -30,6 +33,133 @@ class LeadCallService
         }
 
         return strlen($digits) >= 11 && strlen($digits) <= 15 ? '+'.$digits : null;
+    }
+
+    /**
+     * Validate a post-call remark the same way on web and in the mobile app.
+     *
+     * Fields: call_status (call outcome, "Lead Call Feedback" status), status
+     * (lead type, 0 = Pending), remark, details_via[] (for "Call Done":
+     * whatsapp / linkedin / email / none) and follow_up_at (Y-m-d\TH:i, needed
+     * for "Call Back" or when details must be sent).
+     *
+     * @return array{lead_type: int, call_status: ?Status, remark: string, channels: array, follow_up: ?\Carbon\Carbon}
+     */
+    public function validatedOutcome(Request $request, bool $requireCallStatus = true): array
+    {
+        $callStatusesExist = Status::where('module', Status::MODULE_LEAD_CALL_FEEDBACK)->where('active', 'Y')->exists();
+        $validated = $request->validate([
+            'call_status' => [$requireCallStatus && $callStatusesExist ? 'required' : 'nullable', 'integer'],
+            'status' => ['required', 'integer', 'min:0'],
+            'remark' => ['required', 'string', 'max:1000'],
+        ], ['call_status.required' => 'Please select the call status.']);
+
+        $leadType = (int) $validated['status'];
+        if ($leadType !== 0 && ! Status::whereKey($leadType)->where('module', 'LeadStatus')->where('active', 'Y')->exists()) {
+            throw ValidationException::withMessages(['status' => 'Please select a valid lead type.']);
+        }
+
+        $callStatus = ! empty($validated['call_status'])
+            ? Status::whereKey((int) $validated['call_status'])->where('module', Status::MODULE_LEAD_CALL_FEEDBACK)->where('active', 'Y')->first()
+            : null;
+        if (! empty($validated['call_status']) && ! $callStatus) {
+            throw ValidationException::withMessages(['call_status' => 'Please select a valid call status.']);
+        }
+
+        $isCallBack = $callStatus && $callStatus->status_name === Status::LEAD_CALL_BACK;
+        $isCallDone = $callStatus && $callStatus->status_name === Status::LEAD_CALL_DONE;
+        $channels = [];
+        if ($isCallDone) {
+            $request->validate(
+                ['details_via' => ['required', 'array', 'min:1'], 'details_via.*' => ['in:whatsapp,linkedin,email,none']],
+                ['details_via.required' => 'Choose where the customer wants details, or "No follow-up needed".']
+            );
+            $channels = array_values(array_diff(array_unique($request->details_via), ['none']));
+        }
+
+        $followUp = null;
+        if ($isCallBack || $channels) {
+            $request->validate(
+                ['follow_up_at' => ['required', 'date_format:Y-m-d\\TH:i', 'after:now']],
+                [
+                    'follow_up_at.required' => $isCallBack ? 'Please choose the call back date and time.' : 'Please choose when to send the details.',
+                    'follow_up_at.after' => 'The follow-up time must be in the future.',
+                ]
+            );
+            $followUp = \Carbon\Carbon::createFromFormat('Y-m-d\\TH:i', $request->follow_up_at);
+        }
+
+        return [
+            'lead_type' => $leadType,
+            'call_status' => $callStatus,
+            'remark' => trim($validated['remark']),
+            'channels' => $channels,
+            'follow_up' => $followUp,
+        ];
+    }
+
+    /**
+     * Save a validated call outcome: call remark + lead type, the follow-up as a
+     * task for the agent who made the call, and — when the contact was not
+     * reached — the next not-yet-called contact of the lead to suggest.
+     *
+     * @param  array  $outcome  result of validatedOutcome()
+     * @return array{remaining: int, contact_id: int, name: ?string, phone: string}|null
+     */
+    public function recordOutcome(CallLog $callLog, array $outcome, User $by): ?array
+    {
+        $callStatus = $outcome['call_status'];
+        $channels = $outcome['channels'];
+        $followUp = $outcome['follow_up'];
+
+        $this->saveFeedback($callLog, $outcome['lead_type'], $outcome['remark'], $by, $callStatus?->id);
+        $callLog->update(['follow_up_at' => $followUp, 'follow_up_channels' => $channels ?: null]);
+
+        if ($followUp && $callLog->lead_id) {
+            $contactName = $callLog->contact?->name ?: $callLog->number;
+            $channelNames = collect($channels)->map(fn ($channel) => ['whatsapp' => 'WhatsApp', 'linkedin' => 'LinkedIn', 'email' => 'Email'][$channel])->implode(' & ');
+            $isCallBack = $callStatus && $callStatus->status_name === Status::LEAD_CALL_BACK;
+            $description = $isCallBack ? 'Call back '.$contactName : 'Send details on '.$channelNames.' to '.$contactName;
+            $assignee = $callLog->user_id ?: $by->id;
+            $task = LeadTask::create([
+                'lead_id' => $callLog->lead_id,
+                'assigned_to' => $assignee,
+                'created_by' => $by->id,
+                'description' => $description,
+                'date' => $followUp->toDateString(),
+                'time' => $followUp->format('H:i:s'),
+                'priority' => 'high',
+                'status' => 'pending',
+                'remark' => Str::limit($outcome['remark'], 250),
+            ]);
+            if ((int) $assignee !== (int) $by->id) {
+                $msg = '📝 '.$description.' on '.$followUp->format('d M, h:i A').'.';
+                SendPushNotification($assignee, $msg, 'task');
+                StoreLeadNotification($task->id, 'Follow-up Task', $msg, $assignee, 'task');
+            }
+        }
+
+        // Not reached (switch off / no response / wrong number) and other contacts
+        // still to call: suggest the next one.
+        if (! $callLog->lead_id || ! $callStatus || ! in_array($callStatus->status_name, ['lead_call_no_response', 'lead_call_switch_off', 'lead_call_wrong_number'], true)) {
+            return null;
+        }
+        $remaining = LeadContact::where('lead_id', $callLog->lead_id)
+            ->whereNotNull('phone_number')->where('phone_number', '!=', '')
+            ->whereDoesntHave('callLogs')
+            ->orderBy('id')
+            ->get(['id', 'name', 'phone_number']);
+        if ($remaining->isEmpty()) {
+            return null;
+        }
+        $first = $remaining->first();
+
+        return [
+            'remaining' => $remaining->count(),
+            'contact_id' => $first->id,
+            'name' => $first->name,
+            'phone' => $first->phone_number,
+        ];
     }
 
     /** Find which saved contact of this lead owns a number (for history). */

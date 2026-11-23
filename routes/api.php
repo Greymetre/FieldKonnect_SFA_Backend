@@ -40,6 +40,7 @@ use App\Http\Controllers\Api\ServiceBillController;
 use App\Http\Controllers\Api\ComplaintAPICustomerController;
 use App\Http\Controllers\Api\ExotelApiController;
 use App\Http\Controllers\Api\LeadController;
+use App\Http\Controllers\Api\LeadFlowController;
 use App\Http\Controllers\Api\PlivoController;
 use App\Http\Controllers\Api\ClientCallingWebhookController;
 use App\Http\Controllers\Api\ServiceBillCustController;
@@ -123,7 +124,23 @@ Route::get('call-recordings/{callLog}', [CallLogController::class, 'playRecordin
 
 // Field-user mobile call APIs must use the users Passport provider. Keeping
 // these under auth:customers makes a valid field-user token return 401.
+// Lead files opened from the app (time-limited signed link, no token header needed).
+Route::get('lead-files/{media}/view', [LeadFlowController::class, 'viewFile'])
+    ->middleware('signed')
+    ->name('api.lead-files.view');
+
 Route::middleware('auth:users')->group(function () {
+    // Mobile lead flow (same as CRM lead page): contacts + calling, history, tasks, drafts, files.
+    Route::get('lead-flow', [LeadFlowController::class, 'show']);
+    Route::get('lead-call-options', [LeadFlowController::class, 'callOptions']);
+    Route::get('draft-approvers', [LeadFlowController::class, 'draftApprovers']);
+    Route::post('lead-drafts', [LeadFlowController::class, 'saveDraft']);
+    Route::post('lead-drafts/delete', [LeadFlowController::class, 'deleteDraft']);
+    Route::get('draft-approvals', [LeadFlowController::class, 'approvals']);
+    Route::post('draft-approvals/approve', [LeadFlowController::class, 'approveDraft']);
+    Route::post('lead-files', [LeadFlowController::class, 'uploadFiles']);
+    Route::post('lead-files/delete', [LeadFlowController::class, 'deleteFile']);
+
     Route::post('click-to-call', [PlivoController::class, 'makeCall']);
     Route::get('click-to-call/{callLog}/status', [PlivoController::class, 'callStatus']);
     Route::get('call-feedback-statuses', [CallLogController::class, 'feedbackStatuses']);

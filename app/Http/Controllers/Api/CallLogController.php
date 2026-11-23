@@ -43,6 +43,27 @@ class CallLogController extends Controller
     public function submitFeedback(Request $request)
     {
         $user = $request->user('users');
+
+        // New app (same as CRM): call_status (outcome) + status (lead type) + remark,
+        // with follow-up date/time for "Call Back" / "Call Done" details.
+        if ($request->has('call_status') || $request->has('remark')) {
+            $request->validate(['call_log_id' => ['required', 'integer']]);
+            $callLog = CallLog::query()
+                ->whereKey($request->call_log_id)
+                ->where('user_id', $user->id)
+                ->firstOrFail();
+            $service = app(LeadCallService::class);
+            $next = $service->recordOutcome($callLog, $service->validatedOutcome($request, (bool) $callLog->lead_id), $user);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Call remark saved.',
+                'data' => ['call_log_id' => $callLog->id, 'message' => $callLog->remark],
+                'next_contact' => $next,
+            ]);
+        }
+
+        // Older app builds: feedback_status_id (lead type) + message.
         $validated = $request->validate([
             'call_log_id' => ['required', 'integer'],
             'feedback_status_id' => ['required', 'integer', 'min:0'],
@@ -76,7 +97,7 @@ class CallLogController extends Controller
     {
         $user = $request->user('users');
 
-        $callLog = CallLog::with(['lead:id,company_name,status', 'lead.contacts:id,lead_id,name'])
+        $callLog = CallLog::with(['lead:id,company_name,status', 'lead.contacts:id,lead_id,name', 'contact:id,name'])
             ->where('user_id', $user->id)
             ->whereNotNull('lead_id')
             ->whereNull('call_management_entry_id')
@@ -94,7 +115,9 @@ class CallLogController extends Controller
                 'lead_id' => $callLog->lead_id,
                 'lead_status_id' => (int) ($callLog->lead?->status ?? 0),
                 'direction' => $callLog->direction,
-                'customer_name' => $callLog->lead?->contacts->first()?->name ?: $callLog->lead?->company_name ?: 'Customer',
+                'customer_name' => $callLog->contact?->name ?: $callLog->lead?->contacts->first()?->name ?: $callLog->lead?->company_name ?: 'Customer',
+                'lead_contact_id' => $callLog->lead_contact_id,
+                'company_name' => $callLog->lead?->company_name,
                 'number' => $callLog->number,
                 'duration' => (int) $callLog->duration,
             ] : null,
