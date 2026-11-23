@@ -68,6 +68,19 @@ class LeadController extends Controller
     {
         $leads = Lead::with(['contacts', 'assign_user', 'status_is', 'notes', 'address.cityname']);
 
+        // Calling progress: how many of the lead's callable contacts (with a phone) were called.
+        $dialable = fn ($query) => $query->whereNotNull('phone_number')->where('phone_number', '!=', '');
+        $callProgress = $request->input('call_progress');
+        if ($callProgress === 'not_called') {
+            $leads->whereDoesntHave('contacts', fn ($query) => $query->whereHas('callLogs'));
+        } elseif ($callProgress === 'partial') {
+            $leads->whereHas('contacts', fn ($query) => $query->whereHas('callLogs'))
+                ->whereHas('contacts', fn ($query) => $dialable($query)->whereDoesntHave('callLogs'));
+        } elseif ($callProgress === 'all_called') {
+            $leads->whereHas('contacts', fn ($query) => $query->whereHas('callLogs'))
+                ->whereDoesntHave('contacts', fn ($query) => $dialable($query)->whereDoesntHave('callLogs'));
+        }
+
         $datetime = $request->input('datetime');
         if ($datetime != "") {
             $datetimes = array_map('trim', explode('-', $datetime));
@@ -143,6 +156,11 @@ class LeadController extends Controller
             ->orderBy('import_row_order', 'asc')
             ->orderBy('id', 'desc')
             ->select(\DB::raw(with(new Lead)->getTable() . '.*'))
+            // After select(): counts for the "Calling" column.
+            ->withCount([
+                'contacts as contacts_count' => fn ($query) => $query->whereNotNull('phone_number')->where('phone_number', '!=', ''),
+                'contacts as called_contacts_count' => fn ($query) => $query->whereHas('callLogs'),
+            ])
             ->groupBy('id');
         $canEditLead = $this->permissionAllows('lead_edit');
         $canDeleteLead = Auth::user()->can('lead_delete');
@@ -152,6 +170,17 @@ class LeadController extends Controller
                 return e(ucwords(strtolower($lead->company_name)));
             })
             ->editColumn('external_lead_id', fn ($lead) => $lead->external_lead_id ?: '-')
+            ->addColumn('calling', function ($lead) {
+                $total = (int) $lead->contacts_count;
+                $called = (int) $lead->called_contacts_count;
+                if ($total === 0) {
+                    return '<span class="lead-calling-chip is-none">No phone numbers</span>';
+                }
+                $called = min($called, $total);
+                $tone = $called === 0 ? 'is-none' : ($called >= $total ? 'is-all' : 'is-partial');
+                $text = $called >= $total ? 'All '.$total.' called' : $called.' / '.$total.' called';
+                return '<span class="lead-calling-chip '.$tone.'">'.e($text).'</span>';
+            })
             ->editColumn('assign_to', function ($lead) {
                 return $lead->assign_user ? $lead->assign_user->name : '-';
             })
@@ -250,7 +279,7 @@ class LeadController extends Controller
                 (clone $leads)->setEagerLoads([])->toBase()->reorder()->select('leads.id'),
                 'filtered_leads'
             )->count())
-            ->rawColumns(['action', 'company_name', 'checkbox', 'status', 'others', 'note'])
+            ->rawColumns(['action', 'company_name', 'checkbox', 'status', 'others', 'note', 'calling'])
             ->make(true);
     }
 
@@ -855,6 +884,7 @@ class LeadController extends Controller
         // $combined = $lead_notes->merge($lead_tasks)->merge($lead_logs)->sortByDesc('created_at')->values();
 
         $lead_call_history = $this->leadCallHistory($lead, $lead_contacts);
+        $contact_call_summary = $this->contactCallSummary($lead_call_history);
         $canViewCallRecordings = Gate::allows('call_management_access');
 
         $media_items = $lead->getMedia('lead_file');
@@ -863,7 +893,7 @@ class LeadController extends Controller
             ->sortBy(fn ($callStatus) => array_search($callStatus->status_name, Status::LEAD_CALL_OUTCOMES, true) === false ? 99 : array_search($callStatus->status_name, Status::LEAD_CALL_OUTCOMES, true))
             ->values();
         $opportunity_status = OpportunitieStatus::orderBy('ordering', 'asc')->pluck('status_name', 'id')->toArray();
-        return view('leads.show', compact('lead', 'lead_contacts', 'lead_notes', 'users', 'lead_tasks', 'lead_opportunities', 'countries', 'pincodes', 'address', 'address_data', 'media_items', 'combined', 'status', 'opportunity_status', 'lead_call_history', 'canViewCallRecordings', 'call_statuses', 'email_drafts', 'linkedin_drafts', 'draft_approvers', 'task_users'));
+        return view('leads.show', compact('lead', 'lead_contacts', 'lead_notes', 'users', 'lead_tasks', 'lead_opportunities', 'countries', 'pincodes', 'address', 'address_data', 'media_items', 'combined', 'status', 'opportunity_status', 'lead_call_history', 'canViewCallRecordings', 'call_statuses', 'email_drafts', 'linkedin_drafts', 'draft_approvers', 'task_users', 'contact_call_summary'));
     }
 
     /**
@@ -1171,7 +1201,27 @@ class LeadController extends Controller
             }
         }
 
-        return response()->json(['success' => true, 'message' => 'Call remark saved.']);
+        // Not reached (switch off / no response / wrong number) and other contacts
+        // still to call: suggest the next one.
+        $next = null;
+        if ($callStatus && in_array($callStatus->status_name, ['lead_call_no_response', 'lead_call_switch_off', 'lead_call_wrong_number'], true)) {
+            $remaining = LeadContact::where('lead_id', $lead->id)
+                ->whereNotNull('phone_number')->where('phone_number', '!=', '')
+                ->whereDoesntHave('callLogs')
+                ->orderBy('id')
+                ->get(['id', 'name', 'phone_number']);
+            if ($remaining->isNotEmpty()) {
+                $first = $remaining->first();
+                $next = [
+                    'remaining' => $remaining->count(),
+                    'contact_id' => $first->id,
+                    'name' => $first->name,
+                    'phone' => $first->phone_number,
+                ];
+            }
+        }
+
+        return response()->json(['success' => true, 'message' => 'Call remark saved.', 'next_contact' => $next]);
     }
 
     /** Call History tab body, so the lead page can refresh it without a full reload. */
@@ -1189,6 +1239,41 @@ class LeadController extends Controller
                 'canViewCallRecordings' => Gate::allows('call_management_access'),
             ])->render(),
         ]);
+    }
+
+    /**
+     * Latest call per contact (history is newest first): label + colour for the
+     * contact badge. Contacts without an entry have not been called yet.
+     */
+    private function contactCallSummary($history): array
+    {
+        $tones = [
+            'lead_call_done' => 'is-green',
+            'lead_call_no_response' => 'is-amber',
+            'lead_call_switch_off' => 'is-grey',
+            'lead_call_wrong_number' => 'is-red',
+            'lead_call_back' => 'is-blue',
+        ];
+        $summary = [];
+        foreach ($history as $call) {
+            $contactId = $call->matched_contact?->id;
+            if (! $contactId || isset($summary[$contactId])) {
+                continue;
+            }
+            if ($call->feedbackStatus) {
+                $label = $call->feedbackStatus->display_name ?: $call->feedbackStatus->status_name;
+                $tone = $tones[$call->feedbackStatus->status_name] ?? 'is-blue';
+            } elseif (! $call->completed_at) {
+                [$label, $tone] = ['Calling…', 'is-blue'];
+            } elseif ((int) $call->status === 1 && ! empty($call->recording_url)) {
+                [$label, $tone] = ['Connected', 'is-green'];
+            } else {
+                [$label, $tone] = ['Not connected', 'is-amber'];
+            }
+            $summary[$contactId] = ['label' => $label, 'tone' => $tone, 'at' => $call->started_at ?? $call->created_at];
+        }
+
+        return $summary;
     }
 
     private function leadCallHistory(Lead $lead, $leadContacts)

@@ -1,4 +1,10 @@
 <x-app-layout>
+  <style>
+    .lead-calling-chip { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+    .lead-calling-chip.is-none { color: #94a3b8; background: rgba(148, 163, 184, .14); }
+    .lead-calling-chip.is-partial { color: #f59e0b; background: rgba(245, 158, 11, .14); }
+    .lead-calling-chip.is-all { color: #10b981; background: rgba(16, 185, 129, .13); }
+  </style>
 
   <div class="row">
     <div class="col-md-12">
@@ -22,6 +28,14 @@
                     <option value="{{$stat['id']}}"> {{$stat['display_name']}} </option>
                     @endforeach
                     @endif
+                  </select>
+                </div>
+                <div>
+                  <select name="call_progress" id="call_progress" class="form-control selectpicker" title="Calling">
+                    <option value="">All leads</option>
+                    <option value="not_called">Not called</option>
+                    <option value="partial">Partially called</option>
+                    <option value="all_called">All contacts called</option>
                   </select>
                 </div>
                 <div>
@@ -190,6 +204,7 @@
                   <th>Email</th>
                   <th>City</th>
                   <th>Status</th>
+                  <th>Calling</th>
                   <th>Assigned To</th>
                   <th>Note</th>
                   <th>Others</th>
@@ -313,6 +328,7 @@
             datetime: datetime,
             search: jQuery('#search_lead').val(),
             status: status,
+            call_progress: jQuery('#call_progress').val(),
             assign_to: assign_to,
             state_id: state_id,
             district_id: district_id,
@@ -374,6 +390,12 @@
             searchable: false
           },
           {
+            data: 'calling',
+            name: 'calling',
+            orderable: false,
+            searchable: false
+          },
+          {
             data: 'assign_to',
             name: 'assign_to',
             searchable: false
@@ -426,9 +448,14 @@
     $('#status').on('change', function() {
       getLeads();
     });
+    $('#call_progress').on('change', function() {
+      getLeads();
+    });
 
     function resetFilter() {
       jQuery('#frmFilter :input:not(:button, [type="hidden"])').val('');
+      jQuery('#call_progress').val('').trigger('change.select2');
+      if (jQuery.fn.selectpicker) jQuery('#call_progress').selectpicker('refresh');
       getLeads();
     }
 

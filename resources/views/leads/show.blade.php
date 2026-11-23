@@ -2039,6 +2039,24 @@
         #callFeedbackModal .cfm-channel.is-none span i { color: #94a3b8; }
         #callFeedbackModal .cfm-channel input:checked + span { border-color: var(--fk-list-accent); background: var(--fk-list-count-bg); box-shadow: 0 0 0 1px var(--fk-list-accent) inset; }
         #callFeedbackModal .cfm-details { padding: 12px; border-radius: 12px; background: rgba(16, 185, 129, .07); border: 1px solid rgba(16, 185, 129, .28); }
+        /* Calling progress */
+        .lead-detail-page .contact-call-badge { display: inline-flex; align-items: center; gap: 4px; width: fit-content; margin-top: 5px; padding: 2px 9px; border-radius: 12px; font-size: 11.5px; font-weight: 600; }
+        .lead-detail-page .contact-call-badge i { font-size: 13px; }
+        .lead-detail-page .contact-call-badge.is-green { color: #10b981; background: rgba(16, 185, 129, .13); }
+        .lead-detail-page .contact-call-badge.is-amber { color: #f59e0b; background: rgba(245, 158, 11, .14); }
+        .lead-detail-page .contact-call-badge.is-grey { color: #94a3b8; background: rgba(148, 163, 184, .14); }
+        .lead-detail-page .contact-call-badge.is-red { color: #ef4444; background: rgba(239, 68, 68, .13); }
+        .lead-detail-page .contact-call-badge.is-blue { color: #38bdf8; background: rgba(56, 189, 248, .13); }
+        .lead-detail-page .contact-call-badge.is-none { color: var(--fk-list-muted); background: var(--fk-list-control); border: 1px dashed var(--fk-list-border-strong); }
+        .lead-detail-page .lead-contact-item .contact-person > .contact-call-badge { display: flex; }
+        .lead-detail-page .lead-progress-pill { display: inline-flex !important; align-items: center; gap: 6px; padding: 6px 12px !important; border-radius: 20px; font-size: 13px; font-weight: 600; }
+        .lead-detail-page .lead-progress-pill i { font-size: 16px; }
+        .lead-detail-page .lead-progress-pill.is-none { color: #94a3b8 !important; background: rgba(148, 163, 184, .12); }
+        .lead-detail-page .lead-progress-pill.is-none span { color: #94a3b8 !important; }
+        .lead-detail-page .lead-progress-pill.is-partial { color: #f59e0b !important; background: rgba(245, 158, 11, .12); }
+        .lead-detail-page .lead-progress-pill.is-partial span { color: #f59e0b !important; }
+        .lead-detail-page .lead-progress-pill.is-all { color: #10b981 !important; background: rgba(16, 185, 129, .12); }
+        .lead-detail-page .lead-progress-pill.is-all span { color: #10b981 !important; }
     </style>
     <div class="row lead-detail-page">
         <div class="col-md-12">
@@ -2137,6 +2155,16 @@
                     @endif
                     @if($lead->lead_source)
                     <li><i class="material-icons">campaign</i> <span>{{ $lead->lead_source }}</span></li>
+                    @endif
+                    @php
+                        $dialableCount = $lead_contacts->filter(fn ($contact) => trim((string) $contact->phone_number) !== '')->count();
+                        $calledCount = $lead_contacts->filter(fn ($contact) => isset($contact_call_summary[$contact->id]))->count();
+                    @endphp
+                    @if($dialableCount > 0)
+                    <li class="lead-progress-pill {{ $calledCount === 0 ? 'is-none' : ($calledCount >= $dialableCount ? 'is-all' : 'is-partial') }}" title="Contacts called">
+                        <i class="material-icons">{{ $calledCount >= $dialableCount ? 'task_alt' : 'phone_forwarded' }}</i>
+                        <span>{{ $calledCount >= $dialableCount ? 'All '.$dialableCount.' contacts called' : 'Called '.$calledCount.' / '.$dialableCount.' contacts' }}</span>
+                    </li>
                     @endif
                     <li class="lead-viewall-li">
                         <button type="button" class="lead-viewall-btn" id="leadViewAllBtn" onclick="toggleLeadAllInfo()"><span>View All</span> <i class="material-icons">expand_more</i></button>
@@ -2449,6 +2477,14 @@ action="{{ route('lead-contacts.store') }}" class="form-horizontal contact-task-
                 }
                 $contactUrl = filter_var($contactUrl, FILTER_VALIDATE_URL) ? $contactUrl : null;
             @endphp
+            @php
+                $lastCall = $contact_call_summary[$lead_contact->id] ?? null;
+            @endphp
+            @if($lastCall)
+            <span class="contact-call-badge {{ $lastCall['tone'] }}" title="Last call {{ $lastCall['at']?->format('d M Y, h:i A') }}"><i class="material-icons">call</i>{{ $lastCall['label'] }} · {{ $lastCall['at']?->diffForHumans() }}</span>
+            @elseif($lead_contact->phone_number)
+            <span class="contact-call-badge is-none"><i class="material-icons">phone_callback</i>Not called yet</span>
+            @endif
             @if($contactUrl)
             <a href="{{ $contactUrl }}" target="_blank" rel="noopener noreferrer" class="lead-contact-link" title="{{ $contactUrl }}">
                 <i class="material-icons">{{ str_contains(strtolower($contactUrl), 'linkedin.com') ? 'work' : 'link' }}</i>{{ str_contains(strtolower($contactUrl), 'linkedin.com') ? 'LinkedIn profile' : 'Profile link' }}<i class="material-icons lead-contact-link-out">open_in_new</i>
@@ -3878,7 +3914,10 @@ function activateNotesTab() {
     // Click-to-call: confirm, ring the assigned user first, then the contact.
     var leadCallRingNote = @json($lead->assign_user ? $lead->assign_user->name."'s phone will ring first, then the contact." : '');
     $(document).on('click', '.contact-call-btn', function () {
-        var $btn = $(this);
+        confirmContactCall($(this));
+    });
+
+    function confirmContactCall($btn) {
         var name = $btn.data('contact-name') || 'this contact';
         var phone = $btn.data('contact-phone') || '';
         Swal.fire({
@@ -3910,7 +3949,7 @@ function activateNotesTab() {
                 }
             });
         });
-    });
+    }
 
     function refreshLeadCallHistory() {
         $.get("{{ route('leads.calls.history', $lead->id) }}", function (res) {
@@ -4046,9 +4085,29 @@ function activateNotesTab() {
                 details_via: isCallDone ? detailsVia : [],
                 follow_up_at: mode ? followUp : ''
             },
-            success: function () {
+            success: function (res) {
                 $('#callFeedbackModal').modal('hide');
-                window.location.reload();
+                var next = res && res.next_contact;
+                var $nextBtn = next ? $('.contact-call-btn[data-call-url$="/contacts/' + next.contact_id + '/call"]') : $();
+                if (!next || !$nextBtn.length) {
+                    window.location.reload();
+                    return;
+                }
+                Swal.fire({
+                    icon: 'info',
+                    title: next.remaining + ' contact' + (next.remaining === 1 ? '' : 's') + ' still to call',
+                    html: 'Next: <strong>' + $('<div>').text(next.name || 'Unnamed').html() + '</strong><br>' + $('<div>').text(next.phone || '').html(),
+                    showCancelButton: true,
+                    confirmButtonText: 'Call ' + $('<div>').text((next.name || 'next contact').split(' ')[0]).html(),
+                    cancelButtonText: 'Later',
+                    confirmButtonColor: '#0891b2'
+                }).then(function (result) {
+                    if (result.value) {
+                        confirmContactCall($nextBtn);
+                    } else {
+                        window.location.reload();
+                    }
+                });
             },
             error: function (xhr) {
                 var res = xhr.responseJSON || {};

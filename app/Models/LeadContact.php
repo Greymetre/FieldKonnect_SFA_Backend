@@ -25,4 +25,9 @@ class LeadContact extends Model
     public function lead(){
         return $this->belongsTo(Lead::class);
     }
+
+    /** Lead calls made to this contact. */
+    public function callLogs(){
+        return $this->hasMany(CallLog::class, 'lead_contact_id');
+    }
 }
