@@ -1758,6 +1758,19 @@
         .lead-detail-page .draft-status i { font-size: 13px; }
         .lead-detail-page .draft-status.is-approved { color: #10b981; background: rgba(16, 185, 129, .13); }
         .lead-detail-page .draft-status.is-pending { color: #f59e0b; background: rgba(245, 158, 11, .14); }
+        .lead-detail-page .draft-status.is-changes { color: #fb923c; background: rgba(251, 146, 60, .15); }
+        .lead-detail-page .draft-for { display: inline-flex; align-items: center; gap: 3px; margin-right: 6px; padding: 2px 8px; border-radius: 10px; background: rgba(56, 189, 248, .12); color: #38bdf8; font-size: 11.5px; font-weight: 600; vertical-align: middle; }
+        .lead-detail-page .draft-for i { font-size: 13px; }
+        .lead-detail-page .draft-feedback { margin-top: 10px; padding: 10px 12px; border-left: 3px solid rgba(148, 163, 184, .5); border-radius: 8px; background: rgba(148, 163, 184, .08); }
+        .lead-detail-page .draft-feedback.is-open { border-left-color: #fb923c; background: rgba(251, 146, 60, .1); }
+        .lead-detail-page .draft-feedback-head { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: var(--fk-list-muted); }
+        .lead-detail-page .draft-feedback.is-open .draft-feedback-head { color: #fb923c; }
+        .lead-detail-page .draft-feedback-head i { font-size: 15px; }
+        .lead-detail-page .draft-feedback p { margin: 5px 0 4px; font-size: 13.5px; color: var(--fk-list-text); white-space: pre-wrap; }
+        .lead-detail-page .draft-feedback small { font-size: 11.5px; color: var(--fk-list-muted); }
+        .lead-detail-page .draft-feedback-banner { margin-top: 10px; padding: 9px 12px; border-left: 3px solid #fb923c; border-radius: 8px; background: rgba(251, 146, 60, .1); font-size: 13px; color: var(--fk-list-text); white-space: pre-wrap; }
+        .lead-detail-page .draft-feedback-banner b { color: #fb923c; }
+        .lead-detail-page .draft-approver-row .draft-contact { width: 100%; }
         .lead-detail-page .draft-item.is-approved .draft-icon { border-color: #10b981; color: #10b981; }
         .lead-detail-page .lead-contact-link {
             display: inline-flex;
@@ -4128,6 +4141,9 @@ function activateNotesTab() {
         $form.find('.draft-id').val('');
         $form.find('.draft-text').val('');
         $form.find('.draft-approver').val('');
+        var $contact = $form.find('.draft-contact');
+        $contact.val($contact.find('option[value!=""]').length === 1 ? $contact.find('option[value!=""]').val() : '');
+        $form.find('.draft-feedback-banner').hide().empty();
         $form.slideDown(150);
         $form.find('.draft-text').trigger('focus');
     });
@@ -4137,6 +4153,15 @@ function activateNotesTab() {
         $form.find('.draft-id').val($(this).data('id'));
         $form.find('.draft-text').val($(this).data('text'));
         $form.find('.draft-approver').val(String($(this).data('approver') || ''));
+        $form.find('.draft-contact').val(String($(this).data('contact') || ''));
+        // Editing after the approver's feedback: show it while editing.
+        var feedback = String($(this).data('feedback') || '');
+        var $banner = $form.find('.draft-feedback-banner').empty();
+        if (feedback) {
+            $banner.append($('<b>').text('Approver feedback: ')).append(document.createTextNode(feedback)).show();
+        } else {
+            $banner.hide();
+        }
         $form.slideDown(150);
         $form.find('.draft-text').trigger('focus');
     });
@@ -4201,6 +4226,10 @@ function activateNotesTab() {
     // Only the email button: the LinkedIn button shares the .draft-send-btn style.
     $(document).on('click', '.draft-email-btn', function () {
         sendDraft = splitDraft($($(this).data('draft-target')).text());
+        var draftEmail = String($(this).data('contact-email') || '').toLowerCase();
+        if (draftEmail && $('.send-draft-to').filter(function () { return this.value.toLowerCase() === draftEmail; }).length) {
+            $('.send-draft-to').each(function () { this.checked = this.value.toLowerCase() === draftEmail; });
+        }
         $('#sendDraftSubject').text(sendDraft.subject || 'No subject (start the draft with "Subject: ..." to add one)')
             .toggleClass('is-empty', !sendDraft.subject);
         updateRecipientCount();
@@ -4290,6 +4319,13 @@ function activateNotesTab() {
 
     $(document).on('click', '.draft-linkedin-btn', function () {
         linkedinMessage = $.trim($($(this).data('draft-target')).text());
+        var draftUrl = String($(this).data('contact-url') || '');
+        if (draftUrl) {
+            $('.send-linkedin-to').each(function () {
+                if (this.value === draftUrl || this.value.replace(/^https?:\/\//i, '').replace(/\/$/, '') === draftUrl.replace(/^https?:\/\//i, '').replace(/\/$/, '')) this.checked = true;
+            });
+            $('.send-linkedin-to').trigger('change');
+        }
         $('#sendLinkedinPreview').text(linkedinMessage);
         $('#sendLinkedinError').text('');
         openPageModal('#sendLinkedinModal');

@@ -12,6 +12,7 @@ use Auth;
 
 use App\Models\Lead;
 use App\Models\LeadNote;
+use App\Services\LeadDraftService;
 
 class LeadNotesController extends Controller
 {
@@ -38,7 +39,14 @@ class LeadNotesController extends Controller
             'type' => 'nullable|in:'.implode(',', LeadNote::TYPES),
             // Drafts go to the user picked here for approval.
             'approver_id' => [$isDraft ? 'required' : 'nullable', 'integer', 'exists:users,id'],
-        ], ['approver_id.required' => 'Please choose who should approve this draft.']);
+            // ...and are written for one contact of the lead.
+            'lead_contact_id' => [$isDraft ? 'required' : 'nullable', 'integer'],
+        ], [
+            'approver_id.required' => 'Please choose who should approve this draft.',
+            'lead_contact_id.required' => 'Please choose the contact this draft is for.',
+        ]);
+        $drafts = app(LeadDraftService::class);
+        $contactId = $isDraft ? $drafts->validContactId($request->lead_contact_id, (int) $request->lead_id) : null;
 
         $labels = [
             LeadNote::TYPE_NOTE => ['Lead Note', 'notes'],
@@ -57,20 +65,29 @@ class LeadNotesController extends Controller
             $updates = ['note' => $request->note, 'lead_id' => $request->lead_id];
             if ($isDraft) {
                 $updates['approver_id'] = $approverId;
+                $updates['lead_contact_id'] = $contactId;
             } else {
                 $updates['created_by'] = Auth::id();
             }
             $approverChanged = $isDraft && (int) $existing->approver_id !== $approverId;
+            $wasSentBack = $isDraft && $existing->needsChanges();
             $existing->update($updates);
-            $request->session()->flash('message_success', $label.' updated successfully.');
-            if ($approverChanged && ! $existing->isApproved()) {
-                $this->notifyApprover($existing, $label);
+            if ($wasSentBack) {
+                // Edited after the approver's feedback: back to the approver for approval.
+                $drafts->afterAgentEdit($existing, Auth::user());
+                $request->session()->flash('message_success', $label.' updated and sent back to '.($existing->approver->name ?? 'the approver').' for approval.');
+            } else {
+                $request->session()->flash('message_success', $label.' updated successfully.');
+                if ($approverChanged && ! $existing->isApproved()) {
+                    $this->notifyApprover($existing, $label);
+                }
             }
         } else {
             $draft = LeadNote::create([
                 'type' => $type,
                 'note' => $request->note,
                 'lead_id' => $request->lead_id,
+                'lead_contact_id' => $contactId,
                 'created_by' => Auth::id(),
                 'approver_id' => $approverId,
             ]);

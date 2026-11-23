@@ -16,16 +16,19 @@ class LeadNote extends Model
 
     protected $fillable = [
         'lead_id',
+        'lead_contact_id',
         'type',
         'note',
         'created_by',
         'approver_id',
         'approved_by',
         'approved_at',
+        'changes_requested_at',
     ];
 
     protected $casts = [
         'approved_at' => 'datetime',
+        'changes_requested_at' => 'datetime',
     ];
 
     protected $attributes = [
@@ -55,6 +58,30 @@ class LeadNote extends Model
     public function isApproved(): bool
     {
         return $this->approved_at !== null;
+    }
+
+    /** The approver sent feedback and the agent has not updated the draft yet. */
+    public function needsChanges(): bool
+    {
+        return ! $this->isApproved() && $this->changes_requested_at !== null;
+    }
+
+    /** pending | changes_requested | approved */
+    public function draftState(): string
+    {
+        return $this->isApproved() ? 'approved' : ($this->needsChanges() ? 'changes_requested' : 'pending');
+    }
+
+    /** The lead contact this draft is written for. */
+    public function contact()
+    {
+        return $this->belongsTo(LeadContact::class, 'lead_contact_id');
+    }
+
+    /** Approver feedback on this draft, oldest first. */
+    public function feedbacks()
+    {
+        return $this->hasMany(LeadNoteFeedback::class, 'lead_note_id')->orderBy('id');
     }
 
     public function createdby(){

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\LeadNote;
+use App\Services\LeadDraftService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
@@ -19,6 +20,7 @@ class DraftApprovalController extends Controller
 
         $pending = $this->visibleDrafts()
             ->whereNull('approved_at')
+            ->whereNull('changes_requested_at')
             ->selectRaw('type, COUNT(*) as total')
             ->groupBy('type')
             ->pluck('total', 'type');
@@ -36,12 +38,15 @@ class DraftApprovalController extends Controller
 
         $type = $request->input('type') === LeadNote::TYPE_LINKEDIN ? LeadNote::TYPE_LINKEDIN : LeadNote::TYPE_EMAIL;
         $query = $this->visibleDrafts()
-            ->with(['lead:id,company_name,external_lead_id', 'createdby:id,name', 'approvedby:id,name', 'approver:id,name'])
+            ->with(['lead:id,company_name,external_lead_id', 'createdby:id,name', 'approvedby:id,name', 'approver:id,name', 'contact:id,name,title,email', 'feedbacks.user:id,name'])
             ->where('type', $type);
 
         $status = $request->input('status', 'pending');
         if ($status === 'pending') {
-            $query->whereNull('approved_at');
+            $query->whereNull('approved_at')->whereNull('changes_requested_at');
+        } elseif ($status === 'changes') {
+            // Feedback sent, waiting for the agent to update the draft.
+            $query->whereNull('approved_at')->whereNotNull('changes_requested_at');
         } elseif ($status === 'approved') {
             $query->whereNotNull('approved_at');
         }
@@ -76,8 +81,17 @@ class DraftApprovalController extends Controller
                 'approved_by' => $draft->approvedby?->name,
                 'approved_at' => $draft->approved_at?->format('d M Y, h:i A'),
                 'approver' => $draft->approver?->name,
+                'state' => $draft->draftState(),
+                'contact' => $draft->contact?->name,
+                'contact_title' => $draft->contact?->title,
+                'feedbacks' => $draft->feedbacks->map(fn ($item) => [
+                    'text' => $item->feedback,
+                    'by' => $item->user?->name ?: '-',
+                    'at' => $item->created_at?->format('d M Y, h:i A'),
+                ])->values(),
                 'update_url' => route('draft-approvals.update', $draft),
                 'approve_url' => route('draft-approvals.approve', $draft),
+                'feedback_url' => route('draft-approvals.feedback', $draft),
             ]);
 
         return response()->json([
@@ -107,13 +121,25 @@ class DraftApprovalController extends Controller
         abort_unless($leadNote->canBeApprovedBy(Auth::user()), Response::HTTP_FORBIDDEN, 'This draft was sent to another approver.');
 
         $validated = $request->validate(['note' => ['nullable', 'string', 'max:10000']]);
-        $leadNote->update(array_filter([
-            'note' => $validated['note'] ?? null,
-            'approved_by' => Auth::id(),
-            'approved_at' => now(),
-        ], fn ($value) => $value !== null && $value !== ''));
+        app(LeadDraftService::class)->approve($leadNote, Auth::user(), $validated['note'] ?? null);
 
         return response()->json(['success' => true, 'message' => 'Draft approved.']);
+    }
+
+    /** Send feedback to the agent: the draft goes back to them for changes. */
+    public function feedback(Request $request, LeadNote $leadNote)
+    {
+        $this->ensureDraft($leadNote);
+        abort_unless($leadNote->canBeApprovedBy(Auth::user()), Response::HTTP_FORBIDDEN, 'This draft was sent to another approver.');
+        abort_if($leadNote->isApproved(), Response::HTTP_UNPROCESSABLE_ENTITY, 'This draft is already approved.');
+
+        $validated = $request->validate(
+            ['feedback' => ['required', 'string', 'max:2000']],
+            ['feedback.required' => 'Please write what should be changed.']
+        );
+        app(LeadDraftService::class)->requestChanges($leadNote, Auth::user(), $validated['feedback']);
+
+        return response()->json(['success' => true, 'message' => 'Feedback sent to '.($leadNote->createdby->name ?? 'the agent').'.']);
     }
 
     /** Approvers see the page: full access with draft_approval, else only drafts sent to them. */

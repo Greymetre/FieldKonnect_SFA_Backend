@@ -240,6 +240,7 @@ Route::group(['middleware' => ['auth', 'resource.permission']], function () {
     Route::post('draft-approvals/data', [App\Http\Controllers\DraftApprovalController::class, 'data'])->name('draft-approvals.data');
     Route::put('draft-approvals/{leadNote}', [App\Http\Controllers\DraftApprovalController::class, 'update'])->name('draft-approvals.update');
     Route::post('draft-approvals/{leadNote}/approve', [App\Http\Controllers\DraftApprovalController::class, 'approve'])->name('draft-approvals.approve');
+    Route::post('draft-approvals/{leadNote}/feedback', [App\Http\Controllers\DraftApprovalController::class, 'feedback'])->name('draft-approvals.feedback');
     Route::resource('leads', LeadController::class);
     Route::post('leads/getLeads', [LeadController::class, 'getLeads'])->name('leads.getLeads');
     Route::post('lead-upload', [LeadController::class, 'upload'])->name('leads.upload');

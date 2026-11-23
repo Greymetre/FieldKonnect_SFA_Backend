@@ -114,6 +114,17 @@
     .dap-btn .material-icons { font-size: 16px; }
     .dap-btn:hover { border-color: var(--fk-list-accent); }
     .dap-btn.is-approve { border-color: transparent; background: #10b981; color: #fff !important; }
+    .dap-btn.is-feedback { border-color: rgba(245, 158, 11, .55); color: #f59e0b !important; }
+    .dap-contact { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; font-size: 12px; color: var(--fk-list-text); }
+    .dap-contact .material-icons { font-size: 14px; color: var(--fk-list-accent); }
+    .dap-chip.is-changes { color: #f59e0b; background: rgba(245, 158, 11, .14); }
+    .dap-feedback-note { display: block; max-width: 240px; margin-top: 6px; padding: 6px 8px; border-left: 3px solid #f59e0b; border-radius: 6px; background: rgba(245, 158, 11, .08); font-size: 12px; color: var(--fk-list-text); white-space: pre-wrap; }
+    .dap-history { max-height: 200px; overflow-y: auto; margin-bottom: 12px; }
+    .dap-history-item { padding: 8px 10px; margin-bottom: 8px; border-radius: 10px; background: var(--fk-list-control); border: 1px solid var(--fk-list-border); }
+    .dap-history-item p { margin: 0 0 4px; font-size: 13px; color: var(--fk-list-text); white-space: pre-wrap; }
+    .dap-history-item small { font-size: 11.5px; color: var(--fk-list-muted); }
+    .dap-modal #dapFeedbackText { min-height: 140px; }
+    .dap-label { display: block; margin-bottom: 6px; font-size: 12px; font-weight: 600; color: var(--fk-list-muted); }
 
     .dap-modal { border: 1px solid var(--fk-list-border-strong) !important; border-radius: 16px !important; background: var(--fk-list-panel, #0b1736) !important; color: var(--fk-list-text) !important; }
     .dap-modal .modal-header, .dap-modal .modal-footer { border-color: var(--fk-list-border) !important; }
@@ -158,6 +169,7 @@
           <label for="dapStatus">Status</label>
           <select class="form-control" id="dapStatus">
             <option value="pending" selected>Pending approval</option>
+            <option value="changes">Feedback sent (waiting for agent)</option>
             <option value="approved">Approved</option>
             <option value="all">All</option>
           </select>
@@ -176,7 +188,7 @@
           <div class="fk-table-meta-icon"><span class="material-icons">fact_check</span></div>
           <div class="fk-table-meta-copy">
             <h2 id="dapTableTitle">Email Drafts</h2>
-            <p class="fk-table-meta-subline">Review, edit and approve. Approved drafts are locked for agents.</p>
+            <p class="fk-table-meta-subline">Review, edit and approve — or send feedback so the agent fixes the draft and sends it back. Approved drafts are locked for agents.</p>
           </div>
         </div>
         <div class="table-responsive">
@@ -221,6 +233,30 @@
     </div>
   </div>
 
+  <div class="modal fade" id="dapFeedbackModal" tabindex="-1" role="dialog" aria-labelledby="dapFeedbackTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content dap-modal">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title" id="dapFeedbackTitle">Send feedback</h5>
+            <small id="dapFeedbackSub"></small>
+          </div>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        </div>
+        <div class="modal-body">
+          <div id="dapFeedbackHistory"></div>
+          <label class="dap-label" for="dapFeedbackText">What should the agent change?</label>
+          <textarea class="form-control" id="dapFeedbackText" maxlength="2000" placeholder="e.g. Mention our pricing, keep it shorter, address him as Mr. Bansal..."></textarea>
+          <p class="dap-error" id="dapFeedbackError"></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-primary" data-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="dapFeedbackSend">Send feedback to agent</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     function dapEsc(value) {
       return $('<div>').text(value == null ? '' : String(value)).html();
@@ -258,7 +294,8 @@
             data: 'company',
             render: function(company, type, row) {
               var name = row.lead_url ? '<a class="dap-lead" href="' + dapEsc(row.lead_url) + '">' + dapEsc(company) + '</a>' : '<span class="dap-lead">' + dapEsc(company) + '</span>';
-              return name + (row.lead_code ? '<span class="dap-sub">' + dapEsc(row.lead_code) + '</span>' : '');
+              return name + (row.lead_code ? '<span class="dap-sub">' + dapEsc(row.lead_code) + '</span>' : '')
+                + (row.contact ? '<span class="dap-contact"><span class="material-icons">person</span>For: ' + dapEsc(row.contact) + (row.contact_title ? ' · ' + dapEsc(row.contact_title) : '') + '</span>' : '');
             }
           },
           {
@@ -284,9 +321,17 @@
           {
             data: 'approved',
             render: function(approved, type, row) {
-              return approved
-                ? '<span class="dap-chip is-ok"><span class="material-icons">verified</span>Approved</span><span class="dap-sub">by ' + dapEsc(row.approved_by || '-') + '<br>' + dapEsc(row.approved_at || '') + '</span>'
-                : '<span class="dap-chip is-wait"><span class="material-icons">schedule</span>Pending</span>';
+              var last = (row.feedbacks || []).length ? row.feedbacks[row.feedbacks.length - 1] : null;
+              if (approved) {
+                return '<span class="dap-chip is-ok"><span class="material-icons">verified</span>Approved</span><span class="dap-sub">by ' + dapEsc(row.approved_by || '-') + '<br>' + dapEsc(row.approved_at || '') + '</span>';
+              }
+              if (row.state === 'changes_requested') {
+                return '<span class="dap-chip is-changes"><span class="material-icons">rate_review</span>Feedback sent</span>'
+                  + '<span class="dap-sub">Waiting for the agent to update</span>'
+                  + (last ? '<span class="dap-feedback-note">' + dapEsc(last.text) + '</span>' : '');
+              }
+              return '<span class="dap-chip is-wait"><span class="material-icons">schedule</span>Pending</span>'
+                + (last ? '<span class="dap-sub">Updated after ' + (row.feedbacks.length === 1 ? 'your feedback' : row.feedbacks.length + ' feedbacks') + '</span>' : '');
             }
           },
           {
@@ -295,6 +340,7 @@
               return '<div class="dap-actions">'
                 + '<button type="button" class="dap-btn dap-edit" data-id="' + id + '"><span class="material-icons">edit</span>Edit</button>'
                 + (row.approved ? '' : '<button type="button" class="dap-btn is-approve dap-approve" data-id="' + id + '"><span class="material-icons">check</span>Approve</button>')
+                + (row.approved ? '' : '<button type="button" class="dap-btn is-feedback dap-feedback" data-id="' + id + '"><span class="material-icons">rate_review</span>Feedback</button>')
                 + '</div>';
             }
           }
@@ -336,6 +382,40 @@
         var row = dapRows[$(this).data('id')];
         if (!row || !confirm('Approve this draft? The agent will not be able to edit it after approval.')) return;
         send(row.approve_url, 'POST', {});
+      });
+
+      // Feedback: the draft goes back to the agent, who edits it and sends it again.
+      var dapFeedbackRow = null;
+      $(document).on('click', '.dap-feedback', function() {
+        dapFeedbackRow = dapRows[$(this).data('id')];
+        if (!dapFeedbackRow) return;
+        $('#dapFeedbackSub').text(dapFeedbackRow.company + (dapFeedbackRow.contact ? ' · for ' + dapFeedbackRow.contact : '') + ' · by ' + dapFeedbackRow.created_by);
+        var history = (dapFeedbackRow.feedbacks || []).map(function(item) {
+          return '<div class="dap-history-item"><p>' + dapEsc(item.text) + '</p><small>' + dapEsc(item.by) + ' · ' + dapEsc(item.at) + '</small></div>';
+        }).join('');
+        $('#dapFeedbackHistory').html(history ? '<label class="dap-label">Earlier feedback</label><div class="dap-history">' + history + '</div>' : '');
+        $('#dapFeedbackText').val('');
+        $('#dapFeedbackError').text('');
+        $('#dapFeedbackModal').modal('show');
+        setTimeout(function() { $('#dapFeedbackText').trigger('focus'); }, 300);
+      });
+
+      $('#dapFeedbackSend').on('click', function() {
+        if (!dapFeedbackRow) return;
+        var text = $.trim($('#dapFeedbackText').val());
+        if (!text) { $('#dapFeedbackError').text('Please write what should be changed.'); return; }
+        var $btn = $(this).prop('disabled', true);
+        $.post(dapFeedbackRow.feedback_url, { feedback: text })
+          .done(function() {
+            $('#dapFeedbackModal').modal('hide');
+            table.draw(false);
+            refreshCounts();
+          })
+          .fail(function(xhr) {
+            var res = xhr.responseJSON || {};
+            $('#dapFeedbackError').text(res.errors ? Object.values(res.errors)[0][0] : (res.message || 'Could not send the feedback.'));
+          })
+          .always(function() { $btn.prop('disabled', false); });
       });
 
       $('#dapSave').on('click', function() {
