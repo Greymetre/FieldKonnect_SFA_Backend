@@ -426,58 +426,6 @@
         </div>
       </div>
 
-      {{-- Action center: pending work, every tile opens the matching screen --}}
-      <div class="ldb-panel ldb-span-8">
-        <div class="ldb-card-head"><h3><span class="material-icons">pending_actions</span>Action center</h3><small>What is pending · click a tile to open the list</small></div>
-        <div class="ldb-card-body">
-          <div class="ldb-actions">
-            @foreach($actions as $action)
-            <a class="ldb-action tone-{{ $action['tone'] }}-text {{ $action['total'] > 0 ? '' : 'is-clear' }}" href="{{ $action['url'] }}">
-              <span class="ldb-action-top">
-                <span class="ldb-action-icon"><span class="material-icons">{{ $action['icon'] }}</span></span>
-                <span class="material-icons ldb-action-go">arrow_forward</span>
-              </span>
-              <b>{{ number_format($action['total']) }}</b>
-              <strong>{{ $action['label'] }}</strong>
-              <small>{{ $action['total'] > 0 ? $action['hint'] : 'All clear' }}</small>
-            </a>
-            @endforeach
-          </div>
-        </div>
-      </div>
-
-      {{-- Recent calls --}}
-      <div class="ldb-panel ldb-span-4">
-        <div class="ldb-card-head"><h3><span class="material-icons">history</span>Recent calls</h3><a class="ldb-link" href="{{ route('call-management.index') }}">View all</a></div>
-        <div class="ldb-card-body">
-          @if($recentCalls->isEmpty())
-          <div class="ldb-empty">No calls yet.</div>
-          @else
-          <ul class="ldb-list">
-            @foreach($recentCalls as $call)
-            @php
-              $isConnected = (int) $call->status === 1 && ! empty($call->recording_url);
-              $feedback = $call->feedbackStatus;
-              if ($feedback && $feedback->module === \App\Models\Status::MODULE_LEAD_CALL_FEEDBACK) {
-                  [$callTag, $callTone] = [$feedback->display_name ?: $feedback->status_name, ['good' => 'is-good', 'warn' => 'is-warn', 'bad' => 'is-bad', 'info' => 'is-info', 'muted' => 'is-muted'][$outcomeTones[$feedback->status_name] ?? 'info']];
-              } else {
-                  [$callTag, $callTone] = $isConnected ? ['Connected', 'is-good'] : ['Not connected', 'is-muted'];
-              }
-            @endphp
-            <li>
-              <span class="ldb-avatar">{{ $initials($call->user->name ?? '') }}</span>
-              <div class="ldb-list-main">
-                <strong>{{ $call->contact->name ?? $call->number }}</strong>
-                <span>{{ $call->lead->company_name ?? '' }} · {{ $call->user->name ?? 'Unknown' }}</span>
-              </div>
-              <div class="ldb-time"><span class="ldb-tag {{ $callTone }}">{{ $callTag }}</span><br>{{ $call->started_at?->diffForHumans() }}</div>
-            </li>
-            @endforeach
-          </ul>
-          @endif
-        </div>
-      </div>
-
       {{-- Team performance --}}
       <div class="ldb-panel ldb-span-8">
         <div class="ldb-card-head"><h3><span class="material-icons">groups</span>Team performance</h3><small>Calls &amp; connects for {{ $rangeLabel }}</small></div>
@@ -514,6 +462,58 @@
             </tbody>
           </table>
           @endif
+        </div>
+      </div>
+
+      {{-- Recent calls --}}
+      <div class="ldb-panel ldb-span-4">
+        <div class="ldb-card-head"><h3><span class="material-icons">history</span>Recent calls</h3><a class="ldb-link" href="{{ route('call-management.index') }}">View all</a></div>
+        <div class="ldb-card-body">
+          @if($recentCalls->isEmpty())
+          <div class="ldb-empty">No calls yet.</div>
+          @else
+          <ul class="ldb-list">
+            @foreach($recentCalls as $call)
+            @php
+              $isConnected = (int) $call->status === 1 && ! empty($call->recording_url);
+              $feedback = $call->feedbackStatus;
+              if ($feedback && $feedback->module === \App\Models\Status::MODULE_LEAD_CALL_FEEDBACK) {
+                  [$callTag, $callTone] = [$feedback->display_name ?: $feedback->status_name, ['good' => 'is-good', 'warn' => 'is-warn', 'bad' => 'is-bad', 'info' => 'is-info', 'muted' => 'is-muted'][$outcomeTones[$feedback->status_name] ?? 'info']];
+              } else {
+                  [$callTag, $callTone] = $isConnected ? ['Connected', 'is-good'] : ['Not connected', 'is-muted'];
+              }
+            @endphp
+            <li>
+              <span class="ldb-avatar">{{ $initials($call->user->name ?? '') }}</span>
+              <div class="ldb-list-main">
+                <strong>{{ $call->contact->name ?? $call->number }}</strong>
+                <span>{{ $call->lead->company_name ?? '' }} · {{ $call->user->name ?? 'Unknown' }}</span>
+              </div>
+              <div class="ldb-time"><span class="ldb-tag {{ $callTone }}">{{ $callTag }}</span><br>{{ $call->started_at?->diffForHumans() }}</div>
+            </li>
+            @endforeach
+          </ul>
+          @endif
+        </div>
+      </div>
+
+      {{-- Action center: pending work, every tile opens the matching screen --}}
+      <div class="ldb-panel ldb-span-8">
+        <div class="ldb-card-head"><h3><span class="material-icons">pending_actions</span>Action center</h3><small>What is pending · click a tile to open the list</small></div>
+        <div class="ldb-card-body">
+          <div class="ldb-actions">
+            @foreach($actions as $action)
+            <a class="ldb-action tone-{{ $action['tone'] }}-text {{ $action['total'] > 0 ? '' : 'is-clear' }}" href="{{ $action['url'] }}">
+              <span class="ldb-action-top">
+                <span class="ldb-action-icon"><span class="material-icons">{{ $action['icon'] }}</span></span>
+                <span class="material-icons ldb-action-go">arrow_forward</span>
+              </span>
+              <b>{{ number_format($action['total']) }}</b>
+              <strong>{{ $action['label'] }}</strong>
+              <small>{{ $action['total'] > 0 ? $action['hint'] : 'All clear' }}</small>
+            </a>
+            @endforeach
+          </div>
         </div>
       </div>
 

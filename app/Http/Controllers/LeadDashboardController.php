@@ -249,7 +249,7 @@ class LeadDashboardController extends Controller
 
         // ---- Recent calls ------------------------------------------------------
         $recentCalls = (clone $calls)->with(['user:id,name', 'lead:id,company_name', 'contact:id,name', 'feedbackStatus:id,display_name,status_name,module'])
-            ->orderByDesc('started_at')->limit(8)->get();
+            ->orderByDesc('started_at')->limit(5)->get();
 
         return view('lead-dashboard.index', compact(
             'previous', 'todayStats', 'funnel', 'actions', 'recentCalls', 'outcomeTones',
