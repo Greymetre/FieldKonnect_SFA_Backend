@@ -47,7 +47,7 @@
         @endif
 
         @foreach($drafts as $draft)
-        <div class="draft-item {{ $draft->isApproved() ? 'is-approved' : '' }}">
+        <div class="draft-item {{ $draft->isApproved() ? 'is-approved' : '' }}" id="draft-item-{{ $draft->id }}">
             <div class="draft-icon"><i class="material-icons">{{ $icon }}</i></div>
             <div class="draft-main">
                 <div class="draft-text-view" id="draft-text-{{ $draft->id }}">{{ $draft->note }}</div>

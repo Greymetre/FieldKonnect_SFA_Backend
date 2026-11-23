@@ -247,12 +247,41 @@ class LeadDashboardController extends Controller
                 'total' => $todayStats['connected'],
                 'url' => $callUrl(['call_status' => 'connected', 'start_date' => $today, 'end_date' => $today])];
 
+        // ---- Drafts the approver sent back with feedback (the signed-in agent's own drafts)
+        $feedbackQuery = LeadNote::whereIn('type', [LeadNote::TYPE_EMAIL, LeadNote::TYPE_LINKEDIN])
+            ->where('created_by', Auth::id())
+            ->whereNull('approved_at')
+            ->whereNotNull('changes_requested_at');
+        $feedbackCount = (clone $feedbackQuery)->count();
+        $feedbackDrafts = $feedbackQuery->with(['lead:id,company_name,external_lead_id', 'contact:id,name', 'feedbacks.user:id,name'])
+            ->orderByDesc('changes_requested_at')->limit(8)->get()
+            ->map(function (LeadNote $draft) {
+                $last = $draft->feedbacks->last();
+                $tab = $draft->type === LeadNote::TYPE_LINKEDIN ? 'linkedin-drafts' : 'email-drafts';
+
+                return [
+                    'type' => $draft->type === LeadNote::TYPE_LINKEDIN ? 'LinkedIn' : 'Email',
+                    'company' => $draft->lead?->company_name ?: 'Lead',
+                    'lead_code' => $draft->lead?->external_lead_id,
+                    'contact' => $draft->contact?->name,
+                    'feedback' => $last?->feedback,
+                    'by' => $last?->user?->name,
+                    'at' => $draft->changes_requested_at?->diffForHumans(),
+                    // Opens the lead on its Email / LinkedIn draft tab with this draft highlighted.
+                    'url' => $draft->lead_id ? route('leads.show', $draft->lead_id).'?'.http_build_query(['tab' => $tab, 'draft' => $draft->id]) : null,
+                ];
+            });
+        if ($feedbackCount > 0) {
+            $actions[] = ['icon' => 'rate_review', 'tone' => 'orange', 'label' => 'Drafts with feedback', 'hint' => 'Approver asked for changes',
+                'total' => $feedbackCount, 'url' => $feedbackCount === 1 ? ($feedbackDrafts->first()['url'] ?? '#ldbFeedback') : '#ldbFeedback'];
+        }
+
         // ---- Recent calls ------------------------------------------------------
         $recentCalls = (clone $calls)->with(['user:id,name', 'lead:id,company_name', 'contact:id,name', 'feedbackStatus:id,display_name,status_name,module'])
             ->orderByDesc('started_at')->limit(5)->get();
 
         return view('lead-dashboard.index', compact(
-            'previous', 'todayStats', 'funnel', 'actions', 'recentCalls', 'outcomeTones',
+            'previous', 'todayStats', 'funnel', 'actions', 'feedbackCount', 'feedbackDrafts', 'recentCalls', 'outcomeTones',
             'users', 'userId', 'from', 'to',
             'totalLeads', 'newLeads', 'convertedLeads', 'callsMade', 'callsConnected', 'talkSeconds',
             'openTasks', 'overdueTasks', 'pendingDrafts',

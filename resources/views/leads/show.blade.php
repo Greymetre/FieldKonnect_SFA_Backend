@@ -1759,6 +1759,7 @@
         .lead-detail-page .draft-status.is-approved { color: #10b981; background: rgba(16, 185, 129, .13); }
         .lead-detail-page .draft-status.is-pending { color: #f59e0b; background: rgba(245, 158, 11, .14); }
         .lead-detail-page .draft-status.is-changes { color: #fb923c; background: rgba(251, 146, 60, .15); }
+        .lead-detail-page .draft-item.is-highlighted { box-shadow: 0 0 0 2px #fb923c; border-radius: 12px; transition: box-shadow .3s ease; }
         .lead-detail-page .draft-for { display: inline-flex; align-items: center; gap: 3px; margin-right: 6px; padding: 2px 8px; border-radius: 10px; background: rgba(56, 189, 248, .12); color: #38bdf8; font-size: 11.5px; font-weight: 600; vertical-align: middle; }
         .lead-detail-page .draft-for i { font-size: 13px; }
         .lead-detail-page .draft-feedback { margin-top: 10px; padding: 10px 12px; border-left: 3px solid rgba(148, 163, 184, .5); border-radius: 8px; background: rgba(148, 163, 184, .08); }
@@ -4191,6 +4192,24 @@ function activateNotesTab() {
     @if(session('lead_tab'))
     $(function () { $('#{{ session('lead_tab') }}-tab').tab('show'); });
     @endif
+
+    // Links from the Lead Dashboard: ?tab=email-drafts|linkedin-drafts&draft=ID
+    $(function () {
+        var params = new URLSearchParams(window.location.search);
+        var tab = params.get('tab');
+        if (['email-drafts', 'linkedin-drafts', 'notes', 'files', 'tasks', 'call-history'].indexOf(tab) === -1 || !$('#' + tab + '-tab').length) return;
+        $('#' + tab + '-tab').tab('show');
+        var draftId = String(params.get('draft') || '').replace(/[^0-9]/g, '');
+        var $draft = draftId ? $('#draft-item-' + draftId) : $();
+        setTimeout(function () {
+            var $target = $draft.length ? $draft : $('#' + tab);
+            if ($target.length) $('html, body').animate({ scrollTop: Math.max(0, $target.offset().top - 120) }, 300);
+            if ($draft.length) {
+                $draft.addClass('is-highlighted');
+                setTimeout(function () { $draft.removeClass('is-highlighted'); }, 3500);
+            }
+        }, 250);
+    });
 
     // Popups live inside the layout's .main-panel, whose stacking/scroll context can
     // hide a Bootstrap modal behind the page. Move it to <body> before opening.

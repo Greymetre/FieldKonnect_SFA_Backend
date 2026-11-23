@@ -176,7 +176,7 @@
     .ldb-rank { display: inline-block; width: 18px; font-size: 11px; color: var(--fk-list-muted); }
 
     /* Action center */
-    .ldb-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .ldb-actions { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 10px; }
     .ldb-action { --act: var(--ldb-blue); display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border: 1px solid var(--fk-list-border); border-left: 3px solid var(--act); border-radius: 12px; background: color-mix(in srgb, var(--act) 7%, transparent); text-decoration: none !important; transition: transform .12s ease, border-color .12s ease, background .12s ease; }
     .ldb-action:hover { transform: translateY(-2px); border-color: var(--act); background: color-mix(in srgb, var(--act) 14%, transparent); text-decoration: none !important; }
     .ldb-action-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
@@ -198,6 +198,14 @@
 
     @media (max-width: 1399px) { .ldb-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
     @media (max-width: 767px) { .ldb-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .ldb-feedback-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+    .ldb-feedback-item { display: block; padding: 12px 14px; border: 1px solid var(--fk-list-border); border-left: 3px solid #fb923c; border-radius: 12px; background: rgba(251, 146, 60, .07); text-decoration: none !important; transition: transform .12s ease, background .12s ease; }
+    .ldb-feedback-item:hover { transform: translateY(-2px); background: rgba(251, 146, 60, .13); }
+    .ldb-feedback-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .ldb-feedback-top strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13.5px; color: var(--fk-list-heading); }
+    .ldb-feedback-meta { display: block; margin-top: 3px; font-size: 11.5px; color: var(--fk-list-muted); }
+    .ldb-feedback-text { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin: 8px 0 6px; font-size: 13px; color: var(--fk-list-text); }
+    .ldb-feedback-go { font-size: 12px; font-weight: 600; color: #fb923c; }
     @media (max-width: 1199px) { .ldb-span-8, .ldb-span-6, .ldb-span-4 { grid-column: span 12; } }
     @media (max-width: 575px) { .ldb-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ldb-range { margin-left: 0; } .ldb-donut-wrap { flex-direction: column; } }
   </style>
@@ -249,6 +257,34 @@
       <span class="ldb-today-item"><b>{{ number_format($todayStats['newLeads']) }}</b> new leads</span>
       <span class="ldb-today-item"><b>{{ number_format($todayStats['tasksDue']) }}</b> tasks due</span>
     </div>
+
+    {{-- Drafts sent back by the approver with feedback: each opens the lead's draft. --}}
+    @if($feedbackCount > 0)
+    <div class="ldb-panel" id="ldbFeedback" style="margin-bottom:14px">
+      <div class="ldb-card-head">
+        <h3><span class="material-icons" style="color:#fb923c">rate_review</span>Drafts with feedback ({{ number_format($feedbackCount) }})</h3>
+        <small>The approver asked for changes — edit the draft and save to send it back</small>
+      </div>
+      <div class="ldb-card-body">
+        <div class="ldb-feedback-list">
+          @foreach($feedbackDrafts as $item)
+          <a class="ldb-feedback-item" href="{{ $item['url'] ?? '#' }}">
+            <span class="ldb-feedback-top">
+              <strong>{{ $item['company'] }}</strong>
+              <span class="ldb-tag is-warn">{{ $item['type'] }}</span>
+            </span>
+            <span class="ldb-feedback-meta">{{ $item['contact'] ? 'For '.$item['contact'].' · ' : '' }}{{ $item['by'] ?: 'Approver' }} · {{ $item['at'] }}</span>
+            <span class="ldb-feedback-text">{{ $item['feedback'] }}</span>
+            <span class="ldb-feedback-go">Open draft &rarr;</span>
+          </a>
+          @endforeach
+        </div>
+        @if($feedbackCount > $feedbackDrafts->count())
+        <p class="ldb-feedback-meta" style="margin-top:10px">Showing the latest {{ $feedbackDrafts->count() }} of {{ $feedbackCount }}.</p>
+        @endif
+      </div>
+    </div>
+    @endif
 
     {{-- KPI tiles --}}
     @php
