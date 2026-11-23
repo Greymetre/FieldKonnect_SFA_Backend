@@ -4,26 +4,50 @@
     .lead-calling-chip.is-none { color: #94a3b8; background: rgba(148, 163, 184, .14); }
     .lead-calling-chip.is-partial { color: #f59e0b; background: rgba(245, 158, 11, .14); }
     .lead-calling-chip.is-all { color: #10b981; background: rgba(16, 185, 129, .13); }
-    /* Inline lead filters */
-    .lfx-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; align-items: end; margin: 0 0 18px; padding: 16px 18px; border: 1px solid var(--fk-list-border); border-radius: 16px; background: var(--fk-list-panel); }
+    /* Inline lead filters: two compact rows
+       row 1: search (2 cols) + lead type + calling + assigned to
+       row 2: created between + state + district + city + reset */
+    .lfx-filters { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px 12px; align-items: end; margin: 0 0 14px; padding: 12px 14px; border: 1px solid var(--fk-list-border); border-radius: 14px; background: var(--fk-list-panel); }
     .lfx-field { min-width: 0; }
-    .lfx-field label { display: block; margin-bottom: 6px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--fk-list-muted); }
-    .lfx-field .form-control, .lfx-field .bootstrap-select > .dropdown-toggle, .lfx-field .select2-container .select2-selection--single { height: 40px !important; min-height: 40px; border: 1px solid var(--fk-list-border-strong) !important; border-radius: 10px !important; background: var(--fk-list-control) !important; color: var(--fk-list-text) !important; font-size: 13px; }
-    .lfx-field .form-control { padding: 0 12px; width: 100%; }
-    .lfx-field .bootstrap-select { width: 100% !important; }
-    .lfx-field .select2-container { width: 100% !important; }
-    .lfx-field .select2-selection__rendered { line-height: 38px !important; color: var(--fk-list-text) !important; }
-    .lfx-field .select2-selection__arrow { height: 38px !important; }
-    .lfx-field form { margin: 0; display: block; }
+    .lfx-field label { display: block; margin: 0 0 4px; font-size: 10.5px; font-weight: 600; letter-spacing: .05em !important; text-transform: uppercase; color: var(--fk-list-muted); line-height: 1.2; }
     .lfx-search { position: relative; grid-column: span 2; }
-    .lfx-search .material-icons { position: absolute; left: 10px; bottom: 10px; font-size: 18px; color: var(--fk-list-muted); }
-    .lfx-search .form-control { padding-left: 34px; }
+
+    /* one look for every control */
+    .lfx-field .form-control:not(.bootstrap-select),
+    .lfx-field .bootstrap-select > .dropdown-toggle,
+    .lfx-field .select2-container .select2-selection--single {
+      display: flex !important; align-items: center; width: 100%; height: 38px !important; min-height: 38px !important;
+      margin: 0 !important; padding: 0 32px 0 12px !important;
+      border: 1px solid var(--fk-list-border-strong) !important; border-radius: 10px !important;
+      background: var(--fk-list-control) !important; box-shadow: none !important;
+      color: var(--fk-list-text) !important; font-size: 13px !important; line-height: 36px !important; text-transform: none !important;
+    }
+    .lfx-search .form-control:not(.bootstrap-select) { padding-left: 34px !important; }
+    .lfx-search .material-icons { position: absolute; left: 10px; bottom: 10px; font-size: 18px; color: var(--fk-list-muted); z-index: 1; }
+
+    /* bootstrap-select puts .form-control on its wrapper too: keep only the button styled */
+    .lfx-field .bootstrap-select.form-control { display: block !important; width: 100% !important; height: auto !important; padding: 0 !important; margin: 0 !important; border: 0 !important; background: transparent !important; box-shadow: none !important; }
+    .lfx-field .bootstrap-select > .dropdown-toggle .filter-option { position: static; display: flex; align-items: center; height: 100%; padding: 0 !important; }
+    body.fk-shell .lfx-filters .lfx-field .filter-option-inner-inner,
+    .lfx-field .bootstrap-select > .dropdown-toggle .filter-option-inner-inner { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fk-list-text) !important; font-size: 13px !important; line-height: 36px !important; text-transform: none !important; }
+    .lfx-field .bootstrap-select > .dropdown-toggle::after { position: absolute; right: 12px; top: 50%; margin-top: -2px; }
+
+    .lfx-field .select2-container { width: 100% !important; }
+    .lfx-field .select2-container .select2-selection--single { position: relative; }
+    body.fk-shell .lfx-filters .lfx-field .select2-container--default .select2-selection--single .select2-selection__rendered,
+    .lfx-field .select2-selection__rendered { flex: 1 1 auto; min-width: 0; margin: 0 !important; padding: 0 !important; text-indent: 0 !important; line-height: 36px !important; color: var(--fk-list-text) !important; font-size: 13px !important; text-transform: none !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .lfx-field .select2-selection__arrow { position: absolute !important; top: 50% !important; right: 10px !important; height: 20px !important; margin: 0 !important; transform: translateY(-50%); }
+    .lfx-field .bootstrap-select > .dropdown-toggle:focus, .lfx-field .bootstrap-select.show > .dropdown-toggle { border-color: var(--fk-list-accent) !important; outline: 0 !important; }
+    .lfx-field form { display: block; margin: 0; }
+    .lfx-field form .form-control { width: 100% !important; }
+
     .lfx-actions { display: flex; justify-content: flex-end; }
-    .lfx-reset { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px; border: 1px solid var(--fk-list-border-strong); border-radius: 10px; background: var(--fk-list-control); color: var(--fk-list-text); font-size: 13px; font-weight: 500; cursor: pointer; }
-    .lfx-reset:hover { border-color: var(--fk-list-accent); }
+    .lfx-reset { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; height: 38px; padding: 0 14px; border: 1px solid var(--fk-list-border-strong); border-radius: 10px; background: var(--fk-list-control); color: var(--fk-list-text); font-size: 13px; font-weight: 600; cursor: pointer; }
+    .lfx-reset:hover { border-color: var(--fk-list-accent); color: var(--fk-list-accent); }
     .lfx-reset .material-icons { font-size: 18px; }
-    @media (max-width: 1199px) { .lfx-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-    @media (max-width: 575px) { .lfx-filters { grid-template-columns: minmax(0, 1fr); } .lfx-search { grid-column: auto; } }
+
+    @media (max-width: 1199px) { .lfx-filters { grid-template-columns: repeat(3, minmax(0, 1fr)); } .lfx-search { grid-column: 1 / -1; } }
+    @media (max-width: 575px) { .lfx-filters { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
   </style>
 
   <div class="row">
