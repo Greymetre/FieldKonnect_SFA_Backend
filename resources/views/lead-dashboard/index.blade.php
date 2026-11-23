@@ -19,7 +19,6 @@
     $leadMax = max(1, collect($trend)->max('total'));
     $callMax = max(1, collect($trend)->max('calls'));
     $typeMax = max(1, $byType->max('total') ?? 0);
-    $sourceMax = max(1, $bySource->max('total') ?? 0);
     $outcomeTotal = max(1, $outcomes->sum('total'));
     $progressTotal = collect($progress)->sum('total');
     $funnelTop = max(1, $funnel[0]['total'] ?? 0);
@@ -176,9 +175,29 @@
     .ldb-overdue { color: var(--ldb-bad) !important; font-weight: 700; }
     .ldb-rank { display: inline-block; width: 18px; font-size: 11px; color: var(--fk-list-muted); }
 
+    /* Action center */
+    .ldb-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .ldb-action { --act: var(--ldb-blue); display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border: 1px solid var(--fk-list-border); border-left: 3px solid var(--act); border-radius: 12px; background: color-mix(in srgb, var(--act) 7%, transparent); text-decoration: none !important; transition: transform .12s ease, border-color .12s ease, background .12s ease; }
+    .ldb-action:hover { transform: translateY(-2px); border-color: var(--act); background: color-mix(in srgb, var(--act) 14%, transparent); text-decoration: none !important; }
+    .ldb-action-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .ldb-action-icon { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 9px; background: color-mix(in srgb, var(--act) 18%, transparent); color: var(--act); }
+    .ldb-action-icon .material-icons { font-size: 18px; }
+    .ldb-action-go { font-size: 16px; color: var(--fk-list-muted); opacity: 0; transition: opacity .12s ease; }
+    .ldb-action:hover .ldb-action-go { opacity: 1; color: var(--act); }
+    .ldb-action b { font-size: 24px; font-weight: 700; line-height: 1.1; color: var(--fk-list-heading); font-variant-numeric: tabular-nums; }
+    .ldb-action strong { font-size: 12.5px; font-weight: 600; color: var(--fk-list-text); }
+    .ldb-action small { font-size: 11px; color: var(--fk-list-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ldb-action.is-clear { opacity: .6; }
+    .tone-blue-text { --act: var(--ldb-blue); } .tone-warn-text { --act: var(--ldb-warn); } .tone-bad-text { --act: var(--ldb-bad); }
+    .tone-info-text { --act: var(--ldb-info); } .tone-violet-text { --act: var(--ldb-violet); } .tone-orange-text { --act: var(--ldb-orange); }
+    .tone-muted-text { --act: #94a3b8; } .tone-good-text { --act: var(--ldb-good); }
+    a.ldb-kpi { display: block; text-decoration: none !important; transition: transform .12s ease, border-color .12s ease; }
+    a.ldb-kpi:hover { transform: translateY(-2px); border-color: var(--kpi-color); }
+
     .ldb-tip { position: fixed; z-index: 2000; pointer-events: none; padding: 6px 10px; border-radius: 8px; background: #0b1230; border: 1px solid var(--fk-list-border-strong); color: #e8f0ff; font-size: 12px; white-space: nowrap; box-shadow: 0 8px 20px rgba(0,0,0,.35); opacity: 0; transition: opacity .1s ease; }
 
     @media (max-width: 1399px) { .ldb-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 767px) { .ldb-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 1199px) { .ldb-span-8, .ldb-span-6, .ldb-span-4 { grid-column: span 12; } }
     @media (max-width: 575px) { .ldb-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ldb-range { margin-left: 0; } .ldb-donut-wrap { flex-direction: column; } }
   </style>
@@ -234,17 +253,17 @@
     {{-- KPI tiles --}}
     @php
       $tiles = [
-        ['icon' => 'diamond', 'color' => 'var(--ldb-blue)', 'label' => 'Total leads', 'value' => number_format($totalLeads), 'sub' => '<b>'.number_format($convertedLeads).'</b> converted', 'delta' => null],
-        ['icon' => 'fiber_new', 'color' => 'var(--ldb-violet)', 'label' => 'New leads', 'value' => number_format($newLeads), 'sub' => 'in this period', 'delta' => $deltas['newLeads']],
-        ['icon' => 'call', 'color' => 'var(--ldb-info)', 'label' => 'Calls made', 'value' => number_format($callsMade), 'sub' => '<b>'.number_format($callsConnected).'</b> connected', 'delta' => $deltas['callsMade']],
-        ['icon' => 'percent', 'color' => 'var(--ldb-good)', 'label' => 'Connect rate', 'value' => $connectRate.'%', 'sub' => 'talk <b>'.$fmtDuration($talkSeconds).'</b>', 'delta' => $deltas['connectRate']],
-        ['icon' => 'task_alt', 'color' => 'var(--ldb-warn)', 'label' => 'Open tasks', 'value' => number_format($openTasks), 'sub' => '<b class="'.($overdueTasks ? 'is-bad' : '').'">'.number_format($overdueTasks).'</b> overdue', 'delta' => null],
-        ['icon' => 'fact_check', 'color' => 'var(--ldb-orange)', 'label' => 'Drafts to approve', 'value' => number_format($pendingDrafts), 'sub' => 'Email &amp; LinkedIn', 'delta' => null],
+        ['icon' => 'diamond', 'color' => 'var(--ldb-blue)', 'label' => 'Total leads', 'value' => number_format($totalLeads), 'sub' => '<b>'.number_format($convertedLeads).'</b> converted', 'delta' => null, 'url' => url('leads').($userId ? '?user_id='.$userId : '')],
+        ['icon' => 'fiber_new', 'color' => 'var(--ldb-violet)', 'label' => 'New leads', 'value' => number_format($newLeads), 'sub' => 'in this period', 'delta' => $deltas['newLeads'], 'url' => url('leads').($userId ? '?user_id='.$userId : '')],
+        ['icon' => 'call', 'color' => 'var(--ldb-info)', 'label' => 'Calls made', 'value' => number_format($callsMade), 'sub' => '<b>'.number_format($callsConnected).'</b> connected', 'delta' => $deltas['callsMade'], 'url' => route('call-management.index').'?'.http_build_query(array_filter(['start_date' => $from->toDateString(), 'end_date' => $to->toDateString(), 'user_id' => $userId]))],
+        ['icon' => 'percent', 'color' => 'var(--ldb-good)', 'label' => 'Connect rate', 'value' => $connectRate.'%', 'sub' => 'talk <b>'.$fmtDuration($talkSeconds).'</b>', 'delta' => $deltas['connectRate'], 'url' => route('call-management.index').'?'.http_build_query(array_filter(['call_status' => 'connected', 'start_date' => $from->toDateString(), 'end_date' => $to->toDateString(), 'user_id' => $userId]))],
+        ['icon' => 'task_alt', 'color' => 'var(--ldb-warn)', 'label' => 'Open tasks', 'value' => number_format($openTasks), 'sub' => '<b class="'.($overdueTasks ? 'is-bad' : '').'">'.number_format($overdueTasks).'</b> overdue', 'delta' => null, 'url' => url('lead-tasks')],
+        ['icon' => 'fact_check', 'color' => 'var(--ldb-orange)', 'label' => 'Drafts to approve', 'value' => number_format($pendingDrafts), 'sub' => 'Email &amp; LinkedIn', 'delta' => null, 'url' => auth()->user()?->can('draft_approval') ? route('draft-approvals.index') : null],
       ];
     @endphp
     <div class="ldb-kpis">
       @foreach($tiles as $tile)
-      <div class="ldb-panel ldb-kpi" style="--kpi-color: {{ $tile['color'] }}">
+      <{{ $tile['url'] ? 'a' : 'div' }} class="ldb-panel ldb-kpi" style="--kpi-color: {{ $tile['color'] }}" @if($tile['url']) href="{{ $tile['url'] }}" @endif>
         <div class="ldb-kpi-top">
           <span class="ldb-kpi-icon"><span class="material-icons">{{ $tile['icon'] }}</span></span>
           <span class="ldb-kpi-label">{{ $tile['label'] }}</span>
@@ -256,7 +275,7 @@
           @endif
           <span>{!! $tile['sub'] !!}</span>
         </div>
-      </div>
+      </{{ $tile['url'] ? 'a' : 'div' }}>
       @endforeach
     </div>
 
@@ -407,46 +426,23 @@
         </div>
       </div>
 
-      {{-- Lead source --}}
-      <div class="ldb-panel ldb-span-4">
-        <div class="ldb-card-head"><h3><span class="material-icons">campaign</span>Leads by source</h3><small>All leads</small></div>
+      {{-- Action center: pending work, every tile opens the matching screen --}}
+      <div class="ldb-panel ldb-span-8">
+        <div class="ldb-card-head"><h3><span class="material-icons">pending_actions</span>Action center</h3><small>What is pending · click a tile to open the list</small></div>
         <div class="ldb-card-body">
-          @if($bySource->isEmpty())
-          <div class="ldb-empty">No leads yet.</div>
-          @else
-          <div class="ldb-bars">
-            @foreach($bySource->take(7) as $row)
-            <div class="ldb-bar-row" data-tip="{{ $row['label'] }}: {{ $row['total'] }} leads ({{ $pct($row['total'], $totalLeads) }}%)">
-              <span class="ldb-bar-label"><span>{{ $row['label'] }}</span></span>
-              <span class="ldb-bar-track"><span class="ldb-bar-fill" style="width: {{ $row['total'] * 100 / $sourceMax }}%"></span></span>
-              <span class="ldb-bar-value">{{ number_format($row['total']) }}<small>{{ $pct($row['total'], $totalLeads) }}%</small></span>
-            </div>
+          <div class="ldb-actions">
+            @foreach($actions as $action)
+            <a class="ldb-action tone-{{ $action['tone'] }}-text {{ $action['total'] > 0 ? '' : 'is-clear' }}" href="{{ $action['url'] }}">
+              <span class="ldb-action-top">
+                <span class="ldb-action-icon"><span class="material-icons">{{ $action['icon'] }}</span></span>
+                <span class="material-icons ldb-action-go">arrow_forward</span>
+              </span>
+              <b>{{ number_format($action['total']) }}</b>
+              <strong>{{ $action['label'] }}</strong>
+              <small>{{ $action['total'] > 0 ? $action['hint'] : 'All clear' }}</small>
+            </a>
             @endforeach
           </div>
-          @endif
-        </div>
-      </div>
-
-      {{-- Needs attention --}}
-      <div class="ldb-panel ldb-span-4">
-        <div class="ldb-card-head"><h3><span class="material-icons" style="color:var(--ldb-bad)">priority_high</span>Needs attention</h3><small>{{ number_format($attentionCount) }} Hot / Warm, no call in 7 days</small></div>
-        <div class="ldb-card-body">
-          @if($attention->isEmpty())
-          <div class="ldb-empty">All Hot and Warm leads were called this week. 👍</div>
-          @else
-          <ul class="ldb-list">
-            @foreach($attention as $lead)
-            <li>
-              <span class="ldb-tag {{ ($lead->status_is->display_name ?? '') === 'Hot' ? 'is-bad' : 'is-warn' }}">{{ $lead->status_is->display_name ?? 'Lead' }}</span>
-              <div class="ldb-list-main">
-                <a class="ldb-title" href="{{ route('leads.show', $lead->id) }}">{{ $lead->company_name }}</a>
-                <span>{{ $lead->assign_user->name ?? 'Unassigned' }}</span>
-              </div>
-              <span class="ldb-time">{{ $lead->last_call_at ? 'Last call '.\Carbon\Carbon::parse($lead->last_call_at)->diffForHumans() : 'Never called' }}</span>
-            </li>
-            @endforeach
-          </ul>
-          @endif
         </div>
       </div>
 

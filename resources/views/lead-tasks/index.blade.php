@@ -237,6 +237,22 @@
     $(function() {
       $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
 
+      // Links from the Lead Dashboard: ?status=overdue, ?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD
+      (function() {
+        var params = new URLSearchParams(window.location.search);
+        var status = params.get('status') || '';
+        var $tab = $('.ltk-tab').filter(function() { return String($(this).data('status') || '') === status; });
+        if (status && $tab.length) {
+          ltkStatus = status;
+          $('.ltk-tab').removeClass('is-active');
+          $tab.addClass('is-active');
+        }
+        ['start_date', 'end_date'].forEach(function(key) {
+          var value = params.get(key);
+          if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) $('#' + key).val(value);
+        });
+      })();
+
       var table = $('#getLeadTasks').DataTable({
         processing: true,
         serverSide: true,

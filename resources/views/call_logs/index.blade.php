@@ -267,6 +267,7 @@
           <option value="">Any status</option>
           <option value="connected">Connected</option>
           <option value="not_connected">Not connected</option>
+          <option value="no_remark">No remark saved</option>
         </select>
       </div>
       <div class="lch-field lch-search">
@@ -359,6 +360,19 @@
 
     $(function() {
       $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
+
+      // Links from the Lead Dashboard: ?call_status=no_remark&start_date=…&end_date=…&user_id=…
+      (function() {
+        var params = new URLSearchParams(window.location.search);
+        ['start_date', 'end_date'].forEach(function(key) {
+          var value = params.get(key);
+          if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) $('#' + key).val(value);
+        });
+        var status = params.get('call_status');
+        if (status && $('#call_status option').filter(function() { return this.value === status; }).length) $('#call_status').val(status);
+        var user = (params.get('user_id') || '').replace(/[^0-9]/g, '');
+        if (user && $('#executive_id option[value="' + user + '"]').length) $('#executive_id').val(user).trigger('change.select2');
+      })();
 
       table = $('#getleadcalllogs').DataTable({
         processing: true,

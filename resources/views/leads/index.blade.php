@@ -358,10 +358,17 @@
 
     // Links from the Lead Dashboard can pre-select the "Calling" filter (?call_progress=partial).
     (function() {
-      var preset = new URLSearchParams(window.location.search).get('call_progress');
+      var params = new URLSearchParams(window.location.search);
+      var preset = params.get('call_progress');
       if (preset && jQuery('#call_progress option[value="' + preset + '"]').length) {
         jQuery('#call_progress').val(preset);
         if (jQuery.fn.selectpicker) jQuery(function() { jQuery('#call_progress').selectpicker('refresh'); });
+      }
+      // ...and the "Assigned to" filter (?user_id=12).
+      var presetUser = params.get('user_id');
+      if (presetUser && jQuery('#user_id_search option[value="' + presetUser.replace(/[^0-9]/g, '') + '"]').length) {
+        jQuery('#user_id_search').val(presetUser.replace(/[^0-9]/g, ''));
+        jQuery(function() { jQuery('#user_id_search').trigger('change.select2'); });
       }
     })();
 

@@ -152,6 +152,8 @@ class LeadCallLogController extends Controller
                     ->orWhereNull('recording_url')
                     ->orWhere('recording_url', '');
             });
+        } elseif ($status === 'no_remark') {
+            $query->whereNull('feedback_status_id');
         }
 
         return $query;

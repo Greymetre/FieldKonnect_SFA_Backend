@@ -135,10 +135,6 @@ class LeadDashboardController extends Controller
             ->map(fn ($row) => ['label' => (int) $row->status === 0 ? 'Pending' : ($typeNames[$row->status] ?? 'Other'), 'total' => (int) $row->total])
             ->groupBy('label')->map(fn ($rows, $label) => ['label' => $label, 'total' => $rows->sum('total')])->values()->sortByDesc('total')->values();
 
-        $bySource = (clone $leads)->selectRaw("COALESCE(NULLIF(lead_source, ''), 'Not set') as source, COUNT(*) as total")
-            ->groupBy('source')->orderByDesc('total')->get()
-            ->map(fn ($row) => ['label' => $row->source, 'total' => (int) $row->total]);
-
         // ---- Calling progress (callable contacts = contacts with a phone) -----
         $progressRows = DB::query()->fromSub(
             (clone $leads)->toBase()->select('leads.id')
@@ -218,26 +214,49 @@ class LeadDashboardController extends Controller
             ->where('date', '<=', now()->addDays(7)->toDateString())
             ->orderBy('date')->orderBy('time')->limit(12)->get();
 
-        // ---- Needs attention: Hot / Warm leads not called in the last 7 days ---
-        $priorityTypeIds = Status::where('module', 'LeadStatus')->whereIn('display_name', ['Hot', 'Warm'])->pluck('id');
-        $attentionQuery = (clone $leads)->whereIn('status', $priorityTypeIds)
-            ->whereDoesntHave('callLogs', fn ($query) => $query->where('started_at', '>=', now()->subDays(7)));
-        $attentionCount = (clone $attentionQuery)->count();
-        $attention = $attentionQuery->with(['assign_user:id,name', 'status_is:id,display_name'])
-            ->withMax('callLogs as last_call_at', 'started_at')
-            ->orderByRaw('last_call_at IS NULL DESC')->orderBy('last_call_at')
-            ->limit(6)->get(['leads.id', 'leads.company_name', 'leads.status', 'leads.assign_to']);
+        // ---- Action center: pending work, each tile opens the screen that lists it
+        $tomorrow = now()->addDay()->toDateString();
+        $weekAhead = now()->addDays(7)->toDateString();
+        $progressBy = collect($progress)->keyBy('key');
+        $leadUrl = fn (array $params) => url('leads').'?'.http_build_query(array_filter($params + ['user_id' => $userId]));
+        $callUrl = fn (array $params) => route('call-management.index').'?'.http_build_query(array_filter($params + ['user_id' => $userId]));
+        $taskUrl = fn (array $params) => url('lead-tasks').'?'.http_build_query(array_filter($params));
+        $actions = [
+            ['icon' => 'phone_disabled', 'tone' => 'blue', 'label' => 'Leads not called', 'hint' => 'No contact called yet',
+                'total' => $progressBy['not_called']['total'] ?? 0, 'url' => $leadUrl(['call_progress' => 'not_called'])],
+            ['icon' => 'phone_in_talk', 'tone' => 'warn', 'label' => 'Partially called', 'hint' => 'Some contacts still left',
+                'total' => $progressBy['partial']['total'] ?? 0, 'url' => $leadUrl(['call_progress' => 'partial'])],
+            ['icon' => 'running_with_errors', 'tone' => 'bad', 'label' => 'Overdue tasks', 'hint' => 'Past due, not completed',
+                'total' => $overdueTasks, 'url' => $taskUrl(['status' => 'overdue'])],
+            ['icon' => 'today', 'tone' => 'info', 'label' => 'Tasks due today', 'hint' => 'Follow-ups planned today',
+                'total' => $todayStats['tasksDue'], 'url' => $taskUrl(['start_date' => $today, 'end_date' => $today])],
+            ['icon' => 'event_note', 'tone' => 'violet', 'label' => 'Upcoming tasks', 'hint' => 'Due in the next 7 days',
+                'total' => (clone $tasks)->where('status', '!=', 'completed')->whereBetween('date', [$tomorrow, $weekAhead])->count(),
+                'url' => $taskUrl(['start_date' => $tomorrow, 'end_date' => $weekAhead])],
+            ['icon' => 'edit_note', 'tone' => 'orange', 'label' => 'Calls without remark', 'hint' => 'Outcome not saved · '.$from->format('d M').' – '.$to->format('d M'),
+                'total' => (clone $callsInRange)->whereNull('feedback_status_id')->count(),
+                'url' => $callUrl(['call_status' => 'no_remark', 'start_date' => $from->toDateString(), 'end_date' => $to->toDateString()])],
+            ['icon' => 'call_missed', 'tone' => 'muted', 'label' => 'Not connected today', 'hint' => 'Calls to try again',
+                'total' => max(0, $todayStats['calls'] - $todayStats['connected']),
+                'url' => $callUrl(['call_status' => 'not_connected', 'start_date' => $today, 'end_date' => $today])],
+        ];
+        $actions[] = Auth::user()->can('draft_approval')
+            ? ['icon' => 'fact_check', 'tone' => 'good', 'label' => 'Drafts to approve', 'hint' => 'Email & LinkedIn drafts',
+                'total' => $pendingDrafts, 'url' => route('draft-approvals.index')]
+            : ['icon' => 'call', 'tone' => 'good', 'label' => 'Connected today', 'hint' => 'Answered calls today',
+                'total' => $todayStats['connected'],
+                'url' => $callUrl(['call_status' => 'connected', 'start_date' => $today, 'end_date' => $today])];
 
         // ---- Recent calls ------------------------------------------------------
         $recentCalls = (clone $calls)->with(['user:id,name', 'lead:id,company_name', 'contact:id,name', 'feedbackStatus:id,display_name,status_name,module'])
             ->orderByDesc('started_at')->limit(8)->get();
 
         return view('lead-dashboard.index', compact(
-            'previous', 'todayStats', 'funnel', 'attention', 'attentionCount', 'recentCalls', 'outcomeTones',
+            'previous', 'todayStats', 'funnel', 'actions', 'recentCalls', 'outcomeTones',
             'users', 'userId', 'from', 'to',
             'totalLeads', 'newLeads', 'convertedLeads', 'callsMade', 'callsConnected', 'talkSeconds',
             'openTasks', 'overdueTasks', 'pendingDrafts',
-            'trend', 'byType', 'bySource', 'progress', 'outcomes', 'agents', 'followUps', 'today'
+            'trend', 'byType', 'progress', 'outcomes', 'agents', 'followUps', 'today'
         ));
     }
 
