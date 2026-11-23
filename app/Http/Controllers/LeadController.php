@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
 
@@ -480,38 +481,34 @@ class LeadController extends Controller
 
     public function uploadleadFiles(Request $request)
     {
+        // One or many files; any document/media type the upload middleware allows.
+        $request->validate([
+            'lead_id' => 'required|integer',
+            'lead_files' => 'required_without:lead_file|array|max:20',
+            'lead_files.*' => 'file|max:25600',
+            'lead_file' => 'nullable|file|max:25600',
+        ], [
+            'lead_files.required_without' => 'Please choose at least one file.',
+            'lead_files.*.max' => 'Each file must be 25 MB or smaller.',
+        ]);
 
-        $rules = [
-            'lead_id' => 'required',
-            'lead_file' => [
-                'required',
-                'file',
-                'mimes:jpg,jpeg,png,gif,pdf,xls,xlsx',
-                'max:' . (config('media-library.max_file_size') / 1024), // max in KB
-            ],
-        ];
+        $lead = Lead::findOrFail($request->lead_id);
+        abort_unless($this->canAccessLead($lead), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $request->validate($rules);
-        $data = $request->all();
-        $created_by = Auth::id();
-        $lead_id = $request->lead_id;
-        $lead = Lead::where(['id' => $lead_id])->first();
-        if ($lead) {
-
-            if ($request->hasFile('lead_file')) {
-                $file = $request->file('lead_file');
-                $customname = time() . '.' . $file->getClientOriginalExtension();
-                $lead->addMedia($file)
-                    ->usingFileName($customname)
-                    ->toMediaCollection('lead_file', 'public');
-            }
-
-            $request->session()->flash('message_success', __('Lead file upload successfully.'));
-            return redirect()->route('leads.show', $lead)->with('lead_tab', 'files');
-        } else {
-            //$request->session()->flash('message_success',__('Lead file upload successfully.'));
-            return redirect()->route('leads.show', $lead);
+        $files = array_filter(array_merge((array) $request->file('lead_files', []), [$request->file('lead_file')]));
+        foreach ($files as $file) {
+            $original = $file->getClientOriginalName();
+            $extension = strtolower($file->getClientOriginalExtension());
+            // Always stored on the local "public" disk (storage/app/public), never S3.
+            $lead->addMedia($file)
+                ->usingName(pathinfo($original, PATHINFO_FILENAME))
+                ->usingFileName(Str::random(8).'-'.time().($extension ? '.'.$extension : ''))
+                ->withCustomProperties(['uploaded_by' => Auth::id(), 'original_name' => $original])
+                ->toMediaCollection('lead_file', 'public');
         }
+
+        $request->session()->flash('message_success', count($files) === 1 ? 'File uploaded successfully.' : count($files).' files uploaded successfully.');
+        return redirect()->route('leads.show', $lead)->with('lead_tab', 'files');
     }
 
     public function deleteMedia(Request $request)

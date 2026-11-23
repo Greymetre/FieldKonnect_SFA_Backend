@@ -1932,6 +1932,39 @@
         :is(#sendDraftModal, #sendLinkedinModal) .sdm-note { display: flex; gap: 8px; margin-bottom: 10px; padding: 10px 12px; border-radius: 12px; background: rgba(10, 102, 194, .12); font-size: 12px; line-height: 1.45; color: var(--fk-list-text); }
         :is(#sendDraftModal, #sendLinkedinModal) .sdm-note i { font-size: 16px; color: #4ba3f5; }
         :is(#sendDraftModal, #sendLinkedinModal) .sdm-btn.is-linkedin { background: linear-gradient(135deg, #0a66c2, #0891b2); }
+        /* Lead files */
+        .lead-detail-page .lead-files-form { margin-bottom: 16px; }
+        .lead-detail-page .lead-dropzone { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; margin: 0; padding: 22px 16px; border: 1.5px dashed var(--fk-list-border-strong); border-radius: 14px; background: var(--fk-list-control); text-align: center; cursor: pointer; transition: border-color .15s ease, background .15s ease; }
+        .lead-detail-page .lead-dropzone:hover, .lead-detail-page .lead-dropzone.is-over { border-color: var(--fk-list-accent); background: var(--fk-list-count-bg); }
+        .lead-detail-page .lead-dropzone input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+        .lead-detail-page .lead-dropzone i { font-size: 30px; color: var(--fk-list-accent); }
+        .lead-detail-page .lead-dropzone strong { font-size: 14px; color: var(--fk-list-heading); letter-spacing: normal !important; text-transform: none !important; }
+        .lead-detail-page .lead-dropzone strong span { color: var(--fk-list-accent); text-decoration: underline; }
+        .lead-detail-page .lead-dropzone small { font-size: 11.5px; color: var(--fk-list-muted); letter-spacing: normal !important; text-transform: none !important; }
+        .lead-detail-page .lead-file-queue { list-style: none; margin: 10px 0 0; padding: 0; }
+        .lead-detail-page .lead-file-queue li { display: flex; justify-content: space-between; gap: 10px; padding: 6px 10px; border-radius: 8px; background: var(--fk-list-control); font-size: 12.5px; color: var(--fk-list-text); margin-bottom: 4px; }
+        .lead-detail-page .lead-file-queue li.is-bad { color: #ef4444; }
+        .lead-detail-page .lead-file-queue li span:last-child { color: var(--fk-list-muted); white-space: nowrap; }
+        .lead-detail-page .lead-file-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+        .lead-detail-page .lead-file-error { margin: 8px 0 0; font-size: 12px; color: #ef4444; }
+        .lead-detail-page .lead-file-list { list-style: none; margin: 0; padding: 0; }
+        .lead-detail-page .lead-file-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--fk-list-border); }
+        .lead-detail-page .lead-file-item:last-child { border-bottom: 0; }
+        .lead-detail-page .lead-file-thumb { flex: 0 0 44px; width: 44px; height: 44px; border-radius: 10px; overflow: hidden; border: 1px solid var(--fk-list-border-strong); }
+        .lead-detail-page .lead-file-thumb img { width: 100%; height: 100%; object-fit: cover; }
+        .lead-detail-page .lead-file-icon { flex: 0 0 44px; width: 44px; height: 44px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; background: var(--fk-list-control); border: 1px solid var(--fk-list-border-strong); color: var(--fk-list-accent); }
+        .lead-detail-page .lead-file-icon i { font-size: 22px; }
+        .lead-detail-page .lead-file-icon.is-pdf { color: #ef4444; }
+        .lead-detail-page .lead-file-icon.is-sheet { color: #10b981; }
+        .lead-detail-page .lead-file-icon.is-doc { color: #3b82f6; }
+        .lead-detail-page .lead-file-icon.is-slides { color: #f59e0b; }
+        .lead-detail-page .lead-file-icon.is-zip { color: #a78bfa; }
+        .lead-detail-page .lead-file-main { flex: 1 1 auto; min-width: 0; }
+        .lead-detail-page .lead-file-name { display: block; font-size: 13.5px; font-weight: 600; color: var(--fk-list-heading) !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .lead-detail-page .lead-file-name:hover { color: var(--fk-list-accent) !important; }
+        .lead-detail-page .lead-file-meta { display: block; margin-top: 2px; font-size: 12px; color: var(--fk-list-muted); }
+        .lead-detail-page .lead-file-buttons { flex: 0 0 auto; display: flex; gap: 6px; }
+        .lead-detail-page .lead-file-buttons .contact-icon-btn { width: 32px; height: 32px; }
     </style>
     <div class="row lead-detail-page">
         <div class="col-md-12">
@@ -2824,94 +2857,84 @@ action="{{ route('lead-opportunities.store') }}" class="form-horizontal taskform
 </div>
 </div>
 <div class="tab-pane fade" id="files" role="tabpanel">
-
-    <div class="card-header">
+    @php
+        $fileUploaders = \App\Models\User::whereIn('id', collect($media_items)->map(fn ($media) => $media->getCustomProperty('uploaded_by'))->filter()->unique())->pluck('name', 'id');
+        $fileIcon = function ($media) {
+            $ext = strtolower(pathinfo($media->file_name, PATHINFO_EXTENSION));
+            return match (true) {
+                str_starts_with((string) $media->mime_type, 'image/') => ['image', 'is-image'],
+                $ext === 'pdf' => ['picture_as_pdf', 'is-pdf'],
+                in_array($ext, ['xls', 'xlsx', 'xlsm', 'csv', 'ods'], true) => ['table_chart', 'is-sheet'],
+                in_array($ext, ['doc', 'docx', 'rtf', 'odt', 'txt'], true) => ['description', 'is-doc'],
+                in_array($ext, ['ppt', 'pptx', 'odp'], true) => ['slideshow', 'is-slides'],
+                in_array($ext, ['zip', 'rar', '7z'], true) => ['folder_zip', 'is-zip'],
+                str_starts_with((string) $media->mime_type, 'audio/') => ['audiotrack', 'is-media'],
+                str_starts_with((string) $media->mime_type, 'video/') => ['movie', 'is-media'],
+                default => ['insert_drive_file', 'is-other'],
+            };
+        };
+        $fileSize = fn ($bytes) => $bytes >= 1048576 ? number_format($bytes / 1048576, 1).' MB' : number_format(max(1, $bytes / 1024), 0).' KB';
+    @endphp
+    <div class="card-header d-flex justify-content-between align-items-center">
         <p class="hed m-0">Files</p>
+        <span class="call-history-sub">{{ count($media_items) }} file{{ count($media_items) === 1 ? '' : 's' }}</span>
     </div>
     <div class="card-body">
-    @if(count($media_items) > 0)
-        <ul class="">
-            @foreach($media_items as $media)
-            <li class="d-flex flex-row justify-content-between align-items-center mb-3">
-                <a href="{{ $media->getFullUrl() }}" target="_blank">
-                    <div class="imagebox">
-                        <div class="d-flex flex-row align-items-center">
-                            @php
-                                $mime = $media->mime_type;
-                            @endphp
-
-                            @if(str_contains($mime, 'image'))
-                                <img src="{{ $media->getFullUrl() }}" alt="{{ $media->name }}" width="50" height="50">
-                            @elseif(str_contains($mime, 'pdf'))
-                                <img src="{{ url('/').'/'.asset('assets/img/pdf-icon.jpg') }}" alt="PDF" width="40"> 
-                            @elseif(str_contains($mime, 'spreadsheet') || str_contains($mime, 'excel'))
-                                <img src="{{ url('/').'/'.asset('assets/img/excel-icon.png') }}" alt="Excel" width="40"> 
-                            @else
-                                <img src="{{ url('/').'/'.asset('images/file-icon.png') }}" alt="File" width="40"> 
-                            @endif
-
-                            <div class="imagedata">
-                                <p>{{ $media->file_name }}</p>
-                                <p>{{ strtoupper($media->mime_type) }} • {{ number_format($media->size / 1024, 1) }} KB</p>
-                            </div>
-                        </div>
-                    </div>
-                </a>
-                <div class="buttonbox">
-                    <a href="{{ route('leads-deleteMedia') }}?media_id={{ $media->id }}"
-                    onclick="return confirm('Do you really want to delete?')">
-                    <img src="{{ url('/').'/'.asset('assets/img/deletbox.svg') }}">
-                    </a>
-                </div>
-            </li>
-            @endforeach 
-        </ul>
-        @endif
-
-        <div>
-
-            <form method="POST" 
-            action="{{ route('leads.uploadleadFiles') }}" class="form-horizontal taskform" id="frmLeadfileUpload" enctype="multipart/form-data">
+        <form method="POST" action="{{ route('leads.uploadleadFiles') }}" id="frmLeadfileUpload" enctype="multipart/form-data" class="lead-files-form">
             @csrf
-            <div class="row">
-                <div class="col-md-12 pr-1 pl-1">
-                    <input type="hidden" name="lead_id" value="{{$lead->id??''}}">
-                    <div class="fileinput fileinput-new" data-provides="fileinput">
-
-                        <label class="bmd-label-floating">Lead file</label>
-                        @if ($errors->has('lead_file'))
-                        <div class="error col-lg-12"><p class="text-danger">{{ $errors->first('lead_file') }}</p></div>
-                        @endif
-
-                        <div class="fileinput-new thumbnail">
-                            <img src="{!! url('/').'/'.asset('assets/img/up.png') !!}" class="imagepreview7">
-                            <div class="selectThumbnail">
-                                <span class="btn btn-just-icon btn-round btn-file">
-                                    <span class="fileinput-new"><i class="fa fa-pencil"></i></span>
-                                    <span class="fileinput-exists">Change</span>
-                                    <input type="file" name="lead_file" class="getimage7" accept="image/*,application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required>
-                                </span>
-                                <br>
-                                <a href="#pablo" class="btn btn-danger btn-round fileinput-exists" data-dismiss="fileinput"><i class="fa fa-times"></i> Remove</a>
-                            </div>
-                        </div>
-                        <div class="fileinput-preview fileinput-exists thumbnail img-circle"></div>
-
-                    </div>
-                </div>
-
-                <div class="col-md-6 pr-1 pl-1">
-                    <div class="col-md-12 form-group">
-                        <div class="d-flex flex-row">
-                            <button type="submit" class="btn btn-default">Save</button>
-                        </div>
-                    </div>
-                </div>
-
+            <input type="hidden" name="lead_id" value="{{ $lead->id }}">
+            <label class="lead-dropzone" id="leadDropzone">
+                <input type="file" name="lead_files[]" id="leadFilesInput" multiple>
+                <i class="material-icons">cloud_upload</i>
+                <strong>Drop files here or <span>browse</span></strong>
+                <small>Documents, images, sheets, slides, PDFs, ZIP, audio and video · up to 25 MB each · max 20 at once</small>
+            </label>
+            <ul class="lead-file-queue" id="leadFileQueue"></ul>
+            @if($errors->has('lead_files') || $errors->has('lead_files.*') || $errors->has('lead_file'))
+            <p class="lead-file-error">{{ $errors->first('lead_files') ?: ($errors->first('lead_files.*') ?: $errors->first('lead_file')) }}</p>
+            @endif
+            <div class="lead-file-actions" id="leadFileActions" style="display:none">
+                <button type="button" class="btn btn-outline-primary" id="leadFilesClear">Clear</button>
+                <button type="submit" class="btn btn-primary" id="leadFilesUpload"><i class="material-icons" style="font-size:16px;vertical-align:middle">upload</i> Upload</button>
             </div>
         </form>
+
+        @if(count($media_items) === 0)
+        <p class="lead-empty">No files yet.</p>
+        @else
+        <ul class="lead-file-list">
+            @foreach($media_items as $media)
+            @php
+                [$iconName, $iconClass] = $fileIcon($media);
+                $displayName = $media->getCustomProperty('original_name') ?: $media->file_name;
+                $uploaderId = $media->getCustomProperty('uploaded_by');
+            @endphp
+            <li class="lead-file-item">
+                @if(str_starts_with((string) $media->mime_type, 'image/'))
+                <a href="{{ $media->getFullUrl() }}" target="_blank" rel="noopener" class="lead-file-thumb"><img src="{{ $media->getFullUrl() }}" alt=""></a>
+                @else
+                <span class="lead-file-icon {{ $iconClass }}"><i class="material-icons">{{ $iconName }}</i></span>
+                @endif
+                <div class="lead-file-main">
+                    <a href="{{ $media->getFullUrl() }}" target="_blank" rel="noopener" class="lead-file-name" title="{{ $displayName }}">{{ $displayName }}</a>
+                    <span class="lead-file-meta">
+                        {{ strtoupper(pathinfo($media->file_name, PATHINFO_EXTENSION)) }} · {{ $fileSize((int) $media->size) }} · {{ $media->created_at?->format('d M Y, h:i A') }}
+                        @if($uploaderId && isset($fileUploaders[$uploaderId]))
+                        · by {{ $fileUploaders[$uploaderId] }}
+                        @endif
+                    </span>
+                </div>
+                <div class="lead-file-buttons">
+                    <a href="{{ $media->getFullUrl() }}" target="_blank" rel="noopener" class="contact-icon-btn" title="Open" data-toggle="tooltip"><i class="material-icons">open_in_new</i></a>
+                    <a href="{{ $media->getFullUrl() }}" download="{{ $displayName }}" class="contact-icon-btn" title="Download" data-toggle="tooltip"><i class="material-icons">download</i></a>
+                    <a href="{{ route('leads-deleteMedia') }}?media_id={{ $media->id }}" class="contact-icon-btn contact-icon-muted contact-icon-danger" title="Remove file" data-toggle="tooltip"
+                        onclick="return confirm('Remove “{{ addslashes($displayName) }}” from this lead?')"><i class="material-icons">delete</i></a>
+                </div>
+            </li>
+            @endforeach
+        </ul>
+        @endif
     </div>
-</div>
 </div>
 @include('leads.partials.drafts-pane', ['paneId' => 'email-drafts', 'type' => 'email', 'title' => 'Email draft', 'icon' => 'mail', 'placeholder' => "Subject: ...\n\nHi ...,", 'drafts' => $email_drafts])
 @include('leads.partials.drafts-pane', ['paneId' => 'linkedin-drafts', 'type' => 'linkedin', 'title' => 'LinkedIn draft', 'icon' => 'work', 'placeholder' => 'Hi ..., I came across ...', 'drafts' => $linkedin_drafts])
@@ -4025,6 +4048,48 @@ function activateNotesTab() {
             timer: 6000
         });
     });
+
+    // Lead files: drag & drop, show the picked files before uploading.
+    (function () {
+        var input = document.getElementById('leadFilesInput');
+        if (!input) return;
+        var zone = document.getElementById('leadDropzone');
+        var maxBytes = 25 * 1024 * 1024;
+        var allowed = ['jpg','jpeg','png','gif','webp','bmp','heic','heif','tif','tiff','pdf','doc','docx','xls','xlsx','xlsm','csv','txt','rtf','ppt','pptx','odt','ods','odp','eml','msg','dwg','dxf','zip','rar','7z','mp3','wav','m4a','aac','ogg','amr','mp4','mov','avi','mkv','webm','3gp'];
+
+        function sizeText(bytes) {
+            return bytes >= 1048576 ? (bytes / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(bytes / 1024)) + ' KB';
+        }
+
+        function render() {
+            var files = Array.prototype.slice.call(input.files || []);
+            var bad = 0;
+            $('#leadFileQueue').html(files.map(function (file) {
+                var ext = (file.name.split('.').pop() || '').toLowerCase();
+                var problem = allowed.indexOf(ext) === -1 ? 'type not allowed' : (file.size > maxBytes ? 'larger than 25 MB' : '');
+                if (problem) bad++;
+                return '<li class="' + (problem ? 'is-bad' : '') + '"><span>' + $('<div>').text(file.name).html() + '</span><span>' + (problem || sizeText(file.size)) + '</span></li>';
+            }).join(''));
+            $('#leadFileActions').toggle(files.length > 0);
+            $('#leadFilesUpload').prop('disabled', bad > 0 || files.length > 20);
+            if (files.length > 20) $('#leadFileQueue').append('<li class="is-bad"><span>Max 20 files at once</span><span></span></li>');
+        }
+
+        input.addEventListener('change', render);
+        ['dragenter', 'dragover'].forEach(function (name) {
+            zone.addEventListener(name, function () { zone.classList.add('is-over'); });
+        });
+        ['dragleave', 'drop'].forEach(function (name) {
+            zone.addEventListener(name, function () { zone.classList.remove('is-over'); });
+        });
+        $('#leadFilesClear').on('click', function () {
+            input.value = '';
+            render();
+        });
+        $('#frmLeadfileUpload').on('submit', function () {
+            $('#leadFilesUpload').prop('disabled', true).html('Uploading...');
+        });
+    })();
 
 </script>
 </x-app-layout>

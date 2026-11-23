@@ -8,13 +8,23 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 class ValidateUploadedFiles
 {
+    // Documents, media and archives only. Executable / script / markup types
+    // (php, exe, js, html, svg...) stay blocked because uploads are web-served.
     protected array $allowedExtensions = [
-        'jpg', 'jpeg', 'png', 'gif', 'webp',
-        'pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv',
-        'txt', 'zip',
+        // images
+        'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'heic', 'heif', 'tif', 'tiff',
+        // documents
+        'pdf', 'doc', 'docx', 'xls', 'xlsx', 'xlsm', 'csv', 'txt', 'rtf',
+        'ppt', 'pptx', 'odt', 'ods', 'odp', 'eml', 'msg',
+        // drawings
+        'dwg', 'dxf',
+        // archives
+        'zip', 'rar', '7z',
+        // audio / video
+        'mp3', 'wav', 'm4a', 'aac', 'ogg', 'amr', 'mp4', 'mov', 'avi', 'mkv', 'webm', '3gp',
     ];
 
-    protected int $maxBytes = 10240 * 1024;
+    protected int $maxBytes = 25 * 1024 * 1024;
 
     public function handle(Request $request, Closure $next)
     {
