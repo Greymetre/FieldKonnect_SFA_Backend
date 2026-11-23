@@ -29,89 +29,93 @@ class LeadTasksController extends Controller
         return view('lead-tasks.index');
     }
 
+    /** Tasks the current user may see (everything for superadmin, else their team's). */
+    private function visibleTasks()
+    {
+        $query = LeadTask::query();
+        if (!auth()->user()->hasRole('superadmin')) {
+            $query->whereIn('lead_tasks.assigned_to', getUsersReportingToAuth());
+        }
+
+        return $query;
+    }
+
+    private function applyStatusFilter($query, ?string $status): void
+    {
+        if ($status === 'overdue') {
+            $query->where('lead_tasks.status', '!=', 'completed')->where('lead_tasks.date', '<', now()->toDateString());
+        } elseif ($status) {
+            $query->where('lead_tasks.status', $status);
+        }
+    }
+
     public function getLeadTasks(Request $request)
     {
-        $lead_tasks = LeadTask::with(['lead', 'assignUser']);
-        if (!auth()->user()->hasRole('superadmin')) {
-            $user_ids = getUsersReportingToAuth();
-            $lead_ids = Lead::where('assign_to', $user_ids)->pluck('id');
-            $lead_tasks->where('assigned_to', $user_ids);
-        }
-        if ($request->search && !empty($request->search)) {
-            $lead_tasks->where(function ($query) use ($request) {
-                $query->where('description', 'like', '%' . $request->search . '%')
-                    ->orWhere('priority', 'like', '%' . $request->search . '%')
-                    ->orWhereHas('lead', function ($subQuery) use ($request) {
-                        $subQuery->where('company_name', 'like', '%' . $request->search . '%');
-                    })
-                    ->orWhereHas('assignUser', function ($subQuery) use ($request) {
-                        $subQuery->where('name', 'like', '%' . $request->search . '%');
-                    });
+        $lead_tasks = $this->visibleTasks()->with(['lead:id,company_name,external_lead_id', 'assignUser:id,name']);
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $lead_tasks->where(function ($query) use ($search) {
+                $query->where('description', 'like', '%'.$search.'%')
+                    ->orWhere('priority', 'like', '%'.$search.'%')
+                    ->orWhereHas('lead', fn ($subQuery) => $subQuery->where('company_name', 'like', '%'.$search.'%'))
+                    ->orWhereHas('assignUser', fn ($subQuery) => $subQuery->where('name', 'like', '%'.$search.'%'));
             });
         }
-        if ($request->status && !empty($request->status) && $request->status != '') {
-            if ($request->status == 'overdue') {
-                $lead_tasks->where('lead_tasks.status', 'pending')
-                    ->where('lead_tasks.date', '<', now()->toDateString());
-            } else {
-                $lead_tasks->where('lead_tasks.status', $request->status);
-            }
-        }
-        if($request->start_date && $request->end_date && !empty($request->start_date) && !empty($request->end_date)){
+        if ($request->filled('start_date') && $request->filled('end_date')) {
             $lead_tasks->whereBetween('lead_tasks.date', [$request->start_date, $request->end_date]);
         }
+
+        // Counts for the status tabs (same filters, without the status filter).
+        $countsBase = (clone $lead_tasks)->setEagerLoads([]);
+        $statusCounts = (clone $countsBase)->toBase()->reorder()
+            ->selectRaw('lead_tasks.status, COUNT(*) as total')->groupBy('lead_tasks.status')->pluck('total', 'status');
+        $overdueCount = (clone $countsBase)->where('lead_tasks.status', '!=', 'completed')->where('lead_tasks.date', '<', now()->toDateString())->count();
+
+        $this->applyStatusFilter($lead_tasks, $request->status);
+
         $lead_tasks = $lead_tasks->orderByRaw("
-                CASE 
+                CASE
                     WHEN lead_tasks.status = 'pending' THEN 0
                     WHEN lead_tasks.status = 'open' THEN 1
                     WHEN lead_tasks.status = 'in_progress' THEN 2
                     ELSE 3
                 END
             ")
-            ->orderBy('date', 'asc')
-            ->orderBy('time', 'asc')->orderBy('lead_tasks.date', 'asc')->orderBy('lead_tasks.time', 'asc')->select(\DB::raw(with(new LeadTask)->getTable() . '.*'))->groupBy('id');
+            ->orderBy('lead_tasks.date', 'asc')->orderBy('lead_tasks.time', 'asc')
+            ->select('lead_tasks.*');
+
+        $today = now()->startOfDay();
+
+        // Plain values only; the page builds (and escapes) the HTML.
         return DataTables::of($lead_tasks)
-            ->editColumn('lead.company_name', function ($lead_task) {
-                return $lead_task->lead ? '<a href="' . route('leads.show', $lead_task->lead->id) . '">' . Str::limit($lead_task->lead->company_name, 25, '...') . '</a>' : '';
-            })
-            ->editColumn('description', function ($lead_task) {
-                return $lead_task->description;
-            })
-            ->editColumn('date', function ($lead_task) {
-                return date("M d,Y", strtotime($lead_task->date)) . ' ' . date("h:i A", strtotime($lead_task->time));
-            })
-            ->addColumn('action', function ($lead_task) {
-                return "";
-            })
-            ->addColumn('assignUser.name', function ($lead_task) {
-                return $lead_task->assignUser->name ?? '';
-            })
-            ->addColumn('checkbox', function ($lead_task) {
-                $lead_task_id = "'" . $lead_task->id . "'";
-                return '<input type="checkbox" class="lead_task-checkbox checkbox_cls" value="' . $lead_task->id . '" name="lead_task_ids[]" onclick="checkboxDelete(' . $lead_task_id . ')">';
-            })
-            ->editColumn('status', function ($lead_task) {
-                if ($lead_task->status == 'pending') {
-                    return '<button title="Change Status" class="btn btn-sm btn-danger change_status" data-status="pending" data-id="' . $lead_task->id . '">Pending</button>';
-                } else if ($lead_task->status == 'open') {
-                    return '<button title="Change Status" class="btn btn-sm btn-info change_status" data-status="open" data-id="' . $lead_task->id . '">Open</button>'; //<span class="badge badge-info">Open</span>';
-                } else if ($lead_task->status == 'completed') {
-                    return '<span class="badge badge-success">Completed</span>';
-                } else if ($lead_task->status == 'in_progress') {
-                    return '<button title="Change Status" class="btn btn-sm btn-warning change_status" data-status="in_progress" data-id="' . $lead_task->id . '">In Progress</button>';
+            ->addColumn('company', fn ($task) => $task->lead->company_name ?? '')
+            ->addColumn('lead_code', fn ($task) => $task->lead->external_lead_id ?? '')
+            ->addColumn('lead_url', fn ($task) => $task->lead_id ? route('leads.show', $task->lead_id) : null)
+            ->addColumn('assignee', fn ($task) => $task->assignUser->name ?? '')
+            ->addColumn('status_label', fn ($task) => $task->statusLabel())
+            ->addColumn('due_date', fn ($task) => $task->date ? date('d M Y', strtotime($task->date)) : '')
+            ->addColumn('due_time', fn ($task) => $task->time ? date('h:i A', strtotime($task->time)) : '')
+            ->addColumn('overdue_days', function ($task) use ($today) {
+                if ($task->status === 'completed' || ! $task->date) {
+                    return 0;
                 }
+                $due = \Carbon\Carbon::parse($task->date)->startOfDay();
+                return $due->lt($today) ? $due->diffInDays($today) : 0;
             })
-            ->editColumn('priority', function ($lead_task) {
-                if ($lead_task->priority == 'high') {
-                    return '<span class="badge badge-danger">High</span>';
-                } else if ($lead_task->priority == 'medium') {
-                    return '<span class="badge badge-warning">Medium</span>';
-                } else if ($lead_task->priority == 'low') {
-                    return '<span class="badge badge-info">Low</span>';
-                }
-            })
-            ->with('records_filtered_count', $lead_tasks->get()->count())
-            ->rawColumns(['action', 'checkbox', 'status', 'priority', 'lead.company_name', 'assignUser.name'])
+            ->addColumn('seen', fn ($task) => $task->seen_at?->format('d M, h:i A'))
+            ->addColumn('opened', fn ($task) => $task->opened_at?->format('d M, h:i A') ?? ($task->open_date ? date('d M', strtotime($task->open_date)) : null))
+            ->addColumn('completed', fn ($task) => $task->completed_at?->format('d M, h:i A') ?? ($task->status === 'completed' && $task->close_date ? date('d M', strtotime($task->close_date)) : null))
+            ->editColumn('description', fn ($task) => trim(html_entity_decode(strip_tags((string) $task->description))))
+            ->with('status_counts', [
+                'all' => (int) $statusCounts->sum(),
+                'pending' => (int) ($statusCounts['pending'] ?? 0),
+                'open' => (int) ($statusCounts['open'] ?? 0),
+                'in_progress' => (int) ($statusCounts['in_progress'] ?? 0),
+                'completed' => (int) ($statusCounts['completed'] ?? 0),
+                'overdue' => $overdueCount,
+            ])
+            ->escapeColumns([])
             ->make(true);
     }
 
@@ -123,19 +127,10 @@ class LeadTasksController extends Controller
         $page_number = intval($request->input('page_number'));
         $page_result = ($page_number - 1) * $results_per_page;
 
-        $lead_tasks = LeadTask::with(['lead']);
-        if (!auth()->user()->hasRole('superadmin')) {
-            $user_ids = getUsersReportingToAuth();
-            $lead_ids = Lead::where('assign_to', $user_ids)->pluck('id');
-            $lead_tasks->where('assigned_to', $user_ids);
-        }
-        if ($request->status && !empty($request->status) && $request->status != '') {
-            if ($request->status == 'overdue') {
-                $lead_tasks->where('lead_tasks.status', 'pending')
-                    ->where('lead_tasks.date', '<', now()->toDateString());
-            } else {
-                $lead_tasks->where('lead_tasks.status', $request->status);
-            }
+        $lead_tasks = $this->visibleTasks()->with(['lead', 'createdby', 'assignUser']);
+        $this->applyStatusFilter($lead_tasks, $request->status);
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $lead_tasks->whereBetween('lead_tasks.date', [$request->start_date, $request->end_date]);
         }
         $lead_tasks = $lead_tasks = $lead_tasks->orderByRaw("
                 CASE 
@@ -289,19 +284,22 @@ class LeadTasksController extends Controller
 
     public function checkboxAction(Request $request)
     {
-        $lead_ids = $request->lead_ids;
-        $lead_id_arr = explode(",", $lead_ids);
-        if (count($lead_id_arr) > 0) {
-            LeadTask::whereIn('id', $lead_id_arr)->delete();
-            $request->session()->flash('message_success', __('Lead Task deleted successfully.'));
+        $taskIds = array_filter(array_map('intval', explode(',', (string) $request->lead_ids)));
+        if (empty($taskIds)) {
             return redirect()->back();
         }
+        // Only tasks the user can see may be deleted.
+        $deleted = $this->visibleTasks()->whereIn('lead_tasks.id', $taskIds)->delete();
+        $request->session()->flash('message_success', $deleted.' task(s) deleted successfully.');
+        return redirect()->back();
     }
 
     public function change_status(Request $request)
     {
         $request->validate(['status' => 'required|in:'.implode(',', array_keys(LeadTask::STATUS_LABELS))]);
-        $lead_task = LeadTask::find($request->task_id);
+        // Visible team tasks, or a task the user created themselves.
+        $lead_task = $this->visibleTasks()->whereKey($request->task_id)->first()
+            ?? LeadTask::whereKey($request->task_id)->where('created_by', auth()->id())->first();
         if (! $lead_task) {
             return response()->json(['status' => 'error']);
         }
