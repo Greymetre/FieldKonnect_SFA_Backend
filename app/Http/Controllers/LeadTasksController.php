@@ -34,7 +34,11 @@ class LeadTasksController extends Controller
     {
         $query = LeadTask::query();
         if (!auth()->user()->hasRole('superadmin')) {
-            $query->whereIn('lead_tasks.assigned_to', getUsersReportingToAuth());
+            // Team's tasks, plus tasks the user created for anyone else.
+            $query->where(function ($scope) {
+                $scope->whereIn('lead_tasks.assigned_to', getUsersReportingToAuth())
+                    ->orWhere('lead_tasks.created_by', auth()->id());
+            });
         }
 
         return $query;

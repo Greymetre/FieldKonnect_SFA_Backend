@@ -783,6 +783,12 @@ class LeadController extends Controller
         $lead_notes = $all_notes->where('type', LeadNote::TYPE_NOTE)->values();
         $email_drafts = $all_notes->where('type', LeadNote::TYPE_EMAIL)->values();
         $linkedin_drafts = $all_notes->where('type', LeadNote::TYPE_LINKEDIN)->values();
+        // A lead task can be assigned to any active internal user (not customers).
+        $task_users = User::where('active', 'Y')
+            ->whereDoesntHave('roles', fn ($query) => $query->whereIn('id', config('constants.customer_roles')))
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
         // Who a draft can be sent to for approval: active internal users (not customers).
         $draft_approvers = User::where('active', 'Y')
             ->whereDoesntHave('roles', fn ($query) => $query->whereIn('id', config('constants.customer_roles')))
@@ -855,7 +861,7 @@ class LeadController extends Controller
         $status = Status::where('module', 'LeadStatus')->where('active', 'Y')->get();
         $call_statuses = Status::where('module', Status::MODULE_LEAD_CALL_FEEDBACK)->where('active', 'Y')->orderBy('id')->get(['id', 'display_name', 'status_name']);
         $opportunity_status = OpportunitieStatus::orderBy('ordering', 'asc')->pluck('status_name', 'id')->toArray();
-        return view('leads.show', compact('lead', 'lead_contacts', 'lead_notes', 'users', 'lead_tasks', 'lead_opportunities', 'countries', 'pincodes', 'address', 'address_data', 'media_items', 'combined', 'status', 'opportunity_status', 'lead_call_history', 'canViewCallRecordings', 'call_statuses', 'email_drafts', 'linkedin_drafts', 'draft_approvers'));
+        return view('leads.show', compact('lead', 'lead_contacts', 'lead_notes', 'users', 'lead_tasks', 'lead_opportunities', 'countries', 'pincodes', 'address', 'address_data', 'media_items', 'combined', 'status', 'opportunity_status', 'lead_call_history', 'canViewCallRecordings', 'call_statuses', 'email_drafts', 'linkedin_drafts', 'draft_approvers', 'task_users'));
     }
 
     /**

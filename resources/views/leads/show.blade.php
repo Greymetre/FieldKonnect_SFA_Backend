@@ -2187,11 +2187,9 @@ action="{{ route('lead-tasks.store') }}" class="form-horizontal taskform" id="fr
             <label for="users">User<span style="color:red">*</span></label>
             <select class="select2" name="assigned_to" id="assigned_to" data-style="select-with-transition" title="Select User">
                 <option value="">Select User</option>
-                @if(@isset($users))
-                @foreach($users as $user)
-                <option value="{!! $user->id !!}">{!! $user->name !!}</option>
+                @foreach($task_users as $taskUser)
+                <option value="{{ $taskUser->id }}">{{ $taskUser->name }}{{ (int) $taskUser->id === (int) auth()->id() ? ' (me)' : '' }}</option>
                 @endforeach
-                @endif
             </select>
             @if($errors->has('assigned_to'))
             <p class="help-block">
