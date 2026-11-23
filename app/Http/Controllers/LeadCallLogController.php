@@ -23,7 +23,7 @@ class LeadCallLogController extends Controller
      */
     public function index(Request $request)
     {
-        abort_if(Gate::denies('call_management_access'), 403, '403 Forbidden');
+        abort_if(Gate::denies('lead_call_history_access'), 403, '403 Forbidden');
 
         if (! $request->ajax()) {
             $users = User::select('id', 'name')->where('active', 'Y');
@@ -93,7 +93,7 @@ class LeadCallLogController extends Controller
 
     public function download(Request $request)
     {
-        abort_if(Gate::denies('call_management_access'), 403, '403 Forbidden');
+        abort_if(Gate::denies('lead_call_history_access'), 403, '403 Forbidden');
         $filename = 'Call Logs.xlsx';
 
         $call_logs = $this->filteredQuery($request, true)->orderBy('started_at', 'desc')->get();
@@ -231,7 +231,7 @@ class LeadCallLogController extends Controller
 
     public function recording(CallLog $callLog)
     {
-        abort_if(Gate::denies('call_management_access'), 403, '403 Forbidden');
+        abort_if(Gate::denies('lead_call_history_access'), 403, '403 Forbidden');
         $this->authorizeCallLog($callLog);
         abort_if(empty($callLog->recording_url), 404, 'Recording not available.');
 
@@ -265,7 +265,7 @@ class LeadCallLogController extends Controller
 
     public function show(CallLog $callLog)
     {
-        abort_if(Gate::denies('call_management_access'), 403, '403 Forbidden');
+        abort_if(Gate::denies('lead_call_history_access'), 403, '403 Forbidden');
         $this->authorizeCallLog($callLog);
 
         $callLog->load([

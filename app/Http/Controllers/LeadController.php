@@ -885,7 +885,7 @@ class LeadController extends Controller
 
         $lead_call_history = $this->leadCallHistory($lead, $lead_contacts);
         $contact_call_summary = $this->contactCallSummary($lead_call_history);
-        $canViewCallRecordings = Gate::allows('call_management_access');
+        $canViewCallRecordings = Gate::allows('lead_call_history_access');
 
         $media_items = $lead->getMedia('lead_file');
         $status = Status::where('module', 'LeadStatus')->where('active', 'Y')->get();
@@ -1146,7 +1146,7 @@ class LeadController extends Controller
             'html' => view('leads.partials.call-history', [
                 'lead' => $lead,
                 'lead_call_history' => $lead_call_history,
-                'canViewCallRecordings' => Gate::allows('call_management_access'),
+                'canViewCallRecordings' => Gate::allows('lead_call_history_access'),
             ])->render(),
         ]);
     }

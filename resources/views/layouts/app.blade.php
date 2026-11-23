@@ -1745,7 +1745,7 @@
                                         </a>
                                     </li>
                                     @endif
-                                    @if(auth()->user()->can('call_management_access'))
+                                    @if(auth()->user()->can('lead_call_history_access'))
                                     <li class="nav-link-btn {{ request()->is('call-management*') ? 'active' : '' }}">
                                         <a class="hoveradd2" href="{{ route('call-management.index') }}">
                                             <i class="material-icons icon">headset_mic</i>
