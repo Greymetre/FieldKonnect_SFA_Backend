@@ -859,7 +859,9 @@ class LeadController extends Controller
 
         $media_items = $lead->getMedia('lead_file');
         $status = Status::where('module', 'LeadStatus')->where('active', 'Y')->get();
-        $call_statuses = Status::where('module', Status::MODULE_LEAD_CALL_FEEDBACK)->where('active', 'Y')->orderBy('id')->get(['id', 'display_name', 'status_name']);
+        $call_statuses = Status::where('module', Status::MODULE_LEAD_CALL_FEEDBACK)->where('active', 'Y')->get(['id', 'display_name', 'status_name'])
+            ->sortBy(fn ($callStatus) => array_search($callStatus->status_name, Status::LEAD_CALL_OUTCOMES, true) === false ? 99 : array_search($callStatus->status_name, Status::LEAD_CALL_OUTCOMES, true))
+            ->values();
         $opportunity_status = OpportunitieStatus::orderBy('ordering', 'asc')->pluck('status_name', 'id')->toArray();
         return view('leads.show', compact('lead', 'lead_contacts', 'lead_notes', 'users', 'lead_tasks', 'lead_opportunities', 'countries', 'pincodes', 'address', 'address_data', 'media_items', 'combined', 'status', 'opportunity_status', 'lead_call_history', 'canViewCallRecordings', 'call_statuses', 'email_drafts', 'linkedin_drafts', 'draft_approvers', 'task_users'));
     }
@@ -1109,13 +1111,50 @@ class LeadController extends Controller
             'Please select a valid lead type.'
         );
 
+        // "Call Back" needs a follow-up date and time.
+        $callStatus = ! empty($validated['call_status']) ? Status::find((int) $validated['call_status']) : null;
+        $isCallBack = $callStatus && $callStatus->status_name === Status::LEAD_CALL_BACK;
+        $followUp = null;
+        if ($isCallBack) {
+            $request->validate(
+                ['follow_up_at' => ['required', 'date_format:Y-m-d\\TH:i', 'after:now']],
+                [
+                    'follow_up_at.required' => 'Please choose the call back date and time.',
+                    'follow_up_at.after' => 'The call back time must be in the future.',
+                ]
+            );
+            $followUp = \Carbon\Carbon::createFromFormat('Y-m-d\\TH:i', $request->follow_up_at);
+        }
+
         $calls->saveFeedback(
             $callLog,
             $statusId,
             $validated['remark'],
             Auth::user(),
-            ! empty($validated['call_status']) ? (int) $validated['call_status'] : null
+            $callStatus?->id
         );
+
+        $callLog->update(['follow_up_at' => $followUp]);
+        if ($followUp) {
+            // The call back also becomes a task for the agent who made the call.
+            $contactName = $callLog->contact?->name ?: $callLog->number;
+            $assignee = $callLog->user_id ?: Auth::id();
+            $task = LeadTask::create([
+                'lead_id' => $lead->id,
+                'assigned_to' => $assignee,
+                'created_by' => Auth::id(),
+                'description' => 'Call back '.$contactName,
+                'date' => $followUp->toDateString(),
+                'time' => $followUp->format('H:i:s'),
+                'priority' => 'high',
+                'status' => 'pending',
+                'remark' => \Illuminate\Support\Str::limit($validated['remark'], 250),
+            ]);
+            if ((int) $assignee !== (int) Auth::id()) {
+                SendPushNotification($assignee, '📞 Call back '.$contactName.' on '.$followUp->format('d M, h:i A').'.', 'task');
+                StoreLeadNotification($task->id, 'Call Back', '📞 Call back '.$contactName.' on '.$followUp->format('d M, h:i A').'.', $assignee, 'task');
+            }
+        }
 
         return response()->json(['success' => true, 'message' => 'Call remark saved.']);
     }

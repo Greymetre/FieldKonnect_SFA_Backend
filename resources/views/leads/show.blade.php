@@ -1985,6 +1985,49 @@
         #filePreviewModal .fpv-none { padding: 40px 20px; text-align: center; color: var(--fk-list-muted); }
         #filePreviewModal .fpv-none i { display: block; margin-bottom: 8px; font-size: 40px; color: var(--fk-list-dim); }
         #filePreviewModal .fpv-none a { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; padding: 8px 16px; border-radius: 10px; background: var(--fk-list-accent); color: var(--fk-list-primary-text) !important; font-weight: 600; }
+        /* Call remark popup (own class names; resets the layout's label styles) */
+        #callFeedbackModal .cfm-card, #callFeedbackModal .cfm-card * { letter-spacing: normal !important; text-transform: none !important; }
+        #callFeedbackModal .modal-dialog { max-width: 520px; margin: 1.5rem auto !important; min-height: calc(100% - 3rem) !important; display: flex; align-items: center; transform: none !important; }
+        #callFeedbackModal .cfm-card { width: 100%; opacity: 1 !important; overflow: hidden; max-height: calc(100vh - 3rem); border-radius: 18px !important; }
+        #callFeedbackModal .cfm-form { display: flex; flex-direction: column; max-height: calc(100vh - 3rem); margin: 0; }
+        #callFeedbackModal .cfm-head { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--fk-list-border); }
+        #callFeedbackModal .cfm-head-icon { flex: 0 0 40px; width: 40px; height: 40px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: rgba(34, 211, 238, .14); color: var(--fk-list-accent); }
+        #callFeedbackModal .cfm-head-copy { flex: 1 1 auto; min-width: 0; }
+        #callFeedbackModal .cfm-head-copy h5 { margin: 0; font-size: 17px; font-weight: 700; color: var(--fk-list-heading); text-align: left; }
+        #callFeedbackModal .cfm-head-copy p { margin: 2px 0 0; font-size: 12.5px; color: var(--fk-list-muted); }
+        #callFeedbackModal .cfm-close { flex: 0 0 34px; width: 34px; height: 34px; border: 0; border-radius: 10px; background: var(--fk-list-control); color: var(--fk-list-muted); cursor: pointer; }
+        #callFeedbackModal .cfm-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 16px 20px 4px; }
+        #callFeedbackModal .cfm-section { margin-bottom: 16px; }
+        #callFeedbackModal .cfm-label { margin-bottom: 8px; font-size: 13px; font-weight: 700; color: var(--fk-list-heading); }
+        #callFeedbackModal .cfm-req { color: #ef4444; }
+        #callFeedbackModal .cfm-hint { margin: 6px 0 0; font-size: 12px; color: var(--fk-list-muted); }
+        #callFeedbackModal .cfm-outcomes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+        #callFeedbackModal .cfm-outcome { position: relative; margin: 0; cursor: pointer; }
+        #callFeedbackModal .cfm-outcome:last-child:nth-child(odd) { grid-column: 1 / -1; }
+        #callFeedbackModal .cfm-outcome input { position: absolute; opacity: 0; pointer-events: none; }
+        #callFeedbackModal .cfm-outcome span { display: flex; align-items: center; gap: 8px; padding: 11px 12px; border: 1px solid var(--fk-list-border); border-radius: 12px; background: var(--fk-list-control); font-size: 13.5px; font-weight: 600; color: var(--fk-list-heading); transition: border-color .15s ease, background .15s ease; }
+        #callFeedbackModal .cfm-outcome span i { font-size: 19px; }
+        #callFeedbackModal .cfm-outcome.is-green span i { color: #10b981; }
+        #callFeedbackModal .cfm-outcome.is-amber span i { color: #f59e0b; }
+        #callFeedbackModal .cfm-outcome.is-grey span i { color: #94a3b8; }
+        #callFeedbackModal .cfm-outcome.is-red span i { color: #ef4444; }
+        #callFeedbackModal .cfm-outcome.is-blue span i { color: #38bdf8; }
+        #callFeedbackModal .cfm-outcome:hover span { border-color: var(--fk-list-border-strong); }
+        #callFeedbackModal .cfm-outcome input:checked + span { border-color: var(--fk-list-accent); background: var(--fk-list-count-bg); box-shadow: 0 0 0 1px var(--fk-list-accent) inset; }
+        #callFeedbackModal .cfm-input { display: block; width: 100%; height: 42px; padding: 0 12px; border: 1px solid var(--fk-list-border-strong) !important; border-radius: 12px !important; background: var(--fk-list-control) !important; color: var(--fk-list-text) !important; font-size: 13.5px; color-scheme: dark; }
+        #callFeedbackModal .cfm-input:focus { outline: none; border-color: var(--fk-list-accent) !important; }
+        #callFeedbackModal .cfm-textarea { height: auto; min-height: 84px; padding: 10px 12px; resize: vertical; }
+        #callFeedbackModal .cfm-select-wrap { position: relative; }
+        #callFeedbackModal .cfm-select-wrap select { appearance: none; -webkit-appearance: none; padding-right: 36px; cursor: pointer; }
+        #callFeedbackModal .cfm-select-wrap i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--fk-list-muted); pointer-events: none; }
+        #callFeedbackModal .cfm-select-wrap option { background: #0b1736; color: #e8f0ff; }
+        #callFeedbackModal .cfm-callback { padding: 12px; border-radius: 12px; background: rgba(56, 189, 248, .08); border: 1px solid rgba(56, 189, 248, .3); }
+        #callFeedbackModal .cfm-error { margin: 0 0 8px; min-height: 18px; font-size: 12px; color: #ef4444; }
+        #callFeedbackModal .cfm-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--fk-list-border); }
+        #callFeedbackModal .cfm-btn { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 18px; border: 1px solid var(--fk-list-border-strong); border-radius: 10px; background: transparent; color: var(--fk-list-text); font-size: 13.5px; font-weight: 600; cursor: pointer; }
+        #callFeedbackModal .cfm-btn i { font-size: 17px; }
+        #callFeedbackModal .cfm-btn.is-primary { border-color: transparent; background: linear-gradient(135deg, var(--fk-list-accent), var(--fk-list-accent-2)); color: var(--fk-list-primary-text); }
+        #callFeedbackModal .cfm-btn:disabled { opacity: .6; cursor: wait; }
     </style>
     <div class="row lead-detail-page">
         <div class="col-md-12">
@@ -3387,50 +3430,76 @@ action="{{ route('leads.storeAddress') }}" class="form-horizontal" id="frmLeadsA
 </div>
 <div class="modal fade" id="callFeedbackModal" tabindex="-1" role="dialog" aria-labelledby="callFeedbackTitle" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content call-feedback-modal">
-            <form id="callFeedbackForm">
-                <div class="modal-header">
-                    <div>
-                        <h5 class="modal-title" id="callFeedbackTitle">Call remark</h5>
-                        <small id="callFeedbackSub"></small>
+        <div class="modal-content cfm-card">
+            <form id="callFeedbackForm" class="cfm-form">
+                <div class="cfm-head">
+                    <div class="cfm-head-icon"><i class="material-icons">phone_in_talk</i></div>
+                    <div class="cfm-head-copy">
+                        <h5 id="callFeedbackTitle">How did the call go?</h5>
+                        <p id="callFeedbackSub"></p>
                     </div>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <button type="button" class="cfm-close" data-dismiss="modal" aria-label="Close"><i class="material-icons">close</i></button>
                 </div>
-                <div class="modal-body">
+
+                <div class="cfm-body">
                     <input type="hidden" id="callFeedbackUrl">
-                    <div class="form-group">
-                        <label for="callFeedbackCallStatus">Call status @if($call_statuses->isNotEmpty())<span style="color:red">*</span>@endif</label>
+
+                    <div class="cfm-section">
+                        <div class="cfm-label">Call status <span class="cfm-req">*</span></div>
                         @if($call_statuses->isNotEmpty())
-                        <select class="form-control" id="callFeedbackCallStatus" name="call_status">
-                            <option value="">Select what happened on the call</option>
+                        @php
+                            $outcomeStyle = [
+                                'lead_call_done' => ['check_circle', 'is-green'],
+                                'lead_call_no_response' => ['phone_missed', 'is-amber'],
+                                'lead_call_switch_off' => ['phone_disabled', 'is-grey'],
+                                'lead_call_wrong_number' => ['error_outline', 'is-red'],
+                                'lead_call_back' => ['event', 'is-blue'],
+                            ];
+                        @endphp
+                        <div class="cfm-outcomes">
                             @foreach($call_statuses as $callStatus)
-                            <option value="{{ $callStatus->id }}">{{ $callStatus->display_name ?: $callStatus->status_name }}</option>
+                            @php([$outcomeIcon, $outcomeTone] = $outcomeStyle[$callStatus->status_name] ?? ['label', 'is-grey'])
+                            <label class="cfm-outcome {{ $outcomeTone }}">
+                                <input type="radio" name="call_status" value="{{ $callStatus->id }}" data-callback="{{ $callStatus->status_name === \App\Models\Status::LEAD_CALL_BACK ? 1 : 0 }}">
+                                <span><i class="material-icons">{{ $outcomeIcon }}</i>{{ $callStatus->display_name ?: $callStatus->status_name }}</span>
+                            </label>
                             @endforeach
-                        </select>
+                        </div>
                         @else
-                        <input type="hidden" id="callFeedbackCallStatus" value="">
-                        <small class="call-feedback-hint d-block">No call statuses yet. Add them in Status master with module "Lead Call Feedback".</small>
+                        <p class="cfm-hint">No call statuses are set up yet.</p>
                         @endif
                     </div>
-                    <div class="form-group">
-                        <label for="callFeedbackStatus">Lead type</label>
-                        <select class="form-control" id="callFeedbackStatus" name="status">
-                            <option value="0" {{ (int) $lead->status === 0 ? 'selected' : '' }}>Pending</option>
-                            @foreach($status as $stat)
-                            <option value="{{ $stat['id'] }}" {{ (int) $lead->status === (int) $stat['id'] ? 'selected' : '' }}>{{ $stat['display_name'] }}</option>
-                            @endforeach
-                        </select>
-                        <small class="call-feedback-hint">Keep the current lead type or change it.</small>
+
+                    <div class="cfm-section cfm-callback" id="callFeedbackCallback" style="display:none">
+                        <div class="cfm-label">Call back on <span class="cfm-req">*</span></div>
+                        <input type="datetime-local" class="cfm-input" id="callFeedbackFollowUp">
+                        <p class="cfm-hint">A "Call back" task is created for this time.</p>
                     </div>
-                    <div class="form-group">
-                        <label for="callFeedbackRemark">Remark <span style="color:red">*</span></label>
-                        <textarea class="form-control" id="callFeedbackRemark" name="remark" rows="4" maxlength="1000" placeholder="What was discussed on the call?" required></textarea>
+
+                    <div class="cfm-section">
+                        <div class="cfm-label">Lead type</div>
+                        <div class="cfm-select-wrap">
+                            <select class="cfm-input" id="callFeedbackStatus" name="status">
+                                <option value="0" {{ (int) $lead->status === 0 ? 'selected' : '' }}>Pending</option>
+                                @foreach($status as $stat)
+                                <option value="{{ $stat['id'] }}" {{ (int) $lead->status === (int) $stat['id'] ? 'selected' : '' }}>{{ $stat['display_name'] }}</option>
+                                @endforeach
+                            </select>
+                            <i class="material-icons">expand_more</i>
+                        </div>
+                        <p class="cfm-hint">Keep the current lead type or change it.</p>
                     </div>
-                    <p class="call-feedback-error" id="callFeedbackError"></p>
+
+                    <div class="cfm-section">
+                        <div class="cfm-label">Remark <span class="cfm-req">*</span></div>
+                        <textarea class="cfm-input cfm-textarea" id="callFeedbackRemark" name="remark" rows="3" maxlength="1000" placeholder="What was discussed on the call?"></textarea>
+                    </div>
+                    <p class="cfm-error" id="callFeedbackError"></p>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-primary" data-dismiss="modal">Later</button>
-                    <button type="submit" class="btn btn-primary" id="callFeedbackSave">Save remark</button>
+
+                <div class="cfm-foot">
+                    <button type="button" class="cfm-btn" data-dismiss="modal">Later</button>
+                    <button type="submit" class="cfm-btn is-primary" id="callFeedbackSave"><i class="material-icons">check</i><span>Save</span></button>
                 </div>
             </form>
         </div>
@@ -3851,7 +3920,9 @@ function activateNotesTab() {
         $('#callFeedbackUrl').val(url);
         $('#callFeedbackSub').text(label || '');
         $('#callFeedbackRemark').val('');
-        $('select#callFeedbackCallStatus').val('');
+        $('input[name="call_status"]').prop('checked', false);
+        $('#callFeedbackFollowUp').val('');
+        $('#callFeedbackCallback').hide();
         $('#callFeedbackError').text('');
         openPageModal('#callFeedbackModal');
         setTimeout(function () { $('#callFeedbackRemark').trigger('focus'); }, 400);
@@ -3861,22 +3932,56 @@ function activateNotesTab() {
         openCallFeedback($(this).data('feedback-url'), $(this).data('call-label'));
     });
 
+    // "Call Back" asks for a follow-up date & time (not in the past).
+    function localDateTimeValue(date) {
+        var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+        return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate()) + 'T' + pad(date.getHours()) + ':' + pad(date.getMinutes());
+    }
+
+    $(document).on('change', 'input[name="call_status"]', function () {
+        var isCallBack = String($(this).data('callback')) === '1';
+        $('#callFeedbackCallback').toggle(isCallBack);
+        $('#callFeedbackError').text('');
+        if (isCallBack) {
+            var now = new Date();
+            $('#callFeedbackFollowUp').attr('min', localDateTimeValue(now));
+            if (!$('#callFeedbackFollowUp').val()) {
+                var later = new Date(now.getTime() + 60 * 60 * 1000);
+                $('#callFeedbackFollowUp').val(localDateTimeValue(later));
+            }
+        }
+    });
+
     $('#callFeedbackForm').on('submit', function (event) {
         event.preventDefault();
+        var $picked = $('input[name="call_status"]:checked');
         var remark = $.trim($('#callFeedbackRemark').val());
-        if ($('select#callFeedbackCallStatus').length && !$('#callFeedbackCallStatus').val()) {
+        if ($('input[name="call_status"]').length && !$picked.length) {
             $('#callFeedbackError').text('Please select the call status.');
+            return;
+        }
+        var isCallBack = $picked.length && String($picked.data('callback')) === '1';
+        var followUp = $('#callFeedbackFollowUp').val();
+        if (isCallBack && !followUp) {
+            $('#callFeedbackError').text('Please choose the call back date and time.');
             return;
         }
         if (!remark) {
             $('#callFeedbackError').text('Please enter a remark.');
             return;
         }
-        var $save = $('#callFeedbackSave').prop('disabled', true).text('Saving...');
+        var $save = $('#callFeedbackSave').prop('disabled', true);
+        $save.find('span').text('Saving...');
         $.ajax({
             url: $('#callFeedbackUrl').val(),
             method: 'POST',
-            data: { _token: '{{ csrf_token() }}', call_status: $('#callFeedbackCallStatus').val(), status: $('#callFeedbackStatus').val(), remark: remark },
+            data: {
+                _token: '{{ csrf_token() }}',
+                call_status: $picked.val() || '',
+                status: $('#callFeedbackStatus').val(),
+                remark: remark,
+                follow_up_at: isCallBack ? followUp : ''
+            },
             success: function () {
                 $('#callFeedbackModal').modal('hide');
                 window.location.reload();
@@ -3887,7 +3992,10 @@ function activateNotesTab() {
                 if (res.errors) message = Object.values(res.errors)[0][0];
                 $('#callFeedbackError').text(message);
             },
-            complete: function () { $save.prop('disabled', false).text('Save remark'); }
+            complete: function () {
+                $save.prop('disabled', false);
+                $save.find('span').text('Save');
+            }
         });
     });
 

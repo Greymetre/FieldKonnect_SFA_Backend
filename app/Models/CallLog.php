@@ -23,6 +23,7 @@ class CallLog extends Model
         'status',
         'feedback_status_id',
         'remark',
+        'follow_up_at',
         'plivo_status',
         'plivo_call_uuid',
         'plivo_b_leg_uuid',
@@ -47,6 +48,7 @@ class CallLog extends Model
         'recording_duration' => 'integer',
         'answered_at' => 'datetime',
         'completed_at' => 'datetime',
+        'follow_up_at' => 'datetime',
         'diarized_transcript' => 'array',
     ];
 

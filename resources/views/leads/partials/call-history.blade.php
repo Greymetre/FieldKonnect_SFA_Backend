@@ -41,6 +41,11 @@
                         @endif
                         <span><i class="material-icons">timer</i>{{ $durationText }}</span>
                     </div>
+                    @if($call->follow_up_at)
+                    <div class="call-history-meta" style="margin-top:4px">
+                        <span style="color:#38bdf8"><i class="material-icons">event</i>Call back on {{ $call->follow_up_at->format('d M Y, h:i A') }}</span>
+                    </div>
+                    @endif
                     @if($call->feedbackStatus || $call->remark)
                     <div class="call-history-remark">
                         @if($call->feedbackStatus)<span class="call-badge neutral">{{ $call->feedbackStatus->display_name ?: $call->feedbackStatus->status_name }}</span>@endif
