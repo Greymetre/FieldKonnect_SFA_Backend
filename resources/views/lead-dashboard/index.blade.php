@@ -257,7 +257,7 @@
         ['icon' => 'fiber_new', 'color' => 'var(--ldb-violet)', 'label' => 'New leads', 'value' => number_format($newLeads), 'sub' => 'in this period', 'delta' => $deltas['newLeads'], 'url' => url('leads').($userId ? '?user_id='.$userId : '')],
         ['icon' => 'call', 'color' => 'var(--ldb-info)', 'label' => 'Calls made', 'value' => number_format($callsMade), 'sub' => '<b>'.number_format($callsConnected).'</b> connected', 'delta' => $deltas['callsMade'], 'url' => route('call-management.index').'?'.http_build_query(array_filter(['start_date' => $from->toDateString(), 'end_date' => $to->toDateString(), 'user_id' => $userId]))],
         ['icon' => 'percent', 'color' => 'var(--ldb-good)', 'label' => 'Connect rate', 'value' => $connectRate.'%', 'sub' => 'talk <b>'.$fmtDuration($talkSeconds).'</b>', 'delta' => $deltas['connectRate'], 'url' => route('call-management.index').'?'.http_build_query(array_filter(['call_status' => 'connected', 'start_date' => $from->toDateString(), 'end_date' => $to->toDateString(), 'user_id' => $userId]))],
-        ['icon' => 'task_alt', 'color' => 'var(--ldb-warn)', 'label' => 'Open tasks', 'value' => number_format($openTasks), 'sub' => '<b class="'.($overdueTasks ? 'is-bad' : '').'">'.number_format($overdueTasks).'</b> overdue', 'delta' => null, 'url' => url('lead-tasks')],
+        ['icon' => 'task_alt', 'color' => 'var(--ldb-warn)', 'label' => 'Open tasks', 'value' => number_format($openTasks), 'sub' => '<b class="'.($overdueTasks ? 'is-bad' : '').'">'.number_format($overdueTasks).'</b> overdue', 'delta' => null, 'url' => url('lead-tasks?scope=all')],
         ['icon' => 'fact_check', 'color' => 'var(--ldb-orange)', 'label' => 'Drafts to approve', 'value' => number_format($pendingDrafts), 'sub' => 'Email &amp; LinkedIn', 'delta' => null, 'url' => auth()->user()?->can('draft_approval') ? route('draft-approvals.index') : null],
       ];
     @endphp
@@ -519,7 +519,7 @@
 
       {{-- Follow-ups --}}
       <div class="ldb-panel ldb-span-4">
-        <div class="ldb-card-head"><h3><span class="material-icons">event</span>Follow-ups</h3><a class="ldb-link" href="{{ url('lead-tasks') }}">All tasks</a></div>
+        <div class="ldb-card-head"><h3><span class="material-icons">event</span>Follow-ups</h3><a class="ldb-link" href="{{ url('lead-tasks?scope=all') }}">All tasks</a></div>
         <div class="ldb-card-body">
           @if($followUps->isEmpty())
           <div class="ldb-empty">Nothing due in the next 7 days. 🎉</div>

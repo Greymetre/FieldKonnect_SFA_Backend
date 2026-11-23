@@ -132,10 +132,10 @@
     {{-- All tasks: everyone reporting to me (+ tasks I created). My tasks: assigned to me. --}}
     <div class="d-flex flex-wrap align-items-center">
       <div class="ltk-scope" id="ltkScope" role="tablist">
-        <button type="button" class="ltk-scope-btn is-active" data-scope="all"><span class="material-icons">groups</span>All Tasks</button>
-        <button type="button" class="ltk-scope-btn" data-scope="mine"><span class="material-icons">person</span>My Tasks</button>
+        <button type="button" class="ltk-scope-btn" data-scope="all"><span class="material-icons">groups</span>All Tasks</button>
+        <button type="button" class="ltk-scope-btn is-active" data-scope="mine"><span class="material-icons">person</span>My Tasks</button>
       </div>
-      <p class="ltk-scope-hint" id="ltkScopeHint">Tasks of your team (users reporting to you) and tasks you created</p>
+      <p class="ltk-scope-hint" id="ltkScopeHint">Only tasks assigned to you</p>
     </div>
 
     <div class="ltk-tabs" id="ltkTabs">
@@ -244,7 +244,7 @@
     }
 
     var ltkStatus = '';
-    var ltkScope = 'all';
+    var ltkScope = 'mine';
     var ltkSelected = {};
     var ltkRows = {};
     var ltkEditing = null;
@@ -266,17 +266,14 @@
           var value = params.get(key);
           if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) $('#' + key).val(value);
         });
-        // ?scope=mine, otherwise the last choice on this browser.
-        var scope = params.get('scope');
-        if (!scope) { try { scope = window.localStorage.getItem('ltkScope'); } catch (e) { scope = null; } }
-        if (scope === 'mine') setScope('mine');
+        // Opens on "My Tasks"; links can ask for the team view with ?scope=all.
+        if (params.get('scope') === 'all') setScope('all');
       })();
 
       function setScope(scope) {
         ltkScope = scope === 'mine' ? 'mine' : 'all';
         $('.ltk-scope-btn').each(function() { $(this).toggleClass('is-active', $(this).data('scope') === ltkScope); });
         $('#ltkScopeHint').text(ltkScope === 'mine' ? 'Only tasks assigned to you' : 'Tasks of your team (users reporting to you) and tasks you created');
-        try { window.localStorage.setItem('ltkScope', ltkScope); } catch (e) {}
       }
 
       var table = $('#getLeadTasks').DataTable({

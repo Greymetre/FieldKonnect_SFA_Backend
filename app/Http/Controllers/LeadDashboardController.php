@@ -220,7 +220,7 @@ class LeadDashboardController extends Controller
         $progressBy = collect($progress)->keyBy('key');
         $leadUrl = fn (array $params) => url('leads').'?'.http_build_query(array_filter($params + ['user_id' => $userId]));
         $callUrl = fn (array $params) => route('call-management.index').'?'.http_build_query(array_filter($params + ['user_id' => $userId]));
-        $taskUrl = fn (array $params) => url('lead-tasks').'?'.http_build_query(array_filter($params));
+        $taskUrl = fn (array $params) => url('lead-tasks').'?'.http_build_query(['scope' => 'all'] + array_filter($params));
         $actions = [
             ['icon' => 'phone_disabled', 'tone' => 'blue', 'label' => 'Leads not called', 'hint' => 'No contact called yet',
                 'total' => $progressBy['not_called']['total'] ?? 0, 'url' => $leadUrl(['call_progress' => 'not_called'])],
