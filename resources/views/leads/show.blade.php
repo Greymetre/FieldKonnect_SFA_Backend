@@ -1965,6 +1965,26 @@
         .lead-detail-page .lead-file-meta { display: block; margin-top: 2px; font-size: 12px; color: var(--fk-list-muted); }
         .lead-detail-page .lead-file-buttons { flex: 0 0 auto; display: flex; gap: 6px; }
         .lead-detail-page .lead-file-buttons .contact-icon-btn { width: 32px; height: 32px; }
+        /* File preview popup */
+        .lead-detail-page button.lead-file-thumb, .lead-detail-page button.lead-file-icon { padding: 0; cursor: pointer; }
+        .lead-detail-page button.lead-file-name { padding: 0; border: 0; background: none; text-align: left; max-width: 100%; cursor: pointer; }
+        .lead-detail-page .lead-file-buttons button.contact-icon-btn { padding: 0; cursor: pointer; }
+        #filePreviewModal .fpv-card, #filePreviewModal .fpv-card * { letter-spacing: normal !important; text-transform: none !important; }
+        #filePreviewModal .modal-dialog { max-width: min(1100px, 94vw); margin: 1.5rem auto !important; min-height: calc(100% - 3rem) !important; display: flex; align-items: center; transform: none !important; }
+        #filePreviewModal .fpv-card { width: 100%; opacity: 1 !important; overflow: hidden; display: flex; flex-direction: column; max-height: calc(100vh - 3rem); border-radius: 16px !important; }
+        #filePreviewModal .fpv-head { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--fk-list-border); }
+        #filePreviewModal .fpv-head-icon { color: var(--fk-list-accent); }
+        #filePreviewModal .fpv-title { flex: 1 1 auto; min-width: 0; margin: 0; font-size: 15px; font-weight: 600; color: var(--fk-list-heading); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+        #filePreviewModal .fpv-btn { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border: 0; border-radius: 9px; background: var(--fk-list-control); color: var(--fk-list-text) !important; cursor: pointer; }
+        #filePreviewModal .fpv-btn:hover { color: var(--fk-list-accent) !important; }
+        #filePreviewModal .fpv-body { flex: 1 1 auto; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 12px; overflow: auto; background: rgba(0, 0, 0, .25); }
+        #filePreviewModal .fpv-body img { max-width: 100%; max-height: calc(100vh - 140px); object-fit: contain; border-radius: 8px; }
+        #filePreviewModal .fpv-body iframe { width: 100%; height: calc(100vh - 140px); border: 0; border-radius: 8px; background: #fff; }
+        #filePreviewModal .fpv-body video { max-width: 100%; max-height: calc(100vh - 140px); border-radius: 8px; }
+        #filePreviewModal .fpv-body audio { width: min(520px, 100%); }
+        #filePreviewModal .fpv-none { padding: 40px 20px; text-align: center; color: var(--fk-list-muted); }
+        #filePreviewModal .fpv-none i { display: block; margin-bottom: 8px; font-size: 40px; color: var(--fk-list-dim); }
+        #filePreviewModal .fpv-none a { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; padding: 8px 16px; border-radius: 10px; background: var(--fk-list-accent); color: var(--fk-list-primary-text) !important; font-weight: 600; }
     </style>
     <div class="row lead-detail-page">
         <div class="col-md-12">
@@ -2909,24 +2929,38 @@ action="{{ route('lead-opportunities.store') }}" class="form-horizontal taskform
                 $displayName = $media->getCustomProperty('original_name') ?: $media->file_name;
                 $uploaderId = $media->getCustomProperty('uploaded_by');
             @endphp
+            @php
+                $fileUrl = route('leads.files.view', [$lead->id, $media->id]);
+                $downloadUrl = $fileUrl.'?download=1';
+                $mime = (string) $media->mime_type;
+                $ext = strtolower(pathinfo($media->file_name, PATHINFO_EXTENSION));
+                $previewKind = match (true) {
+                    str_starts_with($mime, 'image/') => 'image',
+                    $ext === 'pdf' => 'pdf',
+                    str_starts_with($mime, 'video/') => 'video',
+                    str_starts_with($mime, 'audio/') => 'audio',
+                    in_array($ext, ['txt', 'csv'], true) => 'text',
+                    default => 'none',
+                };
+            @endphp
             <li class="lead-file-item">
-                @if(str_starts_with((string) $media->mime_type, 'image/'))
-                <a href="{{ $media->getFullUrl() }}" target="_blank" rel="noopener" class="lead-file-thumb"><img src="{{ $media->getFullUrl() }}" alt=""></a>
+                @if($previewKind === 'image')
+                <button type="button" class="lead-file-thumb lead-file-preview" data-url="{{ $fileUrl }}" data-download="{{ $downloadUrl }}" data-kind="{{ $previewKind }}" data-name="{{ $displayName }}"><img src="{{ $fileUrl }}" alt="" loading="lazy"></button>
                 @else
-                <span class="lead-file-icon {{ $iconClass }}"><i class="material-icons">{{ $iconName }}</i></span>
+                <button type="button" class="lead-file-icon {{ $iconClass }} lead-file-preview" data-url="{{ $fileUrl }}" data-download="{{ $downloadUrl }}" data-kind="{{ $previewKind }}" data-name="{{ $displayName }}"><i class="material-icons">{{ $iconName }}</i></button>
                 @endif
                 <div class="lead-file-main">
-                    <a href="{{ $media->getFullUrl() }}" target="_blank" rel="noopener" class="lead-file-name" title="{{ $displayName }}">{{ $displayName }}</a>
+                    <button type="button" class="lead-file-name lead-file-preview" data-url="{{ $fileUrl }}" data-download="{{ $downloadUrl }}" data-kind="{{ $previewKind }}" data-name="{{ $displayName }}" title="{{ $displayName }}">{{ $displayName }}</button>
                     <span class="lead-file-meta">
-                        {{ strtoupper(pathinfo($media->file_name, PATHINFO_EXTENSION)) }} · {{ $fileSize((int) $media->size) }} · {{ $media->created_at?->format('d M Y, h:i A') }}
+                        {{ strtoupper($ext) }} · {{ $fileSize((int) $media->size) }} · {{ $media->created_at?->format('d M Y, h:i A') }}
                         @if($uploaderId && isset($fileUploaders[$uploaderId]))
                         · by {{ $fileUploaders[$uploaderId] }}
                         @endif
                     </span>
                 </div>
                 <div class="lead-file-buttons">
-                    <a href="{{ $media->getFullUrl() }}" target="_blank" rel="noopener" class="contact-icon-btn" title="Open" data-toggle="tooltip"><i class="material-icons">open_in_new</i></a>
-                    <a href="{{ $media->getFullUrl() }}" download="{{ $displayName }}" class="contact-icon-btn" title="Download" data-toggle="tooltip"><i class="material-icons">download</i></a>
+                    <button type="button" class="contact-icon-btn lead-file-preview" data-url="{{ $fileUrl }}" data-download="{{ $downloadUrl }}" data-kind="{{ $previewKind }}" data-name="{{ $displayName }}" title="View" data-toggle="tooltip"><i class="material-icons">visibility</i></button>
+                    <a href="{{ $downloadUrl }}" class="contact-icon-btn" title="Download" data-toggle="tooltip"><i class="material-icons">download</i></a>
                     <a href="{{ route('leads-deleteMedia') }}?media_id={{ $media->id }}" class="contact-icon-btn contact-icon-muted contact-icon-danger" title="Remove file" data-toggle="tooltip"
                         onclick="return confirm('Remove “{{ addslashes($displayName) }}” from this lead?')"><i class="material-icons">delete</i></a>
                 </div>
@@ -3166,6 +3200,20 @@ action="{{ route('leads.storeAddress') }}" class="form-horizontal" id="frmLeadsA
 <script type="text/javascript" src="{{ url('/').'/'.asset('vendor/ckeditor/js/ckeditor.js') }}"></script>
 
 
+<div class="modal fade" id="filePreviewModal" tabindex="-1" role="dialog" aria-labelledby="filePreviewTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
+        <div class="modal-content fpv-card">
+            <div class="fpv-head">
+                <i class="material-icons fpv-head-icon">insert_drive_file</i>
+                <h5 id="filePreviewTitle" class="fpv-title"></h5>
+                <a href="#" class="fpv-btn" id="filePreviewOpen" target="_blank" rel="noopener" title="Open in new tab"><i class="material-icons">open_in_new</i></a>
+                <a href="#" class="fpv-btn" id="filePreviewDownload" title="Download"><i class="material-icons">download</i></a>
+                <button type="button" class="fpv-btn" data-dismiss="modal" aria-label="Close"><i class="material-icons">close</i></button>
+            </div>
+            <div class="fpv-body" id="filePreviewBody"></div>
+        </div>
+    </div>
+</div>
 @php
     // Contacts with a usable email address, for "Send email" on approved drafts.
     $emailRecipients = $lead_contacts->filter(fn ($contact) => filter_var(trim((string) $contact->email), FILTER_VALIDATE_EMAIL))->values();
@@ -4090,6 +4138,35 @@ function activateNotesTab() {
             $('#leadFilesUpload').prop('disabled', true).html('Uploading...');
         });
     })();
+
+    // View a lead file inside the page (image / PDF / video / audio / text).
+    $(document).on('click', '.lead-file-preview', function () {
+        var $el = $(this);
+        var url = $el.data('url'), kind = $el.data('kind'), name = $el.data('name');
+        var $body = $('#filePreviewBody').empty();
+        $('#filePreviewTitle').text(name);
+        $('#filePreviewOpen').attr('href', url);
+        $('#filePreviewDownload').attr('href', $el.data('download'));
+
+        if (kind === 'image') {
+            $('<img>', { src: url, alt: name }).appendTo($body);
+        } else if (kind === 'pdf' || kind === 'text') {
+            $('<iframe>', { src: url, title: name }).appendTo($body);
+        } else if (kind === 'video') {
+            $('<video>', { src: url, controls: true, autoplay: true }).appendTo($body);
+        } else if (kind === 'audio') {
+            $('<audio>', { src: url, controls: true, autoplay: true }).appendTo($body);
+        } else {
+            $body.html('<div class="fpv-none"><i class="material-icons">visibility_off</i>This file type cannot be shown in the browser.<br>'
+                + '<a href="' + $('<div>').text($el.data('download')).html() + '"><i class="material-icons" style="font-size:18px;display:inline;margin:0;color:inherit">download</i>Download to open</a></div>');
+        }
+        openPageModal('#filePreviewModal');
+    });
+
+    // Stop video / audio when the preview closes.
+    $(document).on('hidden.bs.modal', '#filePreviewModal', function () {
+        $('#filePreviewBody').empty();
+    });
 
 </script>
 </x-app-layout>

@@ -511,6 +511,33 @@ class LeadController extends Controller
         return redirect()->route('leads.show', $lead)->with('lead_tab', 'files');
     }
 
+    /**
+     * Serve a lead file through the app (works without the public/storage
+     * symlink and only for users who can access the lead). ?download=1 saves it.
+     */
+    public function viewFile(Request $request, Lead $lead, Media $media)
+    {
+        abort_unless($this->canAccessLead($lead), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        abort_unless($media->model_type === Lead::class && (int) $media->model_id === (int) $lead->id, Response::HTTP_NOT_FOUND);
+
+        $path = $media->getPath();
+        abort_unless(is_file($path), Response::HTTP_NOT_FOUND, 'File not found on the server.');
+
+        $name = $media->getCustomProperty('original_name') ?: $media->file_name;
+        if ($request->boolean('download')) {
+            return response()->download($path, $name);
+        }
+
+        return response()->file($path, [
+            'Content-Type' => $media->mime_type ?: 'application/octet-stream',
+            'Content-Disposition' => 'inline; filename="'.addslashes($name).'"',
+            'X-Content-Type-Options' => 'nosniff',
+            // Allows the in-page PDF/text preview, but only on this site.
+            'X-Frame-Options' => 'SAMEORIGIN',
+            'Cache-Control' => 'private, max-age=3600',
+        ]);
+    }
+
     public function deleteMedia(Request $request)
     {
 
