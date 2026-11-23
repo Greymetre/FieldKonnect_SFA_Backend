@@ -4,6 +4,26 @@
     .lead-calling-chip.is-none { color: #94a3b8; background: rgba(148, 163, 184, .14); }
     .lead-calling-chip.is-partial { color: #f59e0b; background: rgba(245, 158, 11, .14); }
     .lead-calling-chip.is-all { color: #10b981; background: rgba(16, 185, 129, .13); }
+    /* Inline lead filters */
+    .lfx-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; align-items: end; margin: 0 0 18px; padding: 16px 18px; border: 1px solid var(--fk-list-border); border-radius: 16px; background: var(--fk-list-panel); }
+    .lfx-field { min-width: 0; }
+    .lfx-field label { display: block; margin-bottom: 6px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--fk-list-muted); }
+    .lfx-field .form-control, .lfx-field .bootstrap-select > .dropdown-toggle, .lfx-field .select2-container .select2-selection--single { height: 40px !important; min-height: 40px; border: 1px solid var(--fk-list-border-strong) !important; border-radius: 10px !important; background: var(--fk-list-control) !important; color: var(--fk-list-text) !important; font-size: 13px; }
+    .lfx-field .form-control { padding: 0 12px; width: 100%; }
+    .lfx-field .bootstrap-select { width: 100% !important; }
+    .lfx-field .select2-container { width: 100% !important; }
+    .lfx-field .select2-selection__rendered { line-height: 38px !important; color: var(--fk-list-text) !important; }
+    .lfx-field .select2-selection__arrow { height: 38px !important; }
+    .lfx-field form { margin: 0; display: block; }
+    .lfx-search { position: relative; grid-column: span 2; }
+    .lfx-search .material-icons { position: absolute; left: 10px; bottom: 10px; font-size: 18px; color: var(--fk-list-muted); }
+    .lfx-search .form-control { padding-left: 34px; }
+    .lfx-actions { display: flex; justify-content: flex-end; }
+    .lfx-reset { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px; border: 1px solid var(--fk-list-border-strong); border-radius: 10px; background: var(--fk-list-control); color: var(--fk-list-text); font-size: 13px; font-weight: 500; cursor: pointer; }
+    .lfx-reset:hover { border-color: var(--fk-list-accent); }
+    .lfx-reset .material-icons { font-size: 18px; }
+    @media (max-width: 1199px) { .lfx-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 575px) { .lfx-filters { grid-template-columns: minmax(0, 1fr); } .lfx-search { grid-column: auto; } }
   </style>
 
   <div class="row">
@@ -15,81 +35,8 @@
           </div> -->
           <h4 class="card-title ">Leads<span class="brig ml-2"></span>
             <span class="">
-            <button class="btn btn-info mb-3 float-right" type="button" data-toggle="collapse" data-target="#filterSection" aria-expanded="false" aria-controls="filterSection">
-              <i class="material-icons">tune</i> Filters
-              </button>
-              <div class="collapse" id="filterSection">
-                <div class="d-flex">
-                <div>
-                  <select name="status" id="status" class="form-control selectpicker" title="Status">
-                    <option value="">All</option>
-                    @if($status->count() > 0)
-                    @foreach($status as $stat)
-                    <option value="{{$stat['id']}}"> {{$stat['display_name']}} </option>
-                    @endforeach
-                    @endif
-                  </select>
-                </div>
-                <div>
-                  <select name="call_progress" id="call_progress" class="form-control selectpicker" title="Calling">
-                    <option value="">All leads</option>
-                    <option value="not_called">Not called</option>
-                    <option value="partial">Partially called</option>
-                    <option value="all_called">All contacts called</option>
-                  </select>
-                </div>
-                <div>
-                  {!! Form::open(['method' => 'POST', 'class' => 'form-inline', 'id' => 'frmFilter']) !!}
-                  {!! Form::text('datetime', old('datetime'), ['class' => 'form-control','placeholder'=> __('MM/DD/YYYY - MM/DD/YYYY'), 'autocomplete' => 'off']) !!}
-                  {!! Form::close() !!}
-                </div>
-                <div>
-                  <select name="user_id_search" id="user_id_search" class="form-control select2">
-                    <option value="">Assign To</option>
-                    @if(@isset($users ))
-                    @foreach($users as $user)
-                    <option value="{!! $user['id'] !!}">{!! $user['name'] !!}</option>
-                    @endforeach
-                    @endif
-                  </select>
-                </div>
-                <div>
-                  <select class="form-control select2 " name="state_id" id="state_id" onchange="getDistrictList()">
-                      <option value="">Select {!! trans('panel.global.state') !!}</option>
-                      @if($states && count($states) > 0)
-                      @foreach($states as $state)
-                      <option value="{!! $state->id !!}" {{ old('state_id', isset($lead) && $lead->address ? $lead->address->state_id : '') == $state->id ? 'selected' : '' }}>{!! $state->state_name !!}</option>
-                      @endforeach
-                      @endif
-                  </select>
-                </div>
-                <div>
-                  <select class="form-control select2 district" name="district_id" id="district_id" onchange="getCityList()">
-                      @if(isset($lead) && $lead->address && $lead->address->district_id)
-                      <option value="{!!  $lead->address->district_id !!}" selected>{!! $lead->address->districtname->district_name ?? '' !!}</option>
-                      @else
-                      <option value="">Select {!! trans('panel.global.district') !!}</option>
-                      @endif
-                    </select>
-                </div>
-                <div>
-                  <select class="form-control select2 city" name="city_id" id="city_id" onchange="getPincodeList()">
-                      @if(isset($lead) && $lead->address && $lead->address->city_id)
-                      <option value="{!!  $lead->address->city_id !!}" selected>{!! $lead->address->cityname->city_name??'' !!}</option>
-                      @else
-                      <option value="">Select {!! trans('panel.global.city') !!}</option>
-                      @endif
-                    </select>
-                </div>
-                </div>
               <div class="pream_entry">
 
-                <div class="search">
-                  <div class="search_inner">
-                    <button type="button"> <img src="https://expertfromindia.in/bediya/public/assets/img/search.svg"></button>
-                    <input type="search" class="searchbox" id="search_lead" placeholder="Search Lead">
-                  </div>
-                </div>
 
                 <div class="both_btn d-flex">
                 <a href="{{route('leads.create')}}" class="btn btn-primary btn-sm btn-icon-split float-right" title="{!! trans('panel.global.add') !!} Lead">
@@ -131,12 +78,90 @@
                   @endif
                 </div>
               </div>
-              </div>
             </span>
           </h4>
 
         </div>
         <div class="card-body">
+          {{-- Filters shown on the page (not in a drawer) --}}
+          <div class="lfx-filters">
+            <div class="lfx-field lfx-search">
+              <label for="search_lead">Search</label>
+              <span class="material-icons">search</span>
+              <input type="search" class="form-control" id="search_lead" placeholder="Company, contact, phone or Lead ID" autocomplete="off">
+            </div>
+            <div class="lfx-field">
+              <label>Lead type</label>
+              <select name="status" id="status" class="form-control selectpicker" title="Status">
+                    <option value="">All</option>
+                    @if($status->count() > 0)
+                    @foreach($status as $stat)
+                    <option value="{{$stat['id']}}"> {{$stat['display_name']}} </option>
+                    @endforeach
+                    @endif
+                  </select>
+            </div>
+            <div class="lfx-field">
+              <label>Calling</label>
+              <select name="call_progress" id="call_progress" class="form-control selectpicker" title="Calling">
+                    <option value="">All leads</option>
+                    <option value="not_called">Not called</option>
+                    <option value="partial">Partially called</option>
+                    <option value="all_called">All contacts called</option>
+                  </select>
+            </div>
+            <div class="lfx-field">
+              <label>Assigned to</label>
+              <select name="user_id_search" id="user_id_search" class="form-control select2">
+                    <option value="">Assign To</option>
+                    @if(@isset($users ))
+                    @foreach($users as $user)
+                    <option value="{!! $user['id'] !!}">{!! $user['name'] !!}</option>
+                    @endforeach
+                    @endif
+                  </select>
+            </div>
+            <div class="lfx-field lfx-date">
+              <label>Created between</label>
+              {!! Form::open(['method' => 'POST', 'class' => 'form-inline', 'id' => 'frmFilter']) !!}
+                  {!! Form::text('datetime', old('datetime'), ['class' => 'form-control','placeholder'=> __('MM/DD/YYYY - MM/DD/YYYY'), 'autocomplete' => 'off']) !!}
+                  {!! Form::close() !!}
+            </div>
+            <div class="lfx-field">
+              <label>State</label>
+              <select class="form-control select2 " name="state_id" id="state_id" onchange="getDistrictList()">
+                      <option value="">Select {!! trans('panel.global.state') !!}</option>
+                      @if($states && count($states) > 0)
+                      @foreach($states as $state)
+                      <option value="{!! $state->id !!}" {{ old('state_id', isset($lead) && $lead->address ? $lead->address->state_id : '') == $state->id ? 'selected' : '' }}>{!! $state->state_name !!}</option>
+                      @endforeach
+                      @endif
+                  </select>
+            </div>
+            <div class="lfx-field">
+              <label>District</label>
+              <select class="form-control select2 district" name="district_id" id="district_id" onchange="getCityList()">
+                      @if(isset($lead) && $lead->address && $lead->address->district_id)
+                      <option value="{!!  $lead->address->district_id !!}" selected>{!! $lead->address->districtname->district_name ?? '' !!}</option>
+                      @else
+                      <option value="">Select {!! trans('panel.global.district') !!}</option>
+                      @endif
+                    </select>
+            </div>
+            <div class="lfx-field">
+              <label>City</label>
+              <select class="form-control select2 city" name="city_id" id="city_id" onchange="getPincodeList()">
+                      @if(isset($lead) && $lead->address && $lead->address->city_id)
+                      <option value="{!!  $lead->address->city_id !!}" selected>{!! $lead->address->cityname->city_name??'' !!}</option>
+                      @else
+                      <option value="">Select {!! trans('panel.global.city') !!}</option>
+                      @endif
+                    </select>
+            </div>
+            <div class="lfx-actions">
+              <button type="button" class="lfx-reset" id="lfxReset"><span class="material-icons">restart_alt</span>Reset</button>
+            </div>
+          </div>
           @if(count($errors) > 0)
           <div class="alert alert-danger">
             <button type="button" class="close" data-dismiss="alert" aria-label="Close">
@@ -450,6 +475,14 @@
     });
     $('#call_progress').on('change', function() {
       getLeads();
+    });
+
+    $(document).on('click', '#lfxReset', function() {
+      jQuery('#search_lead').val('');
+      jQuery('#status, #call_progress').val('');
+      if (jQuery.fn.selectpicker) jQuery('#status, #call_progress').selectpicker('refresh');
+      jQuery('#user_id_search, #state_id, #district_id, #city_id').val('').trigger('change.select2');
+      resetFilter();
     });
 
     function resetFilter() {
