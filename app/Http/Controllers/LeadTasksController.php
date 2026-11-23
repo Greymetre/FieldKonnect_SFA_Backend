@@ -29,10 +29,18 @@ class LeadTasksController extends Controller
         return view('lead-tasks.index');
     }
 
-    /** Tasks the current user may see (everything for superadmin, else their team's). */
-    private function visibleTasks()
+    /**
+     * Tasks the current user may see.
+     *  - "all": everything for superadmin, else the team's tasks (users reporting
+     *    to them) plus tasks they created for anyone else.
+     *  - "mine": only the tasks assigned to the current user.
+     */
+    private function visibleTasks(?string $scope = null)
     {
         $query = LeadTask::query();
+        if ($scope === 'mine') {
+            return $query->where('lead_tasks.assigned_to', auth()->id());
+        }
         if (!auth()->user()->hasRole('superadmin')) {
             // Team's tasks, plus tasks the user created for anyone else.
             $query->where(function ($scope) {
@@ -55,7 +63,7 @@ class LeadTasksController extends Controller
 
     public function getLeadTasks(Request $request)
     {
-        $lead_tasks = $this->visibleTasks()->with(['lead:id,company_name,external_lead_id', 'assignUser:id,name']);
+        $lead_tasks = $this->visibleTasks($request->input('scope'))->with(['lead:id,company_name,external_lead_id', 'assignUser:id,name']);
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -131,7 +139,7 @@ class LeadTasksController extends Controller
         $page_number = intval($request->input('page_number'));
         $page_result = ($page_number - 1) * $results_per_page;
 
-        $lead_tasks = $this->visibleTasks()->with(['lead', 'createdby', 'assignUser']);
+        $lead_tasks = $this->visibleTasks($request->input('scope'))->with(['lead', 'createdby', 'assignUser']);
         $this->applyStatusFilter($lead_tasks, $request->status);
         if ($request->filled('start_date') && $request->filled('end_date')) {
             $lead_tasks->whereBetween('lead_tasks.date', [$request->start_date, $request->end_date]);

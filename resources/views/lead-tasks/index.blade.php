@@ -10,6 +10,11 @@
 
     /* Status tabs */
     .ltk-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .ltk-scope { display: inline-flex; gap: 4px; padding: 4px; margin-bottom: 12px; border: 1px solid var(--fk-list-border); border-radius: 14px; background: var(--fk-list-panel); }
+    .ltk-scope-btn { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 16px; border: 0; border-radius: 10px; background: transparent; color: var(--fk-list-muted); font-size: 13px; font-weight: 600; letter-spacing: normal; text-transform: none; cursor: pointer; }
+    .ltk-scope-btn .material-icons { font-size: 18px; }
+    .ltk-scope-btn.is-active { background: linear-gradient(135deg, var(--fk-list-accent), var(--fk-list-accent-2)); color: var(--fk-list-primary-text); }
+    .ltk-scope-hint { margin: 0 0 12px 10px; font-size: 12.5px; color: var(--fk-list-muted); }
     .ltk-tab { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px; border: 1px solid var(--fk-list-border); border-radius: 20px; background: var(--fk-list-panel); color: var(--fk-list-muted); font-size: 13px; font-weight: 600; cursor: pointer; }
     .ltk-tab .ltk-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
     .ltk-tab b { min-width: 22px; padding: 0 7px; border-radius: 10px; background: var(--fk-list-control); color: var(--fk-list-heading); font-size: 12px; line-height: 20px; text-align: center; }
@@ -124,6 +129,15 @@
     <div class="alert alert-success">{{ session()->get('message_success') }}</div>
     @endif
 
+    {{-- All tasks: everyone reporting to me (+ tasks I created). My tasks: assigned to me. --}}
+    <div class="d-flex flex-wrap align-items-center">
+      <div class="ltk-scope" id="ltkScope" role="tablist">
+        <button type="button" class="ltk-scope-btn is-active" data-scope="all"><span class="material-icons">groups</span>All Tasks</button>
+        <button type="button" class="ltk-scope-btn" data-scope="mine"><span class="material-icons">person</span>My Tasks</button>
+      </div>
+      <p class="ltk-scope-hint" id="ltkScopeHint">Tasks of your team (users reporting to you) and tasks you created</p>
+    </div>
+
     <div class="ltk-tabs" id="ltkTabs">
       <button type="button" class="ltk-tab is-active" data-status="">All <b data-count="all">0</b></button>
       <button type="button" class="ltk-tab" data-status="pending"><span class="ltk-dot"></span>Pending <b data-count="pending">0</b></button>
@@ -230,6 +244,7 @@
     }
 
     var ltkStatus = '';
+    var ltkScope = 'all';
     var ltkSelected = {};
     var ltkRows = {};
     var ltkEditing = null;
@@ -251,7 +266,18 @@
           var value = params.get(key);
           if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) $('#' + key).val(value);
         });
+        // ?scope=mine, otherwise the last choice on this browser.
+        var scope = params.get('scope');
+        if (!scope) { try { scope = window.localStorage.getItem('ltkScope'); } catch (e) { scope = null; } }
+        if (scope === 'mine') setScope('mine');
       })();
+
+      function setScope(scope) {
+        ltkScope = scope === 'mine' ? 'mine' : 'all';
+        $('.ltk-scope-btn').each(function() { $(this).toggleClass('is-active', $(this).data('scope') === ltkScope); });
+        $('#ltkScopeHint').text(ltkScope === 'mine' ? 'Only tasks assigned to you' : 'Tasks of your team (users reporting to you) and tasks you created');
+        try { window.localStorage.setItem('ltkScope', ltkScope); } catch (e) {}
+      }
 
       var table = $('#getLeadTasks').DataTable({
         processing: true,
@@ -267,6 +293,7 @@
             d.start_date = $('#start_date').val();
             d.end_date = $('#end_date').val();
             d.status = ltkStatus;
+            d.scope = ltkScope;
           },
           dataSrc: function(json) {
             $('#ltkRecordCount').text((json.recordsFiltered || 0) + ' records');
@@ -344,6 +371,13 @@
         }
       });
 
+      // All tasks / My tasks
+      $('#ltkScope').on('click', '.ltk-scope-btn', function() {
+        setScope(String($(this).data('scope')));
+        syncExport();
+        table.draw();
+      });
+
       // Status tabs
       $('#ltkTabs').on('click', '.ltk-tab', function() {
         $('.ltk-tab').removeClass('is-active');
@@ -369,7 +403,7 @@
 
       // Export uses the current status and dates.
       function syncExport() {
-        var params = $.param({ status: ltkStatus, start_date: $('#start_date').val(), end_date: $('#end_date').val() });
+        var params = $.param({ scope: ltkScope, status: ltkStatus, start_date: $('#start_date').val(), end_date: $('#end_date').val() });
         $('#ltkExport').attr('href', "{{ route('tasks-exportTasks') }}?" + params);
       }
 
