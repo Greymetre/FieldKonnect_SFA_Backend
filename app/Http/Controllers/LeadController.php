@@ -507,7 +507,7 @@ class LeadController extends Controller
             }
 
             $request->session()->flash('message_success', __('Lead file upload successfully.'));
-            return redirect()->route('leads.show', $lead);
+            return redirect()->route('leads.show', $lead)->with('lead_tab', 'files');
         } else {
             //$request->session()->flash('message_success',__('Lead file upload successfully.'));
             return redirect()->route('leads.show', $lead);
@@ -530,9 +530,11 @@ class LeadController extends Controller
         $media = Media::find($media_id);
 
         if ($media && $media->model_type === Lead::class) {
+            $mediaLead = Lead::find($media->model_id);
+            abort_unless($mediaLead && $this->canAccessLead($mediaLead), Response::HTTP_FORBIDDEN, '403 Forbidden');
             $media->delete();
-            $request->session()->flash('message_success', __('Lead file upload successfully.'));
-            return redirect()->back();
+            $request->session()->flash('message_success', __('Lead file deleted successfully.'));
+            return redirect()->back()->with('lead_tab', 'files');
         } else {
             return redirect()->back();
         }
