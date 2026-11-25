@@ -55,9 +55,11 @@ class LeadNotesController extends Controller
         ];
         [$label, $tab] = $labels[$type] ?? $labels[LeadNote::TYPE_NOTE];
 
-        if ($existing && $existing->isApproved() && ! $existing->canBeApprovedBy(Auth::user())) {
+        if ($existing && ($existing->isLockedFor(Auth::user()) || $existing->isRejected())) {
             return redirect()->back()->with('lead_tab', $tab)
-                ->withErrors(['note' => 'This draft is approved and can no longer be edited.']);
+                ->withErrors(['note' => $existing->isRejected()
+                    ? 'This draft was rejected and can no longer be edited. Please write a new draft.'
+                    : 'This draft is approved and can no longer be edited.']);
         }
 
         $approverId = $isDraft ? (int) $request->approver_id : null;
@@ -78,7 +80,7 @@ class LeadNotesController extends Controller
                 $request->session()->flash('message_success', $label.' updated and sent back to '.($existing->approver->name ?? 'the approver').' for approval.');
             } else {
                 $request->session()->flash('message_success', $label.' updated successfully.');
-                if ($approverChanged && ! $existing->isApproved()) {
+                if ($approverChanged && ! $existing->isDecided()) {
                     $this->notifyApprover($existing, $label);
                 }
             }

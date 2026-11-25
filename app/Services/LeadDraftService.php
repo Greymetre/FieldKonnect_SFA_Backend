@@ -14,7 +14,8 @@ use Illuminate\Validation\ValidationException;
  *
  *   agent writes draft (for one contact) → approver
  *       ├─ Approve            → agent can send it
- *       └─ Feedback (changes) → agent edits it → back to the approver
+ *       ├─ Feedback (changes) → agent edits it → back to the approver
+ *       └─ Reject (with reason) → final; the agent sees it as Rejected
  */
 class LeadDraftService
 {
@@ -64,10 +65,25 @@ class LeadDraftService
             'note' => $note,
             'approved_by' => $by->id,
             'approved_at' => now(),
-        ], fn ($value) => $value !== null && $value !== '') + ['changes_requested_at' => null]);
+        ], fn ($value) => $value !== null && $value !== '') + ['changes_requested_at' => null, 'rejected_at' => null, 'rejected_by' => null, 'rejection_reason' => null]);
 
         if ($draft->created_by && (int) $draft->created_by !== (int) $by->id) {
             $this->notify($draft->created_by, $draft, '✅ '.$by->name.' approved your '.$this->label($draft).' for '.$this->company($draft).'. You can send it now.', 'Draft Approved');
+        }
+    }
+
+    /** Reject the draft (final) and tell the agent why. */
+    public function reject(LeadNote $draft, User $by, string $reason): void
+    {
+        $draft->update([
+            'rejected_at' => now(),
+            'rejected_by' => $by->id,
+            'rejection_reason' => trim($reason),
+            'changes_requested_at' => null,
+        ]);
+
+        if ($draft->created_by && (int) $draft->created_by !== (int) $by->id) {
+            $this->notify($draft->created_by, $draft, '❌ '.$by->name.' rejected your '.$this->label($draft).' for '.$this->company($draft).': "'.Str::limit(trim($reason), 80).'"', 'Draft Rejected');
         }
     }
 

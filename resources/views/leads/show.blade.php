@@ -1771,6 +1771,10 @@
         .lead-detail-page .draft-feedback small { font-size: 11.5px; color: var(--fk-list-muted); }
         .lead-detail-page .draft-feedback-banner { margin-top: 10px; padding: 9px 12px; border-left: 3px solid #fb923c; border-radius: 8px; background: rgba(251, 146, 60, .1); font-size: 13px; color: var(--fk-list-text); white-space: pre-wrap; }
         .lead-detail-page .draft-feedback-banner b { color: #fb923c; }
+        .lead-detail-page .draft-status.is-rejected { color: #ef4444; background: rgba(239, 68, 68, .14); }
+        .lead-detail-page .draft-feedback.draft-rejection { border-left-color: #ef4444; background: rgba(239, 68, 68, .09); }
+        .lead-detail-page .draft-feedback.draft-rejection .draft-feedback-head { color: #ef4444; }
+        .lead-detail-page .draft-item.is-rejected .draft-text-view { opacity: .7; }
         .lead-detail-page .draft-approver-row .draft-contact { width: 100%; }
         .lead-detail-page .draft-item.is-approved .draft-icon { border-color: #10b981; color: #10b981; }
         .lead-detail-page .lead-contact-link {
@@ -2807,6 +2811,8 @@ action="{{ route('lead-opportunities.store') }}" class="form-horizontal taskform
                 <h5>{{ $lead_note->type == 'email' ? 'Email Draft' : 'LinkedIn Draft' }}
                     @if($lead_note->isApproved())
                     <span class="draft-status is-approved"><i class="material-icons">verified</i> Approved</span>
+                    @elseif($lead_note->isRejected())
+                    <span class="draft-status is-rejected" title="{{ $lead_note->rejection_reason }}"><i class="material-icons">block</i> Rejected</span>
                     @else
                     <span class="draft-status is-pending"><i class="material-icons">schedule</i> Pending approval</span>
                     @endif

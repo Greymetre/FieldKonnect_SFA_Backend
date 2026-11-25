@@ -76,6 +76,7 @@
     .dap-sub { display: block; margin-top: 2px; font-size: 12px; color: var(--fk-list-muted); }
 
     .dap-draft {
+      min-width: 260px;
       max-width: 560px;
       max-height: 96px;
       overflow: hidden;
@@ -115,6 +116,11 @@
     .dap-btn:hover { border-color: var(--fk-list-accent); }
     .dap-btn.is-approve { border-color: transparent; background: #10b981; color: #fff !important; }
     .dap-btn.is-feedback { border-color: rgba(245, 158, 11, .55); color: #f59e0b !important; }
+    .dap-btn.is-reject { border-color: rgba(239, 68, 68, .55); color: #ef4444 !important; }
+    .dap-btn.is-reject:hover { border-color: #ef4444; }
+    .dap-chip.is-rejected { color: #ef4444; background: rgba(239, 68, 68, .13); }
+    .dap-reject-note { border-left-color: #ef4444; background: rgba(239, 68, 68, .08); }
+    .dap-modal #dapRejectText { min-height: 120px; }
     .dap-contact { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; font-size: 12px; color: var(--fk-list-text); }
     .dap-contact .material-icons { font-size: 14px; color: var(--fk-list-accent); }
     .dap-chip.is-changes { color: #f59e0b; background: rgba(245, 158, 11, .14); }
@@ -171,6 +177,7 @@
             <option value="pending" selected>Pending approval</option>
             <option value="changes">Feedback sent (waiting for agent)</option>
             <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
             <option value="all">All</option>
           </select>
         </div>
@@ -188,7 +195,7 @@
           <div class="fk-table-meta-icon"><span class="material-icons">fact_check</span></div>
           <div class="fk-table-meta-copy">
             <h2 id="dapTableTitle">Email Drafts</h2>
-            <p class="fk-table-meta-subline">Review, edit and approve — or send feedback so the agent fixes the draft and sends it back. Approved drafts are locked for agents.</p>
+            <p class="fk-table-meta-subline">Review, edit and approve — send feedback so the agent fixes the draft and sends it back, or reject it. Approved and rejected drafts are locked for agents.</p>
           </div>
         </div>
         <div class="table-responsive">
@@ -252,6 +259,29 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-primary" data-dismiss="modal">Cancel</button>
           <button type="button" class="btn btn-primary" id="dapFeedbackSend">Send feedback to agent</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="dapRejectModal" tabindex="-1" role="dialog" aria-labelledby="dapRejectTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content dap-modal">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title" id="dapRejectTitle">Reject draft</h5>
+            <small id="dapRejectSub"></small>
+          </div>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        </div>
+        <div class="modal-body">
+          <label class="dap-label" for="dapRejectText">Reason for rejection (the agent will see this)</label>
+          <textarea class="form-control" id="dapRejectText" maxlength="2000" placeholder="e.g. Wrong contact, not the right time to reach out, duplicate draft..."></textarea>
+          <p class="dap-error" id="dapRejectError"></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-primary" data-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger" id="dapRejectSend">Reject draft</button>
         </div>
       </div>
     </div>
@@ -325,6 +355,10 @@
               if (approved) {
                 return '<span class="dap-chip is-ok"><span class="material-icons">verified</span>Approved</span><span class="dap-sub">by ' + dapEsc(row.approved_by || '-') + '<br>' + dapEsc(row.approved_at || '') + '</span>';
               }
+              if (row.rejected) {
+                return '<span class="dap-chip is-rejected"><span class="material-icons">block</span>Rejected</span><span class="dap-sub">by ' + dapEsc(row.rejected_by || '-') + '<br>' + dapEsc(row.rejected_at || '') + '</span>'
+                  + (row.rejection_reason ? '<span class="dap-feedback-note dap-reject-note">' + dapEsc(row.rejection_reason) + '</span>' : '');
+              }
               if (row.state === 'changes_requested') {
                 return '<span class="dap-chip is-changes"><span class="material-icons">rate_review</span>Feedback sent</span>'
                   + '<span class="dap-sub">Waiting for the agent to update</span>'
@@ -337,10 +371,13 @@
           {
             data: 'id',
             render: function(id, type, row) {
+              if (row.rejected) return '<span class="dap-sub">No actions — rejected</span>';
+              var open = !row.approved;
               return '<div class="dap-actions">'
                 + '<button type="button" class="dap-btn dap-edit" data-id="' + id + '"><span class="material-icons">edit</span>Edit</button>'
-                + (row.approved ? '' : '<button type="button" class="dap-btn is-approve dap-approve" data-id="' + id + '"><span class="material-icons">check</span>Approve</button>')
-                + (row.approved ? '' : '<button type="button" class="dap-btn is-feedback dap-feedback" data-id="' + id + '"><span class="material-icons">rate_review</span>Feedback</button>')
+                + (open ? '<button type="button" class="dap-btn is-approve dap-approve" data-id="' + id + '"><span class="material-icons">check</span>Approve</button>' : '')
+                + (open ? '<button type="button" class="dap-btn is-feedback dap-feedback" data-id="' + id + '"><span class="material-icons">rate_review</span>Feedback</button>' : '')
+                + (open ? '<button type="button" class="dap-btn is-reject dap-reject" data-id="' + id + '"><span class="material-icons">block</span>Reject</button>' : '')
                 + '</div>';
             }
           }
@@ -414,6 +451,36 @@
           .fail(function(xhr) {
             var res = xhr.responseJSON || {};
             $('#dapFeedbackError').text(res.errors ? Object.values(res.errors)[0][0] : (res.message || 'Could not send the feedback.'));
+          })
+          .always(function() { $btn.prop('disabled', false); });
+      });
+
+      // Reject: final; the agent sees the draft as Rejected with this reason.
+      var dapRejectRow = null;
+      $(document).on('click', '.dap-reject', function() {
+        dapRejectRow = dapRows[$(this).data('id')];
+        if (!dapRejectRow) return;
+        $('#dapRejectSub').text(dapRejectRow.company + (dapRejectRow.contact ? ' · for ' + dapRejectRow.contact : '') + ' · by ' + dapRejectRow.created_by);
+        $('#dapRejectText').val('');
+        $('#dapRejectError').text('');
+        $('#dapRejectModal').modal('show');
+        setTimeout(function() { $('#dapRejectText').trigger('focus'); }, 300);
+      });
+
+      $('#dapRejectSend').on('click', function() {
+        if (!dapRejectRow) return;
+        var text = $.trim($('#dapRejectText').val());
+        if (!text) { $('#dapRejectError').text('Please write why the draft is rejected.'); return; }
+        var $btn = $(this).prop('disabled', true);
+        $.post(dapRejectRow.reject_url, { reason: text })
+          .done(function() {
+            $('#dapRejectModal').modal('hide');
+            table.draw(false);
+            refreshCounts();
+          })
+          .fail(function(xhr) {
+            var res = xhr.responseJSON || {};
+            $('#dapRejectError').text(res.errors ? Object.values(res.errors)[0][0] : (res.message || 'Could not reject the draft.'));
           })
           .always(function() { $btn.prop('disabled', false); });
       });

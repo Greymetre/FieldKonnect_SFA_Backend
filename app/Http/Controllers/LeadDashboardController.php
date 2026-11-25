@@ -74,6 +74,7 @@ class LeadDashboardController extends Controller
         $overdueTasks = (clone $tasks)->where('status', '!=', 'completed')->where('date', '<', $today)->count();
         $pendingDrafts = LeadNote::whereIn('type', [LeadNote::TYPE_EMAIL, LeadNote::TYPE_LINKEDIN])
             ->whereNull('approved_at')
+            ->whereNull('rejected_at')
             ->whereIn('lead_id', (clone $leads)->select('id'))
             ->count();
 
@@ -252,6 +253,7 @@ class LeadDashboardController extends Controller
         $feedbackQuery = LeadNote::whereIn('type', [LeadNote::TYPE_EMAIL, LeadNote::TYPE_LINKEDIN])
             ->where('created_by', Auth::id())
             ->whereNull('approved_at')
+            ->whereNull('rejected_at')
             ->whereNotNull('changes_requested_at');
         $feedbackCount = (clone $feedbackQuery)->count();
         $feedbackDrafts = $feedbackQuery->with(['lead:id,company_name,external_lead_id', 'contact:id,name', 'feedbacks.user:id,name'])

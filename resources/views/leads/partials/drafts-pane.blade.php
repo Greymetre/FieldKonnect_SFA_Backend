@@ -47,13 +47,15 @@
         @endif
 
         @foreach($drafts as $draft)
-        <div class="draft-item {{ $draft->isApproved() ? 'is-approved' : '' }}" id="draft-item-{{ $draft->id }}">
+        <div class="draft-item {{ $draft->isApproved() ? 'is-approved' : ($draft->isRejected() ? 'is-rejected' : '') }}" id="draft-item-{{ $draft->id }}">
             <div class="draft-icon"><i class="material-icons">{{ $icon }}</i></div>
             <div class="draft-main">
                 <div class="draft-text-view" id="draft-text-{{ $draft->id }}">{{ $draft->note }}</div>
                 <div class="draft-meta">
                     @if($draft->isApproved())
                     <span class="draft-status is-approved" title="Approved by {{ $draft->approvedby->name ?? '-' }} on {{ $draft->approved_at->format('d M Y, h:i A') }}"><i class="material-icons">verified</i> Approved</span>
+                    @elseif($draft->isRejected())
+                    <span class="draft-status is-rejected" title="Rejected by {{ $draft->rejectedby->name ?? '-' }} on {{ $draft->rejected_at->format('d M Y, h:i A') }}"><i class="material-icons">block</i> Rejected</span>
                     @elseif($draft->needsChanges())
                     <span class="draft-status is-changes"><i class="material-icons">rate_review</i> Changes requested</span>
                     @else
@@ -68,12 +70,22 @@
                     @endif
                     @if($draft->isApproved())
                     · approved by {{ $draft->approvedby->name ?? '-' }}
+                    @elseif($draft->isRejected())
+                    · rejected by {{ $draft->rejectedby->name ?? '-' }}
                     @endif
                 </div>
                 @php
                     $lastFeedback = $draft->feedbacks->last();
                 @endphp
-                @if($lastFeedback && ! $draft->isApproved())
+                @if($draft->isRejected())
+                <div class="draft-feedback draft-rejection is-open">
+                    <div class="draft-feedback-head"><i class="material-icons">block</i> Rejected by {{ $draft->rejectedby->name ?? 'approver' }} · {{ $draft->rejected_at?->format('d M Y, h:i A') }}</div>
+                    @if($draft->rejection_reason)
+                    <p>{{ $draft->rejection_reason }}</p>
+                    @endif
+                    <small>This draft can't be sent or edited. Write a new draft if needed.</small>
+                </div>
+                @elseif($lastFeedback && ! $draft->isApproved())
                 <div class="draft-feedback {{ $draft->needsChanges() ? 'is-open' : '' }}">
                     <div class="draft-feedback-head"><i class="material-icons">rate_review</i> Feedback from {{ $lastFeedback->user->name ?? 'approver' }} · {{ $lastFeedback->created_at?->format('d M Y, h:i A') }}</div>
                     <p>{{ $lastFeedback->feedback }}</p>
@@ -97,9 +109,11 @@
                 </button>
                 @endif
                 <button type="button" class="contact-icon-btn draft-copy" data-copy-target="#draft-text-{{ $draft->id }}" title="Copy draft" data-toggle="tooltip"><i class="material-icons">content_copy</i></button>
-                {{-- Approved drafts are locked; only approvers may still change them. --}}
+                {{-- Approved drafts are locked; only approvers may still change them. Rejected drafts can only be deleted. --}}
                 @if(! $draft->isApproved() || $draft->canBeApprovedBy(auth()->user()))
+                @unless($draft->isRejected())
                 <button type="button" class="contact-icon-btn contact-icon-muted draft-edit" data-draft-form="#{{ $paneId }}-form" data-id="{{ $draft->id }}" data-approver="{{ $draft->approver_id }}" data-contact="{{ $draft->lead_contact_id }}" data-feedback="{{ $draft->needsChanges() ? ($lastFeedback->feedback ?? '') : '' }}" data-text="{{ $draft->note }}" title="Edit draft" data-toggle="tooltip"><i class="material-icons">edit</i></button>
+                @endunless
                 <form action="{{ route('lead-notes.destroy', $draft->id) }}" method="POST" class="d-inline-flex m-0" onsubmit="return confirm('Delete this draft?')">
                     @csrf
                     @method('DELETE')

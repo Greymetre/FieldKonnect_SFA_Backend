@@ -139,6 +139,7 @@ Route::middleware('auth:users')->group(function () {
     Route::get('draft-approvals', [LeadFlowController::class, 'approvals']);
     Route::post('draft-approvals/approve', [LeadFlowController::class, 'approveDraft']);
     Route::post('draft-approvals/feedback', [LeadFlowController::class, 'draftFeedback']);
+    Route::post('draft-approvals/reject', [LeadFlowController::class, 'rejectDraft']);
     Route::post('lead-files', [LeadFlowController::class, 'uploadFiles']);
     Route::post('lead-files/delete', [LeadFlowController::class, 'deleteFile']);
 

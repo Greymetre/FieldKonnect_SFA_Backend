@@ -104,7 +104,7 @@ class LeadFlowController extends Controller
             'can_change_status' => in_array((int) $user->id, [(int) $task->assigned_to, (int) $task->created_by], true) || $this->isAdmin($user),
         ]);
 
-        $drafts = LeadNote::with(['createdby:id,name', 'approver:id,name', 'approvedBy:id,name', 'contact:id,name,title', 'feedbacks.user:id,name'])
+        $drafts = LeadNote::with(['createdby:id,name', 'approver:id,name', 'approvedBy:id,name', 'rejectedby:id,name', 'contact:id,name,title', 'feedbacks.user:id,name'])
             ->where('lead_id', $lead->id)->whereIn('type', self::DRAFT_TYPES)
             ->latest()->get()
             ->map(fn (LeadNote $draft) => $this->draftPayload($draft, $user))
@@ -204,7 +204,7 @@ class LeadFlowController extends Controller
         $contactId = $service->validContactId($validated['lead_contact_id'], $lead->id);
 
         if ($draft) {
-            abort_if($draft->isApproved() && ! $draft->canBeApprovedBy($user), Response::HTTP_UNPROCESSABLE_ENTITY, 'This draft is approved and can no longer be edited.');
+            abort_if($draft->isLockedFor($user), Response::HTTP_UNPROCESSABLE_ENTITY, $draft->isRejected() ? 'This draft was rejected and can no longer be edited. Please write a new draft.' : 'This draft is approved and can no longer be edited.');
             $approverChanged = (int) $draft->approver_id !== $approverId;
             $wasSentBack = $draft->needsChanges();
             $draft->update(['note' => $validated['note'], 'approver_id' => $approverId, 'lead_contact_id' => $contactId]);
@@ -213,7 +213,7 @@ class LeadFlowController extends Controller
                 $service->afterAgentEdit($draft, $user);
                 $message = 'Draft updated and sent back to '.($draft->approver->name ?? 'the approver').' for approval.';
             } else {
-                if ($approverChanged && ! $draft->isApproved()) {
+                if ($approverChanged && ! $draft->isDecided()) {
                     $this->notifyApprover($draft, $user);
                 }
                 $message = 'Draft updated.';
@@ -254,12 +254,10 @@ class LeadFlowController extends Controller
         $state = $request->input('state', 'pending');
         $canSeeAll = $user->can('draft_approval');
 
-        $query = LeadNote::with(['createdby:id,name', 'approver:id,name', 'approvedBy:id,name', 'lead:id,company_name,external_lead_id', 'contact:id,name,title', 'feedbacks.user:id,name'])
+        $query = LeadNote::with(['createdby:id,name', 'approver:id,name', 'approvedBy:id,name', 'rejectedby:id,name', 'lead:id,company_name,external_lead_id', 'contact:id,name,title', 'feedbacks.user:id,name'])
             ->where('type', $type)
             ->when(! $canSeeAll, fn ($q) => $q->where('approver_id', $user->id))
-            ->when($state === 'approved', fn ($q) => $q->whereNotNull('approved_at'))
-            ->when($state === 'changes', fn ($q) => $q->whereNull('approved_at')->whereNotNull('changes_requested_at'))
-            ->when(! in_array($state, ['approved', 'changes'], true), fn ($q) => $q->whereNull('approved_at')->whereNull('changes_requested_at'))
+            ->draftStatus($state)
             ->when($request->filled('search'), function ($q) use ($request) {
                 $search = $request->search;
                 $q->where(fn ($inner) => $inner->where('note', 'like', '%'.$search.'%')
@@ -268,7 +266,7 @@ class LeadFlowController extends Controller
             ->latest();
         $page = $query->paginate((int) $request->input('pageSize', 20));
 
-        $counts = LeadNote::whereIn('type', self::DRAFT_TYPES)->whereNull('approved_at')->whereNull('changes_requested_at')
+        $counts = LeadNote::whereIn('type', self::DRAFT_TYPES)->awaitingApproval()
             ->when(! $canSeeAll, fn ($q) => $q->where('approver_id', $user->id))
             ->selectRaw('type, COUNT(*) as total')->groupBy('type')->pluck('total', 'type');
 
@@ -312,9 +310,27 @@ class LeadFlowController extends Controller
         $draft = LeadNote::whereIn('type', self::DRAFT_TYPES)->findOrFail($validated['draft_id']);
         abort_unless($draft->canBeApprovedBy($user), Response::HTTP_FORBIDDEN, 'This draft was sent to another approver.');
         abort_if($draft->isApproved(), Response::HTTP_UNPROCESSABLE_ENTITY, 'This draft is already approved.');
+        abort_if($draft->isRejected(), Response::HTTP_UNPROCESSABLE_ENTITY, 'This draft is already rejected.');
         app(LeadDraftService::class)->requestChanges($draft, $user, $validated['feedback']);
 
         return response()->json(['success' => true, 'message' => 'Feedback sent to '.($draft->createdby->name ?? 'the agent').'.']);
+    }
+
+    /** Approver rejects a draft (final) with a reason the agent can see. */
+    public function rejectDraft(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'draft_id' => ['required', 'integer'],
+            'reason' => ['required', 'string', 'max:2000'],
+        ], ['reason.required' => 'Please write why the draft is rejected.']);
+        $user = $request->user();
+        $draft = LeadNote::whereIn('type', self::DRAFT_TYPES)->findOrFail($validated['draft_id']);
+        abort_unless($draft->canBeApprovedBy($user), Response::HTTP_FORBIDDEN, 'This draft was sent to another approver.');
+        abort_if($draft->isApproved(), Response::HTTP_UNPROCESSABLE_ENTITY, 'This draft is already approved.');
+        abort_if($draft->isRejected(), Response::HTTP_UNPROCESSABLE_ENTITY, 'This draft is already rejected.');
+        app(LeadDraftService::class)->reject($draft, $user, $validated['reason']);
+
+        return response()->json(['success' => true, 'message' => 'Draft rejected. '.($draft->createdby->name ?? 'The agent').' has been notified.', 'data' => $this->draftPayload($draft->fresh(['createdby', 'approver', 'approvedBy', 'rejectedby', 'contact', 'feedbacks.user']), $user)]);
     }
 
     /** Upload one or more files to a lead (local public disk, same as the CRM). */
@@ -426,6 +442,7 @@ class LeadFlowController extends Controller
     private function draftPayload(LeadNote $draft, User $user): array
     {
         $approved = $draft->isApproved();
+        $rejected = $draft->isRejected();
 
         return [
             'id' => $draft->id,
@@ -438,8 +455,14 @@ class LeadFlowController extends Controller
             'approved' => $approved,
             'approved_by' => $draft->approvedBy?->name,
             'approved_at' => $draft->approved_at ? \Carbon\Carbon::parse($draft->approved_at)->format('d M Y, h:i A') : null,
-            'can_edit' => ! $approved || $draft->canBeApprovedBy($user),
-            'can_approve' => ! $approved && $draft->canBeApprovedBy($user),
+            'rejected' => $rejected,
+            'rejected_by' => $draft->rejectedby?->name,
+            'rejected_at' => $draft->rejected_at?->format('d M Y, h:i A'),
+            'rejection_reason' => $draft->rejection_reason,
+            'can_edit' => ! $draft->isLockedFor($user) && ! $rejected,
+            'can_delete' => ! $approved || $draft->canBeApprovedBy($user),
+            'can_approve' => ! $approved && ! $rejected && $draft->canBeApprovedBy($user),
+            'can_reject' => ! $approved && ! $rejected && $draft->canBeApprovedBy($user),
             'state' => $draft->draftState(),
             'contact_id' => $draft->lead_contact_id,
             'contact_name' => $draft->contact?->name,

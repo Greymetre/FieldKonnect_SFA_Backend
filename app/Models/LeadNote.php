@@ -24,11 +24,15 @@ class LeadNote extends Model
         'approved_by',
         'approved_at',
         'changes_requested_at',
+        'rejected_at',
+        'rejected_by',
+        'rejection_reason',
     ];
 
     protected $casts = [
         'approved_at' => 'datetime',
         'changes_requested_at' => 'datetime',
+        'rejected_at' => 'datetime',
     ];
 
     protected $attributes = [
@@ -60,16 +64,63 @@ class LeadNote extends Model
         return $this->approved_at !== null;
     }
 
+    /** The approver rejected the draft (final; locked for the agent). */
+    public function isRejected(): bool
+    {
+        return ! $this->isApproved() && $this->rejected_at !== null;
+    }
+
+    /** Approved or rejected: no further approval action is possible. */
+    public function isDecided(): bool
+    {
+        return $this->isApproved() || $this->isRejected();
+    }
+
+    /** Agents may not edit/delete approved drafts; rejected drafts can only be deleted. */
+    public function isLockedFor(?User $user): bool
+    {
+        return $this->isDecided() && ! $this->canBeApprovedBy($user);
+    }
+
+    public function rejectedby(){
+        return $this->belongsTo(User::class, 'rejected_by');
+    }
+
     /** The approver sent feedback and the agent has not updated the draft yet. */
     public function needsChanges(): bool
     {
-        return ! $this->isApproved() && $this->changes_requested_at !== null;
+        return ! $this->isDecided() && $this->changes_requested_at !== null;
     }
 
-    /** pending | changes_requested | approved */
+    /** pending | changes_requested | approved | rejected */
     public function draftState(): string
     {
-        return $this->isApproved() ? 'approved' : ($this->needsChanges() ? 'changes_requested' : 'pending');
+        if ($this->isApproved()) {
+            return 'approved';
+        }
+        if ($this->isRejected()) {
+            return 'rejected';
+        }
+
+        return $this->needsChanges() ? 'changes_requested' : 'pending';
+    }
+
+    /** Waiting for the approver: not decided and no open feedback. */
+    public function scopeAwaitingApproval($query)
+    {
+        return $query->whereNull('approved_at')->whereNull('rejected_at')->whereNull('changes_requested_at');
+    }
+
+    /** Draft list status filter shared by the CRM and the mobile app. */
+    public function scopeDraftStatus($query, ?string $status)
+    {
+        return match ($status) {
+            'all' => $query,
+            'approved' => $query->whereNotNull('approved_at'),
+            'rejected' => $query->whereNull('approved_at')->whereNotNull('rejected_at'),
+            'changes' => $query->whereNull('approved_at')->whereNull('rejected_at')->whereNotNull('changes_requested_at'),
+            default => $query->awaitingApproval(),
+        };
     }
 
     /** The lead contact this draft is written for. */
