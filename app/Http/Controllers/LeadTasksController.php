@@ -26,7 +26,11 @@ class LeadTasksController extends Controller
     {
         abort_if(Gate::denies('lead_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        return view('lead-tasks.index');
+        // User filter: everyone whose tasks this user can see (team + tasks they created).
+        $taskUsers = \App\Models\User::whereIn('id', $this->visibleTasks('all')->whereNotNull('lead_tasks.assigned_to')->select('lead_tasks.assigned_to')->distinct())
+            ->orderBy('name')->get(['id', 'name']);
+
+        return view('lead-tasks.index', compact('taskUsers'));
     }
 
     /**
@@ -50,6 +54,14 @@ class LeadTasksController extends Controller
         }
 
         return $query;
+    }
+
+    /** Tasks assigned to one user (only within the "All tasks" view). */
+    private function applyUserFilter($query, Request $request): void
+    {
+        if ($request->input('scope') !== 'mine' && $request->filled('user_id')) {
+            $query->where('lead_tasks.assigned_to', (int) $request->user_id);
+        }
     }
 
     private function applyStatusFilter($query, ?string $status): void
@@ -77,6 +89,7 @@ class LeadTasksController extends Controller
         if ($request->filled('start_date') && $request->filled('end_date')) {
             $lead_tasks->whereBetween('lead_tasks.date', [$request->start_date, $request->end_date]);
         }
+        $this->applyUserFilter($lead_tasks, $request);
 
         // Counts for the status tabs (same filters, without the status filter).
         $countsBase = (clone $lead_tasks)->setEagerLoads([]);
@@ -144,7 +157,8 @@ class LeadTasksController extends Controller
         if ($request->filled('start_date') && $request->filled('end_date')) {
             $lead_tasks->whereBetween('lead_tasks.date', [$request->start_date, $request->end_date]);
         }
-        $lead_tasks = $lead_tasks = $lead_tasks->orderByRaw("
+        $this->applyUserFilter($lead_tasks, $request);
+        $lead_tasks = $lead_tasks->orderByRaw("
                 CASE 
                     WHEN lead_tasks.status = 'pending' THEN 0
                     WHEN lead_tasks.status = 'open' THEN 1

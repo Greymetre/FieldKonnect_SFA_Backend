@@ -26,12 +26,15 @@
     .ltk-tab[data-status="overdue"] .ltk-dot { color: #ef4444; }
 
     /* Filters */
-    .ltk-filters { display: grid; grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr)) auto; gap: 12px; align-items: end; padding: 14px 18px; margin-bottom: 16px; }
+    .ltk-filters { display: grid; grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr)) auto; gap: 12px; align-items: end; padding: 14px 18px; margin-bottom: 16px; }
     .ltk-field label { display: block; margin-bottom: 6px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--fk-list-muted); }
     .ltk-field .form-control { height: 40px !important; border: 1px solid var(--fk-list-border-strong) !important; border-radius: 10px !important; background: var(--fk-list-control) !important; color: var(--fk-list-text) !important; padding: 0 12px; font-size: 13px; }
     .ltk-search { position: relative; }
     .ltk-search .material-icons { position: absolute; left: 10px; bottom: 10px; font-size: 18px; color: var(--fk-list-muted); }
     .ltk-search .form-control { padding-left: 34px; }
+    .ltk-filters.is-mine { grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr)) auto; }
+    .ltk-filters.is-mine .ltk-user-field { display: none; }
+    .ltk-field select.form-control option { background: var(--fk-list-panel, #0b1736); color: var(--fk-list-text); }
 
     .ltk-bulk { display: none; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; margin-bottom: 14px; border-color: var(--fk-list-accent); }
     .ltk-bulk.is-visible { display: flex; }
@@ -147,11 +150,20 @@
       <button type="button" class="ltk-tab" data-status="overdue"><span class="ltk-dot"></span>Overdue <b data-count="overdue">0</b></button>
     </div>
 
-    <div class="ltk-panel ltk-filters">
+    <div class="ltk-panel ltk-filters is-mine" id="ltkFilters">
       <div class="ltk-field ltk-search">
         <label for="ltkSearch">Search</label>
         <span class="material-icons">search</span>
         <input type="search" class="form-control" id="ltkSearch" placeholder="Task, company, priority or assignee" autocomplete="off">
+      </div>
+      <div class="ltk-field ltk-user-field">
+        <label for="ltkUser">User</label>
+        <select class="form-control" id="ltkUser">
+          <option value="">All users</option>
+          @foreach($taskUsers as $taskUser)
+          <option value="{{ $taskUser->id }}">{{ $taskUser->name }}</option>
+          @endforeach
+        </select>
       </div>
       <div class="ltk-field">
         <label for="start_date">Due from</label>
@@ -267,12 +279,17 @@
           if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) $('#' + key).val(value);
         });
         // Opens on "My Tasks"; links can ask for the team view with ?scope=all.
+        if (params.get('user_id') && $('#ltkUser option[value="' + params.get('user_id').replace(/\D/g, '') + '"]').length) {
+          $('#ltkUser').val(params.get('user_id').replace(/\D/g, ''));
+          setScope('all');
+        }
         if (params.get('scope') === 'all') setScope('all');
       })();
 
       function setScope(scope) {
         ltkScope = scope === 'mine' ? 'mine' : 'all';
         $('.ltk-scope-btn').each(function() { $(this).toggleClass('is-active', $(this).data('scope') === ltkScope); });
+        $('#ltkFilters').toggleClass('is-mine', ltkScope === 'mine');
         $('#ltkScopeHint').text(ltkScope === 'mine' ? 'Only tasks assigned to you' : 'Tasks of your team (users reporting to you) and tasks you created');
       }
 
@@ -291,6 +308,7 @@
             d.end_date = $('#end_date').val();
             d.status = ltkStatus;
             d.scope = ltkScope;
+            d.user_id = ltkScope === 'all' ? $('#ltkUser').val() : '';
           },
           dataSrc: function(json) {
             $('#ltkRecordCount').text((json.recordsFiltered || 0) + ' records');
@@ -389,9 +407,9 @@
         clearTimeout(searchTimer);
         searchTimer = setTimeout(function() { table.draw(); }, 350);
       });
-      $('#start_date, #end_date').on('change', function() { syncExport(); table.draw(); });
+      $('#start_date, #end_date, #ltkUser').on('change', function() { syncExport(); table.draw(); });
       $('#ltkReset').on('click', function() {
-        $('#ltkSearch, #start_date, #end_date').val('');
+        $('#ltkSearch, #start_date, #end_date, #ltkUser').val('');
         $('.ltk-tab').removeClass('is-active').first().addClass('is-active');
         ltkStatus = '';
         syncExport();
@@ -400,7 +418,7 @@
 
       // Export uses the current status and dates.
       function syncExport() {
-        var params = $.param({ scope: ltkScope, status: ltkStatus, start_date: $('#start_date').val(), end_date: $('#end_date').val() });
+        var params = $.param({ scope: ltkScope, status: ltkStatus, start_date: $('#start_date').val(), end_date: $('#end_date').val(), user_id: ltkScope === 'all' ? $('#ltkUser').val() : '' });
         $('#ltkExport').attr('href', "{{ route('tasks-exportTasks') }}?" + params);
       }
 
