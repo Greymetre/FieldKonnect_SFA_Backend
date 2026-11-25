@@ -32,6 +32,9 @@
     .ltk-search { position: relative; }
     .ltk-search .material-icons { position: absolute; left: 10px; bottom: 10px; font-size: 18px; color: var(--fk-list-muted); }
     .ltk-search .form-control { padding-left: 34px; }
+    .ltk-date-field { position: relative; }
+    .ltk-date-field .form-control { padding-right: 38px; cursor: pointer; }
+    .ltk-date-icon { position: absolute; right: 11px; bottom: 10px; font-size: 18px; color: var(--fk-list-muted); pointer-events: none; }
     .ltk-filters.is-mine { grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr)) auto; }
     .ltk-filters.is-mine .ltk-user-field { display: none; }
     .ltk-field select.form-control option { background: var(--fk-list-panel, #0b1736); color: var(--fk-list-text); }
@@ -165,13 +168,15 @@
           @endforeach
         </select>
       </div>
-      <div class="ltk-field">
+      <div class="ltk-field ltk-date-field">
         <label for="start_date">Due from</label>
-        <input type="date" class="form-control" id="start_date">
+        <input type="text" class="form-control ltk-date" id="start_date" placeholder="Any date" autocomplete="off">
+        <span class="material-icons ltk-date-icon">event</span>
       </div>
-      <div class="ltk-field">
+      <div class="ltk-field ltk-date-field">
         <label for="end_date">Due to</label>
-        <input type="date" class="form-control" id="end_date">
+        <input type="text" class="form-control ltk-date" id="end_date" placeholder="Any date" autocomplete="off">
+        <span class="material-icons ltk-date-icon">event</span>
       </div>
       <div>
         <button type="button" class="ltk-btn" id="ltkReset"><span class="material-icons">restart_alt</span>Reset</button>
@@ -245,6 +250,8 @@
     </div>
   </div>
 
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
   <script>
     function ltkEsc(value) {
       return $('<div>').text(value == null ? '' : String(value)).html();
@@ -285,6 +292,30 @@
         }
         if (params.get('scope') === 'all') setScope('all');
       })();
+
+      // Themed calendar for Due from / Due to (the browser's own picker can't be styled).
+      // Value stays YYYY-MM-DD for the API; the box shows "25 Nov 2026".
+      var ltkDateOpts = {
+        dateFormat: 'Y-m-d', altInput: true, altFormat: 'd M Y', allowInput: false, disableMobile: true, monthSelectorType: 'static',
+        // Clear / Today footer, like the browser picker had.
+        onReady: function(selected, value, fp) {
+          var $foot = $('<div class="fk-fp-foot"><button type="button" data-fp="clear">Clear</button><button type="button" data-fp="today">Today</button></div>');
+          $foot.on('click', 'button', function() {
+            if ($(this).data('fp') === 'clear') fp.clear();
+            else fp.setDate(new Date(), true);
+            fp.close();
+          });
+          $(fp.calendarContainer).append($foot);
+        }
+      };
+      var ltkFrom = flatpickr('#start_date', $.extend({}, ltkDateOpts, {
+        onChange: function(dates) { ltkTo.set('minDate', dates[0] || null); }
+      }));
+      var ltkTo = flatpickr('#end_date', $.extend({}, ltkDateOpts, {
+        onChange: function(dates) { ltkFrom.set('maxDate', dates[0] || null); }
+      }));
+      if (ltkFrom.selectedDates[0]) ltkTo.set('minDate', ltkFrom.selectedDates[0]);
+      if (ltkTo.selectedDates[0]) ltkFrom.set('maxDate', ltkTo.selectedDates[0]);
 
       function setScope(scope) {
         ltkScope = scope === 'mine' ? 'mine' : 'all';
@@ -409,7 +440,9 @@
       });
       $('#start_date, #end_date, #ltkUser').on('change', function() { syncExport(); table.draw(); });
       $('#ltkReset').on('click', function() {
-        $('#ltkSearch, #start_date, #end_date, #ltkUser').val('');
+        $('#ltkSearch, #ltkUser').val('');
+        ltkFrom.clear(); ltkTo.clear();
+        ltkFrom.set('maxDate', null); ltkTo.set('minDate', null);
         $('.ltk-tab').removeClass('is-active').first().addClass('is-active');
         ltkStatus = '';
         syncExport();

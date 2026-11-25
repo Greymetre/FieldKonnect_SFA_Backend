@@ -56,6 +56,17 @@ class LeadTasksController extends Controller
         return $query;
     }
 
+    /** Due date range; either end may be left empty. */
+    private function applyDateFilter($query, Request $request): void
+    {
+        if ($request->filled('start_date')) {
+            $query->whereDate('lead_tasks.date', '>=', $request->start_date);
+        }
+        if ($request->filled('end_date')) {
+            $query->whereDate('lead_tasks.date', '<=', $request->end_date);
+        }
+    }
+
     /** Tasks assigned to one user (only within the "All tasks" view). */
     private function applyUserFilter($query, Request $request): void
     {
@@ -86,9 +97,7 @@ class LeadTasksController extends Controller
                     ->orWhereHas('assignUser', fn ($subQuery) => $subQuery->where('name', 'like', '%'.$search.'%'));
             });
         }
-        if ($request->filled('start_date') && $request->filled('end_date')) {
-            $lead_tasks->whereBetween('lead_tasks.date', [$request->start_date, $request->end_date]);
-        }
+        $this->applyDateFilter($lead_tasks, $request);
         $this->applyUserFilter($lead_tasks, $request);
 
         // Counts for the status tabs (same filters, without the status filter).
@@ -154,9 +163,7 @@ class LeadTasksController extends Controller
 
         $lead_tasks = $this->visibleTasks($request->input('scope'))->with(['lead', 'createdby', 'assignUser']);
         $this->applyStatusFilter($lead_tasks, $request->status);
-        if ($request->filled('start_date') && $request->filled('end_date')) {
-            $lead_tasks->whereBetween('lead_tasks.date', [$request->start_date, $request->end_date]);
-        }
+        $this->applyDateFilter($lead_tasks, $request);
         $this->applyUserFilter($lead_tasks, $request);
         $lead_tasks = $lead_tasks->orderByRaw("
                 CASE 
