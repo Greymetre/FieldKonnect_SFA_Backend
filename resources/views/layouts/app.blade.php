@@ -14,6 +14,7 @@
     <!-- CSS Files -->
     <link href="{{ asset('assets/css/materialdashboard2.css?v=' . now()->timestamp) }}" rel="stylesheet" />
     <link href="{{ asset('assets/css/newdesign.css?v=' . now()->timestamp) }}" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css" rel="stylesheet" />
     <link href="{{ asset('assets/css/custom1.css?v=' . now()->timestamp) }}" rel="stylesheet" />
     <!-- CSS Just for demo purpose, don't include it in your project -->
     <link href="{{ asset('assets/demo/demo.css?v=' . now()->timestamp) }}" rel="stylesheet" />
@@ -28,6 +29,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-fileinput/5.5.2/js/fileinput.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.3/jquery-ui.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.30.1/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -5140,6 +5142,8 @@
         })();
     </script>
     @endauth
+    {{-- Themed calendar for every date / datetime field in the CRM --}}
+    <script src="{{ asset('assets/js/fk-datepicker.js?v=' . now()->timestamp) }}"></script>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-8D1DXGE6Z6"></script>
     <script>
