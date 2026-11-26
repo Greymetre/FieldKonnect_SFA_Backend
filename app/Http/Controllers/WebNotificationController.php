@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\LeadOpportunity;
 use App\Models\LeadTask;
 use App\Models\Notification;
 use Illuminate\Http\JsonResponse;
@@ -113,6 +114,12 @@ class WebNotificationController extends Controller
             return $leadId ? route('leads.show', $leadId) : url('lead-tasks');
         }
 
+        // Opportunities have no page of their own; they are listed on their lead's page.
+        if ($model === 'opportunity' && $id) {
+            $leadId = LeadOpportunity::whereKey($id)->value('lead_id');
+            return $leadId ? route('leads.show', $leadId) : url('lead-opportunities');
+        }
+
         // No single record (bulk assign, import, older notifications): open the matching list.
         if (! $id) {
             if ($model === 'lead' || $title === 'assigned lead' || str_contains($message, 'new lead') || str_contains($message, 'leads have been assigned')) {
@@ -137,7 +144,6 @@ class WebNotificationController extends Controller
             'expense', 'expense_management' => route('expenses.show', $id),
             'lead' => route('leads.show', $id),
             'task_management' => route('tasks.show', $id),
-            'opportunity' => route('lead-opportunities.show', $id),
             'customer', 'distributor' => route('customers.show', $id),
             'attendance' => url('attendances?notification_id=' . $id),
             default => route('web-notifications.page'),
