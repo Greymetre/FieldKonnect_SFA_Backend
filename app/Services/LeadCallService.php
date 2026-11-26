@@ -125,8 +125,10 @@ class LeadCallService
                 ? ['Call back '.$contactName]
                 : collect($channels)->map(fn ($channel) => 'Send details on '.$channelNames[$channel].' to '.$contactName)->all();
             $assignee = $callLog->user_id ?: $by->id;
+            $kind = $isCallBack ? LeadTask::KIND_CALL_BACK : LeadTask::KIND_SEND_DETAILS;
             foreach ($descriptions as $description) {
                 $task = LeadTask::create([
+                    'kind' => $kind,
                     'lead_id' => $callLog->lead_id,
                     'assigned_to' => $assignee,
                     'created_by' => $by->id,

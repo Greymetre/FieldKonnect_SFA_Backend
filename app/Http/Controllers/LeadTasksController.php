@@ -77,7 +77,10 @@ class LeadTasksController extends Controller
 
     private function applyStatusFilter($query, ?string $status): void
     {
-        if ($status === 'overdue') {
+        if ($status === 'follow_up') {
+            // Follow-ups tab: auto-created follow-up tasks, any status.
+            $query->where('lead_tasks.kind', LeadTask::KIND_FOLLOW_UP);
+        } elseif ($status === 'overdue') {
             $query->where('lead_tasks.status', '!=', 'completed')->where('lead_tasks.date', '<', now()->toDateString());
         } elseif ($status) {
             $query->where('lead_tasks.status', $status);
@@ -86,7 +89,7 @@ class LeadTasksController extends Controller
 
     public function getLeadTasks(Request $request)
     {
-        $lead_tasks = $this->visibleTasks($request->input('scope'))->with(['lead:id,company_name,external_lead_id', 'assignUser:id,name']);
+        $lead_tasks = $this->visibleTasks($request->input('scope'))->with(['lead:id,company_name,external_lead_id', 'assignUser:id,name', 'parentTask:id,description,completed_at']);
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -105,6 +108,7 @@ class LeadTasksController extends Controller
         $statusCounts = (clone $countsBase)->toBase()->reorder()
             ->selectRaw('lead_tasks.status, COUNT(*) as total')->groupBy('lead_tasks.status')->pluck('total', 'status');
         $overdueCount = (clone $countsBase)->where('lead_tasks.status', '!=', 'completed')->where('lead_tasks.date', '<', now()->toDateString())->count();
+        $followUpCount = (clone $countsBase)->where('lead_tasks.kind', LeadTask::KIND_FOLLOW_UP)->count();
 
         $this->applyStatusFilter($lead_tasks, $request->status);
 
@@ -137,6 +141,9 @@ class LeadTasksController extends Controller
                 $due = \Carbon\Carbon::parse($task->date)->startOfDay();
                 return $due->lt($today) ? $due->diffInDays($today) : 0;
             })
+            ->addColumn('is_follow_up', fn ($task) => $task->isFollowUp())
+            ->addColumn('parent_title', fn ($task) => $task->parentTask ? trim(html_entity_decode(strip_tags((string) $task->parentTask->description))) : null)
+            ->addColumn('parent_done', fn ($task) => $task->parentTask?->completed_at?->format('d M Y'))
             ->addColumn('seen', fn ($task) => $task->seen_at?->format('d M, h:i A'))
             ->addColumn('opened', fn ($task) => $task->opened_at?->format('d M, h:i A') ?? ($task->open_date ? date('d M', strtotime($task->open_date)) : null))
             ->addColumn('completed', fn ($task) => $task->completed_at?->format('d M, h:i A') ?? ($task->status === 'completed' && $task->close_date ? date('d M', strtotime($task->close_date)) : null))
@@ -148,6 +155,7 @@ class LeadTasksController extends Controller
                 'in_progress' => (int) ($statusCounts['in_progress'] ?? 0),
                 'completed' => (int) ($statusCounts['completed'] ?? 0),
                 'overdue' => $overdueCount,
+                'follow_up' => $followUpCount,
             ])
             ->escapeColumns([])
             ->make(true);

@@ -24,7 +24,9 @@ class LeadTask extends Model
         'seen_at',
         'opened_at',
         'completed_at',
-        'remark'
+        'remark',
+        'kind',
+        'parent_task_id',
     ];
 
     protected $casts = [
@@ -32,6 +34,79 @@ class LeadTask extends Model
         'opened_at' => 'datetime',
         'completed_at' => 'datetime',
     ];
+
+    /** What the task is for (null = manual task). */
+    public const KIND_SEND_DETAILS = 'send_details';
+    public const KIND_CALL_BACK = 'call_back';
+    public const KIND_FOLLOW_UP = 'follow_up';
+
+    /** Completing one of these creates a follow-up task this many days later. */
+    public const FOLLOW_UP_KINDS = [self::KIND_SEND_DETAILS];
+    public const FOLLOW_UP_AFTER_DAYS = 3;
+
+    protected static function booted(): void
+    {
+        // Any path that completes the task (web status change, edit form, app).
+        static::updated(function (LeadTask $task) {
+            if ($task->wasChanged('status') && $task->status === 'completed') {
+                $task->createFollowUp();
+            }
+        });
+    }
+
+    public function isFollowUp(): bool
+    {
+        return $this->kind === self::KIND_FOLLOW_UP;
+    }
+
+    /**
+     * Details were shared (WhatsApp / Email / LinkedIn): give the same agent a
+     * task to follow up with the contact FOLLOW_UP_AFTER_DAYS days later.
+     * Only once per task, even if it is re-opened and completed again.
+     */
+    public function createFollowUp(): ?self
+    {
+        if (! in_array($this->kind, self::FOLLOW_UP_KINDS, true) || ! $this->lead_id || ! $this->assigned_to
+            || static::where('parent_task_id', $this->id)->exists()) {
+            return null;
+        }
+
+        $due = now()->addDays(self::FOLLOW_UP_AFTER_DAYS);
+        $description = preg_match('/^Send details on (.+?) to (.+)$/i', (string) $this->description, $match)
+            ? 'Follow up with '.$match[2].' on the details sent on '.$match[1]
+            : 'Follow up: '.\Illuminate\Support\Str::limit(strip_tags((string) $this->description), 200);
+
+        $followUp = static::create([
+            'lead_id' => $this->lead_id,
+            'assigned_to' => $this->assigned_to,
+            'created_by' => $this->created_by ?: $this->assigned_to,
+            'description' => $description,
+            'date' => $due->toDateString(),
+            'time' => $this->time ?: '11:00:00',
+            'priority' => $this->priority ?: 'high',
+            'status' => 'pending',
+            'kind' => self::KIND_FOLLOW_UP,
+            'parent_task_id' => $this->id,
+        ]);
+
+        LeadLog::create([
+            'lead_id' => $this->lead_id,
+            'message' => 'Follow-up task created for '.$due->format('d M Y').': '.$description,
+            'created_by' => $this->assigned_to,
+        ]);
+
+        $msg = '🔁 '.$description.' — follow-up due on '.$due->format('d M').'.';
+        SendPushNotification($this->assigned_to, $msg, 'task');
+        StoreLeadNotification($followUp->id, 'Follow-up Task', $msg, $this->assigned_to, 'task');
+
+        return $followUp;
+    }
+
+    /** The task this follow-up was created from. */
+    public function parentTask()
+    {
+        return $this->belongsTo(self::class, 'parent_task_id');
+    }
 
     public const STATUS_LABELS = [
         'pending' => 'Pending',

@@ -24,6 +24,10 @@
     .ltk-tab[data-status="in_progress"] .ltk-dot { color: #a78bfa; }
     .ltk-tab[data-status="completed"] .ltk-dot { color: #10b981; }
     .ltk-tab[data-status="overdue"] .ltk-dot { color: #ef4444; }
+    .ltk-tab[data-status="follow_up"] .material-icons { font-size: 17px; color: #f472b6; }
+    .ltk-followup-chip { display: inline-flex; align-items: center; gap: 3px; margin: 0 0 4px; padding: 2px 8px; border-radius: 20px; background: rgba(244, 114, 182, .14); color: #f472b6; font-size: 11px; font-weight: 600; }
+    .ltk-followup-chip .material-icons { font-size: 13px; }
+    .ltk-followup-of { display: block; margin-top: 4px; font-size: 12px; color: var(--fk-list-muted); }
 
     /* Filters */
     .ltk-filters { display: grid; grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr)) auto; gap: 12px; align-items: end; padding: 14px 18px; margin-bottom: 16px; }
@@ -151,6 +155,7 @@
       <button type="button" class="ltk-tab" data-status="in_progress"><span class="ltk-dot"></span>In Progress <b data-count="in_progress">0</b></button>
       <button type="button" class="ltk-tab" data-status="completed"><span class="ltk-dot"></span>Completed <b data-count="completed">0</b></button>
       <button type="button" class="ltk-tab" data-status="overdue"><span class="ltk-dot"></span>Overdue <b data-count="overdue">0</b></button>
+      <button type="button" class="ltk-tab" data-status="follow_up" title="Created automatically {{ \App\Models\LeadTask::FOLLOW_UP_AFTER_DAYS }} days after details were shared"><span class="material-icons">replay</span>Follow-ups <b data-count="follow_up">0</b></button>
     </div>
 
     <div class="ltk-panel ltk-filters is-mine" id="ltkFilters">
@@ -361,7 +366,11 @@
                 ? '<a class="ltk-task-lead" href="' + ltkEsc(row.lead_url) + '"><span class="material-icons">business</span>' + ltkEsc(row.company) + (row.lead_code ? ' <small>· ' + ltkEsc(row.lead_code) + '</small>' : '') + '</a>'
                 : '';
               var remark = row.remark ? '<span class="ltk-remark">"' + ltkEsc(row.remark) + '"</span>' : '';
-              return '<span class="ltk-task-title">' + ltkEsc(text || 'Untitled task') + '</span>' + lead + remark;
+              var followUp = row.is_follow_up ? '<span class="ltk-followup-chip"><span class="material-icons">replay</span>Follow-up</span>' : '';
+              var followUpOf = row.is_follow_up && row.parent_title
+                ? '<span class="ltk-followup-of">After: ' + ltkEsc(row.parent_title) + (row.parent_done ? ' (done ' + ltkEsc(row.parent_done) + ')' : '') + '</span>'
+                : '';
+              return followUp + '<span class="ltk-task-title">' + ltkEsc(text || 'Untitled task') + '</span>' + lead + followUpOf + remark;
             }
           },
           {

@@ -1159,6 +1159,10 @@ class LeadController extends Controller
                 if ($request->status_id && !empty($request->status_id)) {
                     $tasks->where('status', $request->status_id);
                 }
+                // Follow-ups tab: tasks auto-created after details were shared.
+                if ($request->input('kind') === LeadTask::KIND_FOLLOW_UP) {
+                    $tasks->where('kind', LeadTask::KIND_FOLLOW_UP);
+                }
                 // Opened from a lead activity entry.
                 if (!empty($request->task_id)) {
                     $tasks->where('id', $request->task_id);
@@ -1189,6 +1193,9 @@ class LeadController extends Controller
                 }
                 if ($request->status_id && !empty($request->status_id)) {
                     $tasks->where('status', $request->status_id);
+                }
+                if ($request->input('kind') === LeadTask::KIND_FOLLOW_UP) {
+                    $tasks->where('kind', LeadTask::KIND_FOLLOW_UP);
                 }
                 // Opened from a lead activity entry.
                 if (!empty($request->task_id)) {
