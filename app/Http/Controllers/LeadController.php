@@ -294,7 +294,7 @@ class LeadController extends Controller
         $leads = Lead::with([
             'contacts' => fn ($query) => $query->orderBy('id'),
             'opportunities', 'tasks', 'notes', 'assign_user', 'createdby', 'status_is',
-            'address.pincodename', 'address.cityname', 'address.districtname',
+            'address.pincodename', 'address.cityname', 'address.districtname', 'address.statename',
         ]);
         if (!Auth::user()->hasRole('superadmin') && !Auth::user()->hasRole('Admin')) {
             $user_ids = getUsersReportingToAuth();
@@ -424,11 +424,17 @@ class LeadController extends Controller
                     $contact?->title ?? '',
                     $contact?->phone_number ?? '',
                     $contact?->email ?? '',
-                    $contact?->lead_source ?? '',
+                    $contact?->url ?? '',          // Contact URL (LinkedIn profile)
+                    $contact?->lead_source ?: ($item->lead_source ?? ''),
+                    $item->company_url ?? '',      // Website
+                    $item->alternate_number ?? '',
+                    $item->revenue_rs_cr ?? '',
                     $item->location_address ?? 'N/A',
                     $address?->pincodename?->pincode ?? '',
+                    $address?->address2 ?? '',     // Place
                     $address?->cityname?->city_name ?? '',
                     $address?->districtname?->district_name ?? '',
+                    $address?->statename?->state_name ?? '',
                     // Same name the import accepts back (Lead Type filter label).
                     $item->status_is?->display_name ?: ($item->status_is?->status_name ?? ''),
                     $address?->address1 ?? '',
@@ -468,11 +474,17 @@ class LeadController extends Controller
             'Designation',
             'Customer Number',
             'Email',
+            'Contact URL',
             'Lead Source',
+            'Website',
+            'Alternet Number',
+            'Revenue (Rs Cr)',
             'On Location',
             'Pincode',
+            'Place',
             'City',
             'District',
+            'State',
             'Lead Type',
             'Address',
             'Assignee',
