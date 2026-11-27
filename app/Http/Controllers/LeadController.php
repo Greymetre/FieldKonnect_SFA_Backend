@@ -429,7 +429,8 @@ class LeadController extends Controller
                     $address?->pincodename?->pincode ?? '',
                     $address?->cityname?->city_name ?? '',
                     $address?->districtname?->district_name ?? '',
-                    $item->status_is?->status_name ?? 'Pending',
+                    // Same name the import accepts back (Lead Type filter label).
+                    $item->status_is?->display_name ?: ($item->status_is?->status_name ?? ''),
                     $address?->address1 ?? '',
                     $item->assign_user?->name ?? '',
                     $callStatus, // Lead Status = latest call status
@@ -1245,10 +1246,11 @@ class LeadController extends Controller
         }
 
         return redirect()->route('leads.index')->with('message_success', sprintf(
-            'Import complete: %d new leads created, %d existing leads updated (%d re-assigned).',
+            'Import complete: %d new leads created, %d existing leads updated (%d re-assigned), %d existing leads had no changes.',
             $import->createdLeads,
             $import->updatedLeads,
-            $import->reassignedLeads
+            $import->reassignedLeads,
+            $import->unchangedLeads
         ));
     }
 
